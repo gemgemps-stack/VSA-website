@@ -933,7 +933,7 @@ const Orders = () => {
                       </div>
                     ) : null}
 
-                    <p className="order-status-prompt">Full payment paid?</p>
+                    <p className="order-status-prompt">Full amount paid?</p>
                     <div className="order-status-buttons">
                       <button
                         type="button"
