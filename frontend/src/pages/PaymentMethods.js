@@ -165,7 +165,7 @@ const PaymentMethods = () => {
                       )}
 
                       <div className="payment-detail">
-                        <label>Total Price From Orders:</label>
+                        <label>Total Income From Orders:</label>
                         <p>PHP {getTotalByMethod(method).toFixed(2)}</p>
                       </div>
 

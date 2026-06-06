@@ -541,13 +541,75 @@
 .order-details-panel {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
+}
+
+.order-details-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #dfe7e3;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
+}
+
+.order-details-topbar-title span {
+  font-size: 18px;
+  font-weight: 800;
+  color: #20150d;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.order-details-topbar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.order-details-topbar-title strong {
+  color: #016667;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.order-details-topbar-status,
+.order-details-topbar-date {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.order-details-topbar-status span,
+.order-details-topbar-date span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6e645a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.order-details-topbar .order-status-badge {
+  padding: 6px 12px;
+}
+
+.order-details-topbar-date strong {
+  color: #016667;
+  font-weight: 700;
 }
 
 .order-details-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.order-details-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .order-details-grid > div {
@@ -591,6 +653,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: center;
+  text-align: center;
 }
 
 .order-status-actions.success {
@@ -606,8 +670,20 @@
 
 .order-status-buttons {
   display: flex;
-  gap: 12px;
+  gap: 18px;
   flex-wrap: wrap;
+  justify-content: center;
+}
+
+.order-status-actions .form-group {
+  width: 50%;
+  min-width: 240px;
+  align-self: center;
+  text-align: left;
+}
+
+.order-status-actions .form-group label {
+  text-align: left;
 }
 
 .status-btn {
@@ -662,8 +738,34 @@
     grid-template-columns: 1fr;
   }
 
+  .order-details-topbar {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .order-details-topbar-status,
+  .order-details-topbar-date {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .order-details-grid > div {
+    padding: 12px 14px;
+  }
+
   .orders-filter-bar {
     gap: 8px;
+  }
+}
+
+@media (max-width: 1200px) and (min-width: 769px) {
+  .order-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .order-details-grid-two,
+  .order-details-grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

@@ -29,11 +29,19 @@
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 40px);
 }
 
 .modal-large {
   width: 75vw;
   max-width: 1200px;
+}
+
+.modal-xlarge {
+  width: 92vw;
+  max-width: 1500px;
 }
 
 @keyframes slideUp {
@@ -83,18 +91,28 @@
 
 .modal-body {
   padding: 20px;
-  max-height: 60vh;
+  max-height: 70vh;
   overflow-y: auto;
+  flex: 1;
 }
 
 .modal-large .modal-body {
-  max-height: 70vh;
+  max-height: 78vh;
+}
+
+.modal-xlarge .modal-body {
+  max-height: 82vh;
 }
 
 @media (max-width: 900px) {
   .modal-large {
     width: 92%;
     max-width: 92%;
+  }
+
+  .modal-xlarge {
+    width: 94%;
+    max-width: 94%;
   }
 }
 

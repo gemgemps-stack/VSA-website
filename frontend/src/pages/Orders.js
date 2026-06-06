@@ -57,6 +57,35 @@ const getInventoryLabel = (item) => {
   return `${typeLabel} - ${item.name}`;
 };
 
+const getRetailDetails = (orderRetail) => {
+  const parts = (orderRetail || '').split(' - ').map((part) => part.trim()).filter(Boolean);
+  const [itemType = '', jerseyType = '', itemName = ''] = parts;
+
+  return {
+    itemType: itemType || '-',
+    jerseyType: itemType.toLowerCase() === 'jersey' ? (jerseyType || '-') : '-',
+    itemName: itemName || '',
+  };
+};
+
+const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
+
+const getOrderFinancials = (order) => {
+  const quantity = Number(order?.quantity) || 0;
+  const unitPrice = Number(order?.price) || 0;
+  const discountPercent = Number(order?.discount) || 0;
+  const downPayment = Number(order?.downPayment) || 0;
+  const total = unitPrice * quantity;
+  const afterDiscountTotal = total * (1 - discountPercent / 100);
+  const remainingAfterDownPayment = afterDiscountTotal - downPayment;
+
+  return {
+    total,
+    afterDiscountTotal,
+    remainingAfterDownPayment,
+  };
+};
+
 const createInitialFormData = () => ({
   clientId: '',
   teamName: '',
@@ -532,8 +561,6 @@ const Orders = () => {
     { key: 'jobOrderNo', label: 'Job Order No' },
     { key: 'clientName', label: 'Client Name' },
     { key: 'teamName', label: 'Team Name' },
-    { key: 'quantity', label: 'Quantity' },
-    { key: 'price', label: 'Price' },
     {
       key: 'status',
       label: 'Status',
@@ -839,39 +866,109 @@ const Orders = () => {
 
           <Modal
             isOpen={detailsOpen}
-            title={selectedOrder ? `Order Details - ${selectedOrder.jobOrderNo}` : 'Order Details'}
+            title="Order Details"
             onClose={closeDetails}
             cancelText="Close"
+            size="xlarge"
           >
             {selectedOrder && (
               <div className="order-details-panel">
-                <div className="order-details-grid">
-                  <div>
-                    <span>Client</span>
-                    <strong>{selectedOrder.clientName}</strong>
-                  </div>
-                  <div>
-                    <span>Shop</span>
-                    <strong>{selectedOrder.shop}</strong>
-                  </div>
-                  <div>
-                    <span>Mode of Payment</span>
-                    <strong>{selectedOrder.modeOfPayment}</strong>
-                  </div>
-                  <div>
-                    <span>Status</span>
-                    <strong>{getStatusLabel(selectedOrder.status)}</strong>
-                  </div>
-                </div>
+                {(() => {
+                  const retailDetails = getRetailDetails(selectedOrder.orderRetail);
+                  const financials = getOrderFinancials(selectedOrder);
 
-                <div className="order-details-summary">
-                  <p>
-                    Total: <strong>PHP {((Number(selectedOrder.price) || 0) * (Number(selectedOrder.quantity) || 0)).toFixed(2)}</strong>
-                  </p>
-                  <p>
-                    Down Payment: <strong>PHP {(Number(selectedOrder.downPayment) || 0).toFixed(2)}</strong>
-                  </p>
-                </div>
+                  return (
+                    <>
+                      <div className="order-details-topbar">
+                        <div className="order-details-topbar-title">
+                          <span>Job Order Number</span>
+                          <strong>{selectedOrder.jobOrderNo}</strong>
+                        </div>
+                        <div className="order-details-topbar-status">
+                          <span>Status</span>
+                          <strong className="order-status-badge" data-status={selectedOrder.status}>
+                            {getStatusLabel(selectedOrder.status)}
+                          </strong>
+                        </div>
+                        <div className="order-details-topbar-date">
+                          <span>Order Date</span>
+                          <strong>{selectedOrder.orderDate || '-'}</strong>
+                        </div>
+                      </div>
+
+                      <div className="order-details-grid order-details-grid-two">
+                        <div>
+                          <span>Client</span>
+                          <strong>{selectedOrder.clientName}</strong>
+                        </div>
+                        <div>
+                          <span>Team Name</span>
+                          <strong>{selectedOrder.teamName || '-'}</strong>
+                        </div>
+                      </div>
+
+                      <div className="order-details-grid order-details-grid-three">
+                        <div>
+                          <span>Item Type</span>
+                          <strong>{retailDetails.itemType}</strong>
+                        </div>
+                        <div>
+                          <span>Jersey Type</span>
+                          <strong>{retailDetails.jerseyType}</strong>
+                        </div>
+                        <div>
+                          <span>Unit Price</span>
+                          <strong>{formatMoney(selectedOrder.price)}</strong>
+                        </div>
+                      </div>
+
+                      <div className="order-details-grid order-details-grid-three">
+                        <div>
+                          <span>Quantity</span>
+                          <strong>{selectedOrder.quantity ?? '-'}</strong>
+                        </div>
+                        <div>
+                          <span>Discount</span>
+                          <strong>{Number(selectedOrder.discount || 0).toFixed(2)}%</strong>
+                        </div>
+                        <div>
+                          <span>Down Payment</span>
+                          <strong>{formatMoney(selectedOrder.downPayment)}</strong>
+                        </div>
+                      </div>
+
+                      <div className="order-details-grid order-details-grid-three">
+                        <div>
+                          <span>Total Amount</span>
+                          <strong>{formatMoney(financials.total)}</strong>
+                        </div>
+                        <div>
+                          <span>Total amount After Discount</span>
+                          <strong>{formatMoney(financials.afterDiscountTotal)}</strong>
+                        </div>
+                        <div>
+                          <span>Total Remaining After Down Payment</span>
+                          <strong>{formatMoney(financials.remainingAfterDownPayment)}</strong>
+                        </div>
+                      </div>
+
+                      <div className="order-details-grid order-details-grid-three">
+                        <div>
+                          <span>Shop</span>
+                          <strong>{selectedOrder.shop}</strong>
+                        </div>
+                        <div>
+                          <span>Mode of Payment</span>
+                          <strong>{selectedOrder.modeOfPayment}</strong>
+                        </div>
+                        <div>
+                          <span>Freebie</span>
+                          <strong>{selectedOrder.freebie || '-'}</strong>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {(selectedOrder.status === ORDER_STATUS.FOR_CLIENT_APPROVAL ||
                   selectedOrder.status === ORDER_STATUS.NOT_APPROVED ||
@@ -899,7 +996,7 @@ const Orders = () => {
 
                 {selectedOrder.status === ORDER_STATUS.DOWN_PAYMENT_PENDING && (
                   <div className="order-status-actions">
-                    <p className="order-status-prompt">Down amount paid?</p>
+                    <p className="order-status-prompt">Deposit paid?</p>
                     <div className="order-status-buttons">
                       <button
                         type="button"
@@ -935,7 +1032,7 @@ const Orders = () => {
                       </div>
                     ) : null}
 
-                    <p className="order-status-prompt">Full amount paid?</p>
+                    <p className="order-status-prompt">Full Payment Complete?</p>
                     <div className="order-status-buttons">
                       <button
                         type="button"

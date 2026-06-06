@@ -8,6 +8,19 @@ import inventoryService from '../services/inventoryService';
 const ITEM_TYPE_OPTIONS = ['Jersey', 'Polo Shirt', 'Chinese Collar', 'Ready Made'];
 const INITIAL_PAGE_SIZE = 100;
 
+const formatDateCreated = (value) => {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString();
+};
+
 const Inventory = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -124,6 +137,11 @@ const Inventory = () => {
     { key: 'name', label: 'Name' },
     { key: 'quantity', label: 'Quantity' },
     { key: 'price', label: 'Price' },
+    {
+      key: 'createdAt',
+      label: 'Date Created',
+      render: (value) => formatDateCreated(value),
+    },
   ];
 
   return (
