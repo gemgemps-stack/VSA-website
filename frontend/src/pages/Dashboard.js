@@ -18,7 +18,6 @@ const Dashboard = () => {
     totalInventory: 0,
     totalIncome: 0,
   });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadStats();
@@ -26,7 +25,6 @@ const Dashboard = () => {
 
   const loadStats = async () => {
     try {
-      setLoading(true);
       const [ordersRes, clientsRes, inventoryRes, incomeRes] = await Promise.all([
         orderService.getAllOrders(0, 1).catch(() => ({ data: { content: [] } })),
         clientService.getAllClients(0, 1).catch(() => ({ data: { content: [] } })),
@@ -42,16 +40,6 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error('Error loading stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNavigate = (path, permission) => {
-    if (user?.role === 'ADMIN' || user?.permissions?.some(p => p.pageName === permission)) {
-      navigate(path);
-    } else {
-      alert('You do not have access to this page');
     }
   };
 

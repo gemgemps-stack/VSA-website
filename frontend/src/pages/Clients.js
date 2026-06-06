@@ -4,6 +4,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import PermissionGuard from '../components/PermissionGuard';
 import clientService from '../services/clientService';
+import { useCallback } from 'react';
 
 const formatPhoneNumber = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -27,11 +28,7 @@ const Clients = () => {
     notes: '',
   });
 
-  useEffect(() => {
-    loadClients();
-  }, [currentPage]);
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       setLoading(true);
       const response = await clientService.getAllClients(currentPage - 1, 10);
@@ -43,7 +40,11 @@ const Clients = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
 
   const handleEdit = (client) => {
     setEditingClient(client);

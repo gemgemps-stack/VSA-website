@@ -3,6 +3,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import userService from '../services/userService';
+import { useCallback } from 'react';
 
 const RegisteredUsers = () => {
   const [users, setUsers] = useState([]);
@@ -15,11 +16,7 @@ const RegisteredUsers = () => {
 
   const permissionOptions = ['ORDERS', 'INVENTORY', 'CLIENTS', 'SOURCE_OF_INCOME'];
 
-  useEffect(() => {
-    loadUsers();
-  }, [currentPage]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await userService.getAllUsers(currentPage - 1, 10);
@@ -31,7 +28,11 @@ const RegisteredUsers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const handleDeleteUser = async (id) => {
     try {

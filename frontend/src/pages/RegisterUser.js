@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import Modal from '../components/Modal';
 import userService from '../services/userService';
 
 const RegisterUser = () => {
-  const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
@@ -26,7 +24,6 @@ const RegisterUser = () => {
         role: 'EMPLOYEE',
         salary: '',
       });
-      setModalOpen(false);
     } catch (error) {
       console.error('Error registering user:', error);
       alert(error.response?.data?.message || 'Failed to register user');

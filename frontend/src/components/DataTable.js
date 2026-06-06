@@ -19,7 +19,7 @@ const DataTable = ({
   if (!data || data.length === 0) {
     return <div className="no-data">No active orders found</div>;
   }
-https://github.com/gemgemps-stack/VSA-website
+
   return (
     <div className="datatable-container">
       <table className="datatable">
