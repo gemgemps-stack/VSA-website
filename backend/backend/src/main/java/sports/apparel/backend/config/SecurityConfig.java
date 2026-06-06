@@ -1,5 +1,6 @@
 package sports.apparel.backend.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,7 @@ import sports.apparel.backend.security.JwtAuthenticationFilter;
 import sports.apparel.backend.security.JwtProvider;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -30,6 +32,9 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtProvider jwtProvider;
+
+    @Value("${app.cors.origins:http://localhost:3000,http://localhost:5173}")
+    private String corsOrigins;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService, JwtProvider jwtProvider) {
         this.userDetailsService = userDetailsService;
@@ -81,9 +86,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        
+        // Parse comma-separated origins from environment variable
+        var allowedOrigins = Arrays.stream(corsOrigins.split(","))
+            .map(String::trim)
+            .collect(Collectors.toList());
+        
+        configuration.setAllowedOrigins(allowedOrigins);
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
