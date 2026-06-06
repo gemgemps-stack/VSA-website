@@ -955,7 +955,7 @@ const Orders = () => {
 
                 {selectedOrder.status === ORDER_STATUS.FULLY_PAID && (
                   <div className="order-status-actions success">
-                    <p className="order-status-prompt">This order is fully paid / complete.</p>
+                    <p className="order-status-prompt">This order is fully paid / completed.</p>
                   </div>
                 )}
 
