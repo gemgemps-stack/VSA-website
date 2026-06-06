@@ -1,24 +1,24 @@
 import api from './api';
 
 const inventoryService = {
-  createInventory: (inventoryData) => api.post('/inventory', inventoryData),
+  createInventory: (inventoryData) => api.post('/api/inventory', inventoryData),
 
   getAllInventory: (page = 0, size = 10) => 
-    api.get('/inventory', { params: { page, size } }),
+    api.get('/api/inventory', { params: { page, size } }),
 
-  getInventoryById: (id) => api.get(`/inventory/${id}`),
+  getInventoryById: (id) => api.get(`/api/inventory/${id}`),
 
   getInventoryByJerseyType: (jerseyType) => 
-    api.get(`/inventory/type/${jerseyType}`),
+    api.get(`/api/inventory/type/${jerseyType}`),
 
-  searchInventory: (name) => api.get('/inventory/search', { params: { name } }),
+  searchInventory: (name) => api.get('/api/inventory/search', { params: { name } }),
 
   getLowStockInventory: (threshold = 10) => 
-    api.get(`/inventory/low-stock/${threshold}`),
+    api.get(`/api/inventory/low-stock/${threshold}`),
 
-  updateInventory: (id, inventoryData) => api.put(`/inventory/${id}`, inventoryData),
+  updateInventory: (id, inventoryData) => api.put(`/api/inventory/${id}`, inventoryData),
 
-  deleteInventory: (id) => api.delete(`/inventory/${id}`),
+  deleteInventory: (id) => api.delete(`/api/inventory/${id}`),
 };
 
 export default inventoryService;

@@ -1,20 +1,20 @@
 import api from './api';
 
 const clientService = {
-  createClient: (clientData) => api.post('/clients', clientData),
+  createClient: (clientData) => api.post('/api/clients', clientData),
 
   getAllClients: (page = 0, size = 10) => 
-    api.get('/clients', { params: { page, size } }),
+    api.get('/api/clients', { params: { page, size } }),
 
-  getClientById: (id) => api.get(`/clients/${id}`),
+  getClientById: (id) => api.get(`/api/clients/${id}`),
 
-  getVipClients: () => api.get('/clients/vip'),
+  getVipClients: () => api.get('/api/clients/vip'),
 
-  searchClients: (name) => api.get('/clients/search', { params: { name } }),
+  searchClients: (name) => api.get('/api/clients/search', { params: { name } }),
 
-  updateClient: (id, clientData) => api.put(`/clients/${id}`, clientData),
+  updateClient: (id, clientData) => api.put(`/api/clients/${id}`, clientData),
 
-  deleteClient: (id) => api.delete(`/clients/${id}`),
+  deleteClient: (id) => api.delete(`/api/clients/${id}`),
 };
 
 export default clientService;

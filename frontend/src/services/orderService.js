@@ -1,28 +1,28 @@
 import api from './api';
 
 const orderService = {
-  createOrder: (orderData) => api.post('/orders', orderData),
+  createOrder: (orderData) => api.post('/api/orders', orderData),
 
   getAllOrders: (page = 0, size = 10) => 
-    api.get('/orders', { params: { page, size } }),
+    api.get('/api/orders', { params: { page, size } }),
 
-  getOrderById: (id) => api.get(`/orders/${id}`),
+  getOrderById: (id) => api.get(`/api/orders/${id}`),
 
   getOrderByJobOrderNo: (jobOrderNo) => 
-    api.get(`/orders/job-order-no/${jobOrderNo}`),
+    api.get(`/api/orders/job-order-no/${jobOrderNo}`),
 
   getOrdersByClientId: (clientId) => 
-    api.get(`/orders/client/${clientId}`),
+    api.get(`/api/orders/client/${clientId}`),
 
   getOrdersByDateRange: (startDate, endDate) => 
-    api.get('/orders/date-range', { params: { startDate, endDate } }),
+    api.get('/api/orders/date-range', { params: { startDate, endDate } }),
 
   getOrdersByYearAndMonth: (year, month) => 
-    api.get('/orders/year-month', { params: { year, month } }),
+    api.get('/api/orders/year-month', { params: { year, month } }),
 
-  updateOrder: (id, orderData) => api.put(`/orders/${id}`, orderData),
+  updateOrder: (id, orderData) => api.put(`/api/orders/${id}`, orderData),
 
-  deleteOrder: (id) => api.delete(`/orders/${id}`),
+  deleteOrder: (id) => api.delete(`/api/orders/${id}`),
 };
 
 export default orderService;
