@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #016667;
+  --secondary: #F4F7F8;
+  --accent: #D9B26F;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  font-family: 'Montserrat', sans-serif;
+}
+
+body {
+  background-color: var(--secondary);
+  color: #333;
+}
+
+.App {
+  height: 100%;
+}
+
+/* Common Button Styles */
+button {
+  font-family: 'Montserrat', sans-serif;
+}
+
+button:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Form Styles */
+input,
+select,
+textarea {
+  font-family: 'Montserrat', sans-serif;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Utility Classes */
+.access-denied {
+  padding: 40px;
+  text-align: center;
+  color: #e74c3c;
+  font-size: 18px;
+  background: white;
+  border-radius: 8px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+}

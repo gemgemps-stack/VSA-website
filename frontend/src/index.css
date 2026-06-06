@@ -1,0 +1,23 @@
+/* Import all component styles */
+@import url('./styles/Layout.css');
+@import url('./styles/Navbar.css');
+@import url('./styles/Sidebar.css');
+@import url('./styles/Login.css');
+@import url('./styles/Dashboard.css');
+@import url('./styles/DataTable.css');
+@import url('./styles/Modal.css');
+@import url('./styles/Pages.css');
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}

@@ -1,0 +1,136 @@
+/* DataTable Styles */
+.datatable-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.datatable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.datatable thead {
+  background-color: var(--primary, #016667);
+  color: white;
+}
+
+.datatable th {
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+.datatable td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.datatable tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.datatable tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-view,
+.btn-edit,
+.btn-delete {
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-view {
+  color: #3498db;
+  border-color: #3498db;
+}
+
+.btn-view:hover {
+  background-color: #ecf0f1;
+}
+
+.btn-edit {
+  color: var(--primary, #016667);
+  border-color: var(--primary, #016667);
+}
+
+.btn-edit:hover {
+  background-color: #ecf0f1;
+}
+
+.btn-delete {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.btn-delete:hover {
+  background-color: #fadbd8;
+}
+
+.loading,
+.no-data {
+  padding: 40px;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+}
+
+.loading {
+  background: white;
+  border-radius: 8px;
+}
+
+.no-data {
+  background: white;
+  border-radius: 8px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #eee;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  background-color: var(--primary, #016667);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #014849;
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: #666;
+  font-weight: 500;
+}

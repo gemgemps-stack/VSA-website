@@ -1,0 +1,78 @@
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import '../styles/Sidebar.css';
+
+const Sidebar = ({ isOpen, toggleSidebar }) => {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  const menuItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { path: '/orders', label: 'Orders', icon: '🛒', permission: 'ORDERS' },
+    { path: '/inventory', label: 'Inventory', icon: '📦', permission: 'INVENTORY' },
+    { path: '/clients', label: 'Clients', icon: '👥', permission: 'CLIENTS' },
+    { path: '/register-client', label: 'Register a Client', icon: '🧾', permission: 'CLIENTS' },
+  ];
+
+  const adminItems = [
+    { path: '/income', label: 'Source Income', icon: '💰' },
+    { path: '/payment-methods', label: 'Payment Methods', icon: '💳' },
+    { path: '/register-user', label: 'Register User', icon: '➕' },
+    { path: '/registered-users', label: 'Registered Users', icon: '👨‍💼' },
+    { path: '/employees', label: 'Employees', icon: '👔' },
+    { path: '/admins', label: 'Admins', icon: '🔑' },
+  ];
+
+  const canAccess = (permission) => {
+    if (!permission) return true;
+    return user?.role === 'ADMIN' || user?.permissions?.some(p => p.pageName === permission);
+  };
+
+  return (
+    <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <div className="sidebar-menu">
+        <div className="menu-section">
+          <ul>
+            {menuItems.map(item => 
+              canAccess(item.permission) && (
+                <li key={item.path}>
+                  <Link 
+                    to={item.path} 
+                    className={location.pathname === item.path ? 'active' : ''}
+                    onClick={toggleSidebar}
+                  >
+                    <span className="menu-icon">{item.icon}</span>
+                    <span className="menu-label">{item.label}</span>
+                  </Link>
+                </li>
+              )
+            )}
+          </ul>
+        </div>
+
+        {user?.role === 'ADMIN' && (
+          <div className="menu-section admin-section">
+            <h3 className="section-title">ADMIN</h3>
+            <ul>
+              {adminItems.map(item => (
+                <li key={item.path}>
+                  <Link 
+                    to={item.path} 
+                    className={location.pathname === item.path ? 'active' : ''}
+                    onClick={toggleSidebar}
+                  >
+                    <span className="menu-icon">{item.icon}</span>
+                    <span className="menu-label">{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;

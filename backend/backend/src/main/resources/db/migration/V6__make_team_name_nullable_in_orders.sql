@@ -1,0 +1,2 @@
+ALTER TABLE orders
+ALTER COLUMN team_name DROP NOT NULL;

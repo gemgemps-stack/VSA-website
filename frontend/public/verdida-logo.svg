@@ -1,0 +1,31 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Verdida Sports Apparel Logo</title>
+  <desc id="desc">Circular Verdida Sports Apparel emblem with a VDA monogram.</desc>
+  <defs>
+    <linearGradient id="bg" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#123D55"/>
+      <stop offset="1" stop-color="#0B2433"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="128" y1="112" x2="384" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D8E7F0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="248" fill="#0A0A0A"/>
+  <circle cx="256" cy="256" r="236" stroke="#FFFFFF" stroke-width="12"/>
+  <circle cx="256" cy="256" r="214" fill="url(#bg)" stroke="#FFFFFF" stroke-width="10"/>
+  <circle cx="256" cy="256" r="164" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="8"/>
+  <circle cx="256" cy="256" r="148" fill="#FFFFFF" opacity="0.9"/>
+
+  <path d="M121 196H214L256 285L300 196H392L309 352H299L256 274L214 352H203L121 196Z" fill="#123D55"/>
+  <path d="M184 196H240L256 228L272 196H327L256 340L184 196Z" fill="url(#accent)"/>
+  <path d="M174 352H338V378H174V352Z" fill="#0A0A0A"/>
+
+  <path d="M256 86C200.117 86 152.438 108.461 119.684 144.828C127.164 154.766 132.672 164.285 136.223 173.477C163.941 140.578 208.078 119 256 119C303.922 119 348.059 140.578 375.777 173.477C379.328 164.285 384.836 154.766 392.316 144.828C359.563 108.461 311.883 86 256 86Z" fill="#FFFFFF"/>
+  <path d="M86 256C86 199.836 108.742 152.031 145.563 119.281C154.859 126.836 164.23 132.426 173.57 136.105C140.547 163.766 119 208.109 119 256C119 303.891 140.547 348.234 173.57 375.895C164.23 379.574 154.859 385.164 145.563 392.719C108.742 359.969 86 312.164 86 256Z" fill="#FFFFFF"/>
+  <path d="M426 256C426 199.836 403.258 152.031 366.438 119.281C357.141 126.836 347.77 132.426 338.43 136.105C371.453 163.766 393 208.109 393 256C393 303.891 371.453 348.234 338.43 375.895C347.77 379.574 357.141 385.164 366.438 392.719C403.258 359.969 426 312.164 426 256Z" fill="#FFFFFF"/>
+
+  <text x="256" y="152" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="800" letter-spacing="8" fill="#FFFFFF">VERDIDA</text>
+  <text x="256" y="418" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" letter-spacing="6" fill="#FFFFFF">SPORTS APPAREL</text>
+  <text x="256" y="320" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="800" letter-spacing="2" fill="#0A0A0A">SINCE 2022</text>
+</svg>
