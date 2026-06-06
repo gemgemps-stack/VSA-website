@@ -36,7 +36,7 @@ const RegisterUser = () => {
     <DashboardLayout>
       <div className="page-container">
         <div className="page-header">
-          <h1>Register New User</h1>
+          <h1>Register New Employee</h1>
         </div>
 
         <div className="form-card">

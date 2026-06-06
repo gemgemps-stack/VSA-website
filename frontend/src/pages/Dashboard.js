@@ -13,7 +13,6 @@ const Dashboard = () => {
     totalOrders: 0,
     totalClients: 0,
     totalInventory: 0,
-    totalIncome: 0,
   });
 
   useEffect(() => {
@@ -27,7 +26,6 @@ const Dashboard = () => {
         totalOrders: 0,
         totalClients: 0,
         totalInventory: 0,
-        totalIncome: 0,
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -55,8 +53,8 @@ const Dashboard = () => {
             <div className="stat-card" onClick={() => navigate('/clients')}>
               <div className="stat-icon">👥</div>
               <div className="stat-content">
-                <h3>Total Clients</h3>
-                <p className="stat-value">{stats.totalClients}</p>
+                <h3>Total Inventory</h3>
+                <p className="stat-value">{stats.totalInventory}</p>
               </div>
             </div>
           </PermissionGuard>
@@ -65,18 +63,8 @@ const Dashboard = () => {
             <div className="stat-card" onClick={() => navigate('/inventory')}>
               <div className="stat-icon">📦</div>
               <div className="stat-content">
-                <h3>Total Inventory</h3>
-                <p className="stat-value">{stats.totalInventory}</p>
-              </div>
-            </div>
-          </PermissionGuard>
-
-          <PermissionGuard permission="SOURCE_OF_INCOME">
-            <div className="stat-card" onClick={() => navigate('/income')}>
-              <div className="stat-icon">💰</div>
-              <div className="stat-content">
-                <h3>Total Income Sources</h3>
-                <p className="stat-value">{stats.totalIncome}</p>
+                <h3>Total Clients</h3>
+                <p className="stat-value">{stats.totalClients}</p>
               </div>
             </div>
           </PermissionGuard>
@@ -103,19 +91,13 @@ const Dashboard = () => {
               </button>
             </PermissionGuard>
             
-            <PermissionGuard permission="SOURCE_OF_INCOME">
-              <button className="action-btn" onClick={() => navigate('/income')}>
-                💰 View Income
-              </button>
-            </PermissionGuard>
-
             {user?.role === 'ADMIN' && (
               <>
                 <button className="action-btn" onClick={() => navigate('/register-user')}>
-                  ➕ Register User
+                  ➕ Register Employee
                 </button>
                 <button className="action-btn" onClick={() => navigate('/registered-users')}>
-                  👨‍💼 Manage Users
+                  👨‍💼 Manage Employees
                 </button>
               </>
             )}

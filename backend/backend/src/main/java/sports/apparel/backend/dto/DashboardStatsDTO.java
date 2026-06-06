@@ -12,5 +12,4 @@ public class DashboardStatsDTO {
     private long totalOrders;
     private long totalClients;
     private long totalInventory;
-    private long totalIncome;
 }

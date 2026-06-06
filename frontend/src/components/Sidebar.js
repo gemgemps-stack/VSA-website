@@ -18,8 +18,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const adminItems = [
     { path: '/income', label: 'Source Income', icon: '💰' },
     { path: '/payment-methods', label: 'Payment Methods', icon: '💳' },
-    { path: '/register-user', label: 'Register User', icon: '➕' },
-    { path: '/registered-users', label: 'Registered Users', icon: '👨‍💼' },
+    { path: '/register-user', label: 'Register Employee', icon: '➕' },
+    { path: '/registered-users', label: 'Registered Employees', icon: '👨‍💼' },
     { path: '/employees', label: 'Employees', icon: '👔' },
     { path: '/admins', label: 'Admins', icon: '🔑' },
   ];
