@@ -928,7 +928,7 @@ const Orders = () => {
                           type="text"
                           value={referenceNumber}
                           onChange={(e) => setReferenceNumber(e.target.value)}
-                          placeholder="Enter a reference number"
+                          placeholder="Enter reference number"
                         />
                       </div>
                     ) : null}
