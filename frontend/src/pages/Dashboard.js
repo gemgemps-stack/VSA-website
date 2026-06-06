@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import PermissionGuard from '../components/PermissionGuard';
 import { useAuth } from '../context/AuthContext';
-import orderService from '../services/orderService';
-import clientService from '../services/clientService';
-import inventoryService from '../services/inventoryService';
-import incomeService from '../services/incomeService';
+import dashboardService from '../services/dashboardService';
 import '../styles/Dashboard.css';
 
 const Dashboard = () => {
@@ -25,18 +22,12 @@ const Dashboard = () => {
 
   const loadStats = async () => {
     try {
-      const [ordersRes, clientsRes, inventoryRes, incomeRes] = await Promise.all([
-        orderService.getAllOrders(0, 1).catch(() => ({ data: { content: [] } })),
-        clientService.getAllClients(0, 1).catch(() => ({ data: { content: [] } })),
-        inventoryService.getAllInventory(0, 1).catch(() => ({ data: { content: [] } })),
-        incomeService.getAllIncomeSources(0, 1).catch(() => ({ data: { content: [] } })),
-      ]);
-
-      setStats({
-        totalOrders: ordersRes.data.totalElements || 0,
-        totalClients: clientsRes.data.totalElements || 0,
-        totalInventory: inventoryRes.data.totalElements || 0,
-        totalIncome: incomeRes.data.totalElements || 0,
+      const response = await dashboardService.getStats();
+      setStats(response.data || {
+        totalOrders: 0,
+        totalClients: 0,
+        totalInventory: 0,
+        totalIncome: 0,
       });
     } catch (error) {
       console.error('Error loading stats:', error);

@@ -6,6 +6,7 @@ import PermissionGuard from '../components/PermissionGuard';
 import inventoryService from '../services/inventoryService';
 
 const ITEM_TYPE_OPTIONS = ['Jersey', 'Polo Shirt', 'Chinese Collar', 'Ready Made'];
+const INITIAL_PAGE_SIZE = 100;
 
 const Inventory = () => {
   const [inventory, setInventory] = useState([]);
@@ -29,7 +30,7 @@ const Inventory = () => {
   const loadInventory = async () => {
     try {
       setLoading(true);
-      const response = await inventoryService.getAllInventory(0, 1000);
+      const response = await inventoryService.getAllInventory(0, INITIAL_PAGE_SIZE);
       setInventory(response.data.content || []);
     } catch (error) {
       console.error('Error loading inventory:', error);

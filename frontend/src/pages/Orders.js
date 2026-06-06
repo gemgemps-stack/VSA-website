@@ -31,6 +31,8 @@ const ORDER_FILTERS = [
   { key: ORDER_STATUS.CANCELLED, label: 'Cancelled Orders' },
 ];
 
+const INITIAL_PAGE_SIZE = 100;
+
 const getStatusLabel = (status) => {
   const labels = {
     [ORDER_STATUS.FOR_CLIENT_APPROVAL]: 'For Client Approval',
@@ -90,7 +92,7 @@ const Orders = () => {
 
   const loadClients = useCallback(async () => {
     try {
-      const response = await clientService.getAllClients(0, 1000);
+      const response = await clientService.getAllClients(0, INITIAL_PAGE_SIZE);
       setClients(response.data.content || []);
     } catch (error) {
       console.error('Error loading clients:', error);
@@ -100,7 +102,7 @@ const Orders = () => {
 
   const loadInventory = useCallback(async () => {
     try {
-      const response = await inventoryService.getAllInventory(0, 1000);
+      const response = await inventoryService.getAllInventory(0, INITIAL_PAGE_SIZE);
       setInventoryItems(response.data.content || []);
     } catch (error) {
       console.error('Error loading inventory:', error);
@@ -111,7 +113,7 @@ const Orders = () => {
   const loadOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await orderService.getAllOrders(0, 1000);
+      const response = await orderService.getAllOrders(0, INITIAL_PAGE_SIZE);
       setOrders(response.data.content || []);
     } catch (error) {
       console.error('Error loading orders:', error);

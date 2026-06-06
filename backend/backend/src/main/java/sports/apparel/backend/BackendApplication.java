@@ -15,7 +15,8 @@ public class BackendApplication {
 				|| Arrays.stream(args).anyMatch(arg -> arg.startsWith("--spring.profiles.active="));
 
 		if (!profileAlreadyConfigured) {
-			application.setAdditionalProfiles("local");
+			boolean runningOnRender = System.getenv("PORT") != null;
+			application.setAdditionalProfiles(runningOnRender ? "prod" : "local");
 		}
 
 		application.run(args);
