@@ -897,7 +897,7 @@ const Orders = () => {
 
                 {selectedOrder.status === ORDER_STATUS.DOWN_PAYMENT_PENDING && (
                   <div className="order-status-actions">
-                    <p className="order-status-prompt">Down payment paid?</p>
+                    <p className="order-status-prompt">Down amount paid?</p>
                     <div className="order-status-buttons">
                       <button
                         type="button"
