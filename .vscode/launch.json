@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch BackendApplication",
+            "request": "launch",
+            "mainClass": "sports.apparel.backend.BackendApplication",
+            "projectName": "backend",
+            "env": {
+                "SPRING_PROFILES_ACTIVE": "local",
+                "SPRING_DATASOURCE_URL": "jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require",
+                "SPRING_DATASOURCE_USERNAME": "postgres.ibuumivqogsvhxoldoqi",
+                "SPRING_DATASOURCE_PASSWORD": "VerdidaWasspord123*#",
+                "SPRING_DATASOURCE_DRIVER_CLASS_NAME": "org.postgresql.Driver",
+                "SPRING_JPA_HIBERNATE_DDL_AUTO": "validate",
+                "SPRING_FLYWAY_ENABLED": "true"
+            }
+        }
+    ]
+}

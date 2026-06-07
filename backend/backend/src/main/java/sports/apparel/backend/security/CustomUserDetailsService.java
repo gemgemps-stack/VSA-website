@@ -8,7 +8,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sports.apparel.backend.entity.User;
-import sports.apparel.backend.repository.UserRepository;
+import sports.apparel.backend.features.users.UserRepository;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,9 +43,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
         // Add page permissions as authorities
-        user.getPermissions().forEach(permission ->
-                authorities.add(new SimpleGrantedAuthority(permission.getPageName()))
-        );
+        if (user.getPermissions() != null) {
+            user.getPermissions().forEach(permission ->
+                    authorities.add(new SimpleGrantedAuthority(permission.getPageName()))
+            );
+        }
 
         return authorities;
     }

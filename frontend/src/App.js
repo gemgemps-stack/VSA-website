@@ -3,14 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PermissionGuard from './components/PermissionGuard';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Orders from './pages/Orders';
-import Inventory from './pages/Inventory';
-import Clients from './pages/Clients';
-import SourceIncome from './pages/SourceIncome';
-import PaymentMethods from './pages/PaymentMethods';
-import Employees from './pages/Employees';
+import Login from './features/auth/LoginView';
+import Dashboard from './features/dashboard/DashboardView';
+import Orders from './features/orders/OrdersView';
+import Inventory from './features/inventory/InventoryView';
+import Clients from './features/clients/ClientsView';
+import SourceIncome from './features/source-income/SourceIncomeView';
+import PaymentMethods from './features/payment-methods/PaymentMethodsView';
+import Employees from './features/employees/EmployeesView';
 import './App.css';
 
 function App() {
