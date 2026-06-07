@@ -29,6 +29,9 @@ public class InventoryService {
         inventory.setItemType(request.getItemType());
         inventory.setJerseyType(request.getJerseyType());
         inventory.setName(request.getName());
+        inventory.setShop(request.getShop());
+        inventory.setSize(request.getSize());
+        inventory.setNumber(request.getNumber());
         inventory.setQuantity(request.getQuantity());
         inventory.setPrice(request.getPrice());
 
@@ -73,6 +76,9 @@ public class InventoryService {
         inventory.setItemType(request.getItemType());
         inventory.setJerseyType(request.getJerseyType());
         inventory.setName(request.getName());
+        inventory.setShop(request.getShop());
+        inventory.setSize(request.getSize());
+        inventory.setNumber(request.getNumber());
         inventory.setQuantity(request.getQuantity());
         inventory.setPrice(request.getPrice());
 
@@ -87,6 +93,24 @@ public class InventoryService {
     }
 
     private void validateInventoryRequest(CreateInventoryRequest request) {
+        if (request.getShop() != null && request.getShop().trim().isEmpty()) {
+            request.setShop(null);
+        }
+        if (request.getShop() != null) {
+            request.setShop(request.getShop().trim());
+        }
+        if (request.getSize() != null && request.getSize().trim().isEmpty()) {
+            request.setSize(null);
+        }
+        if (request.getSize() != null) {
+            request.setSize(request.getSize().trim());
+        }
+        if (request.getNumber() != null && request.getNumber().trim().isEmpty()) {
+            request.setNumber(null);
+        }
+        if (request.getNumber() != null) {
+            request.setNumber(request.getNumber().trim());
+        }
         if (request.getJerseyType() != null && request.getJerseyType().trim().isEmpty()) {
             request.setJerseyType(null);
         }

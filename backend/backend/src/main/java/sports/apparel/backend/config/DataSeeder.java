@@ -40,14 +40,23 @@ public class DataSeeder {
 
             seedSampleEmployee(userRepository, permissionRepository, passwordEncoder,
                     "jane.employee@verdidaapparel.com",
-                    "Jane Employee",
+                    "Jane Marketing",
                     "Password123!",
+                    User.Role.EMPLOYEE,
                     new String[] {"ORDERS", "CLIENTS"});
 
             seedSampleEmployee(userRepository, permissionRepository, passwordEncoder,
                     "mike.staff@verdidaapparel.com",
-                    "Mike Staff",
+                    "Mike Production",
                     "Password123!",
+                    User.Role.EMPLOYEE,
+                    new String[] {"INVENTORY"});
+
+            seedSampleEmployee(userRepository, permissionRepository, passwordEncoder,
+                    "susan.sewing@verdidaapparel.com",
+                    "Susan Sewing",
+                    "Password123!",
+                    User.Role.EMPLOYEE,
                     new String[] {"INVENTORY"});
         };
     }
@@ -58,6 +67,7 @@ public class DataSeeder {
                                     String email,
                                     String username,
                                     String password,
+                                    User.Role role,
                                     String[] permissions) {
         if (userRepository.existsByEmail(email)) {
             return;
@@ -67,7 +77,7 @@ public class DataSeeder {
         employee.setUsername(username);
         employee.setEmail(email);
         employee.setPassword(passwordEncoder.encode(password));
-        employee.setRole(User.Role.EMPLOYEE);
+        employee.setRole(role);
         employee.setSalary(BigDecimal.valueOf(18000));
 
         employee = userRepository.save(employee);

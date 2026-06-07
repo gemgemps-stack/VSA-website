@@ -18,6 +18,9 @@ public class InventoryDTO {
     private String itemType;
     private String jerseyType;
     private String name;
+    private String shop;
+    private String size;
+    private String number;
     private Integer quantity;
     private BigDecimal price;
     private LocalDateTime createdAt;
@@ -27,6 +30,9 @@ public class InventoryDTO {
         this.itemType = inventory.getItemType();
         this.jerseyType = inventory.getJerseyType();
         this.name = inventory.getName();
+        this.shop = inventory.getShop();
+        this.size = inventory.getSize();
+        this.number = inventory.getNumber();
         this.quantity = inventory.getQuantity();
         this.price = inventory.getPrice();
         this.createdAt = inventory.getCreatedAt();

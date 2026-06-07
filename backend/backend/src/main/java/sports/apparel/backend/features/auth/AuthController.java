@@ -9,7 +9,7 @@ import sports.apparel.backend.features.auth.LoginResponse;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8080"}, allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://localhost:8080"}, allowCredentials = "true")
 public class AuthController {
 
     private final AuthService authService;

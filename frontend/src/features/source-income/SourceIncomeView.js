@@ -13,7 +13,7 @@ const SourceIncome = () => {
   const sourceGrids = [
     { key: 'vsaOnline', label: 'VSA Online Shop', color: '#016667' },
     { key: 'tiktokShop', label: 'Tiktok Shop', color: '#d9b26f' },
-    { key: 'shopeeShop', label: 'Shoppee Shop', color: '#f77f00' },
+    { key: 'shopeeShop', label: 'Shoppee', color: '#f77f00' },
     { key: 'sportsApparelShop', label: 'Verdida Sports Apparel', color: '#2d6a4f' },
   ];
 

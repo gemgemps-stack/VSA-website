@@ -45,7 +45,7 @@ const Login = () => {
           </div>
 
           <div className="brand-highlight">
-            <h2>Style doesn&apos;t have to be expensive</h2>
+            <h2>Style doesn&apos;t have to be expensive 💯</h2>
             <p>
               Manage inventory, orders, and customer accounts in one place.
             </p>

@@ -20,6 +20,12 @@ public class CreateInventoryRequest {
     @NotBlank(message = "Name is required")
     private String name;
 
+    private String shop;
+
+    private String size;
+
+    private String number;
+
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity must be non-negative")
     private Integer quantity;

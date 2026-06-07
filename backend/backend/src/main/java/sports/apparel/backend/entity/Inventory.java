@@ -30,6 +30,15 @@ public class Inventory {
     @Column(nullable = false, length = 255)
     private String name;
 
+    @Column(length = 100)
+    private String shop;
+
+    @Column(length = 20)
+    private String size;
+
+    @Column(length = 50)
+    private String number;
+
     @Column(nullable = false)
     private Integer quantity;
 

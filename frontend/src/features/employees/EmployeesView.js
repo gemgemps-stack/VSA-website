@@ -18,9 +18,11 @@ const extractUsers = (payload) => {
 
 const Employees = () => {
   const employeeFilters = [
-    { key: 'ALL', label: 'All' },
+    { key: 'ALL', label: 'All Employees' },
     { key: 'ADMIN', label: 'Admins' },
-    { key: 'EMPLOYEE', label: 'Employees' },
+    { key: 'MARKETING', label: 'Marketing' },
+    { key: 'PRODUCTION', label: 'Production' },
+    { key: 'SEWING', label: 'Sewing' },
   ];
 
   const pagePermissions = [
@@ -301,8 +303,10 @@ const Employees = () => {
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               >
-                <option value="EMPLOYEE">Employee</option>
                 <option value="ADMIN">Admin</option>
+                <option value="MARKETING">Marketing</option>
+                <option value="PRODUCTION">Production</option>
+                <option value="SEWING">Sewing</option>
               </select>
             </div>
           </div>
