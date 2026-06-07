@@ -22,11 +22,13 @@ const Dashboard = () => {
   const loadStats = async () => {
     try {
       const response = await dashboardService.getStats();
-      setStats(response.data || {
-        totalOrders: 0,
-        totalClients: 0,
-        totalInventory: 0,
-      });
+      setStats(
+        response.data || {
+          totalOrders: 0,
+          totalClients: 0,
+          totalInventory: 0,
+        }
+      );
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -36,7 +38,7 @@ const Dashboard = () => {
     <DashboardLayout>
       <div className="dashboard">
         <h1>Dashboard</h1>
-        <p className="welcome">Welcome, {user?.username}! 👋</p>
+        <p className="welcome">Welcome, {user?.username}!</p>
 
         <div className="stats-grid">
           <PermissionGuard permission="ORDERS">
@@ -51,7 +53,7 @@ const Dashboard = () => {
 
           <PermissionGuard permission="CLIENTS">
             <div className="stat-card" onClick={() => navigate('/clients')}>
-              <div className="stat-icon">👥</div>
+              <div className="stat-icon">📦</div>
               <div className="stat-content">
                 <h3>Total Inventory</h3>
                 <p className="stat-value">{stats.totalInventory}</p>
@@ -61,7 +63,7 @@ const Dashboard = () => {
 
           <PermissionGuard permission="INVENTORY">
             <div className="stat-card" onClick={() => navigate('/inventory')}>
-              <div className="stat-icon">📦</div>
+              <div className="stat-icon">👥</div>
               <div className="stat-content">
                 <h3>Total Clients</h3>
                 <p className="stat-value">{stats.totalClients}</p>
@@ -75,31 +77,26 @@ const Dashboard = () => {
           <div className="actions-grid">
             <PermissionGuard permission="ORDERS">
               <button className="action-btn" onClick={() => navigate('/orders')}>
-                🛒  View Orders
+                🛒 View Orders
               </button>
             </PermissionGuard>
-            
+
             <PermissionGuard permission="INVENTORY">
               <button className="action-btn" onClick={() => navigate('/inventory')}>
                 📦 Manage Inventory
               </button>
             </PermissionGuard>
-            
+
             <PermissionGuard permission="CLIENTS">
               <button className="action-btn" onClick={() => navigate('/clients')}>
                 👥 Manage Clients
               </button>
             </PermissionGuard>
-            
+
             {user?.role === 'ADMIN' && (
-              <>
-                <button className="action-btn" onClick={() => navigate('/register-user')}>
-                  ➕ Register Employee
-                </button>
-                <button className="action-btn" onClick={() => navigate('/registered-users')}>
-                  👨‍💼 Manage Employees
-                </button>
-              </>
+              <button className="action-btn" onClick={() => navigate('/employees')}>
+                👔 Manage Employees
+              </button>
             )}
           </div>
         </div>

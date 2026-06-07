@@ -62,6 +62,11 @@
   border-color: #016667;
 }
 
+.order-filter-btn:focus-visible {
+  outline: 2px solid rgba(1, 102, 103, 0.35);
+  outline-offset: 2px;
+}
+
 .inventory-search-bar {
   margin-bottom: 20px;
 }
@@ -78,6 +83,48 @@
 }
 
 .inventory-search-bar input:focus {
+  outline: none;
+  border-color: #016667;
+  box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
+}
+
+.order-search-bar {
+  margin-bottom: 20px;
+}
+
+.order-search-bar input {
+  width: 100%;
+  max-width: 520px;
+  padding: 12px 14px;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.order-search-bar input:focus {
+  outline: none;
+  border-color: #016667;
+  box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
+}
+
+.employee-search-bar {
+  margin-bottom: 20px;
+}
+
+.employee-search-bar input {
+  width: 100%;
+  max-width: 520px;
+  padding: 12px 14px;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.employee-search-bar input:focus {
   outline: none;
   border-color: #016667;
   box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
@@ -174,6 +221,61 @@
   margin-top: 6px;
   font-size: 12px;
   color: #6e645a;
+}
+
+.employee-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+
+.employee-modal-grid .form-group {
+  margin-bottom: 0;
+}
+
+.permission-section {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid #dfe7e3;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
+}
+
+.permission-section-header h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  color: #20150d;
+}
+
+.permission-section-header p {
+  margin: 0 0 16px;
+  color: #6e645a;
+  font-size: 13px;
+}
+
+.permission-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.permission-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  color: #20150d;
+}
+
+.permission-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: #016667;
 }
 
 .order-form-grid {
@@ -392,6 +494,11 @@
 
   .form-card {
     padding: 20px;
+  }
+
+  .employee-modal-grid,
+  .permission-checkbox-grid {
+    grid-template-columns: 1fr;
   }
 }
 

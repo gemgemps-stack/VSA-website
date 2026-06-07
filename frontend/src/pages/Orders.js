@@ -118,6 +118,7 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [formData, setFormData] = useState(createInitialFormData());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadClients = useCallback(async () => {
     try {
@@ -168,11 +169,29 @@ const Orders = () => {
   const isVipClient = Boolean(selectedClient?.vip);
   const filteredOrders = orders.filter((order) => {
     const normalizedStatus = (order.status || '').toUpperCase();
+    const matchesStatus =
+      statusFilter === 'ALL'
+        ? normalizedStatus !== ORDER_STATUS.FULLY_PAID && normalizedStatus !== ORDER_STATUS.CANCELLED
+        : normalizedStatus === statusFilter;
 
-    if (statusFilter === 'ALL') {
-      return normalizedStatus !== ORDER_STATUS.FULLY_PAID && normalizedStatus !== ORDER_STATUS.CANCELLED;
-    }
-    return normalizedStatus === statusFilter;
+    const haystack = [
+      order.jobOrderNo,
+      order.clientName,
+      order.teamName,
+      order.orderRetail,
+      getStatusLabel(order.status),
+      order.shop,
+      order.modeOfPayment,
+      order.freebie,
+      order.orderDate,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
+
+    return matchesStatus && matchesSearch;
   });
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);
@@ -199,6 +218,10 @@ const Orders = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -588,17 +611,26 @@ const Orders = () => {
     <PermissionGuard permission="ORDERS">
       <DashboardLayout>
         <div className="page-container">
-          <div className="page-header">
-            <h1>Orders</h1>
-            <button className="btn-primary" onClick={openNewOrderModal}>
-              + New Order
-            </button>
-          </div>
+        <div className="page-header">
+          <h1>Orders</h1>
+          <button className="btn-primary" onClick={openNewOrderModal}>
+            + New Order
+          </button>
+        </div>
 
-          <div className="orders-filter-bar">
-            {ORDER_FILTERS.map((filter) => (
-              <button
-                key={filter.key}
+        <div className="order-search-bar">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search orders by job no, client, item, status, or shop"
+          />
+        </div>
+
+        <div className="orders-filter-bar">
+          {ORDER_FILTERS.map((filter) => (
+            <button
+              key={filter.key}
                 type="button"
                 className={`order-filter-btn ${statusFilter === filter.key ? 'active' : ''}`}
                 onClick={() => setStatusFilter(filter.key)}

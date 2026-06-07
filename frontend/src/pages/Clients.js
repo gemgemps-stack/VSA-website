@@ -92,7 +92,7 @@ const Clients = () => {
     { 
       key: 'vip', 
       label: 'VIP',
-      render: (value) => value ? '⭐ Yes' : 'No'
+      render: (value) => value ? '💎 Yes' : '⭐No'
     },
   ];
 
@@ -115,7 +115,7 @@ const Clients = () => {
                 setModalOpen(true);
               }}
             >
-              ➕ New Client
+              ➕ Register New Client
             </button>
           </div>
 

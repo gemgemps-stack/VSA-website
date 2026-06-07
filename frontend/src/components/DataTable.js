@@ -17,7 +17,7 @@ const DataTable = ({
   }
 
   if (!data || data.length === 0) {
-    return <div className="no-data">No active orders found</div>;
+    return <div className="no-data">No records found</div>;
   }
 
   return (
