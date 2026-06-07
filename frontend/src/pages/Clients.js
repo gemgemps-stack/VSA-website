@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import PermissionGuard from '../components/PermissionGuard';
 import clientService from '../services/clientService';
-import { useCallback } from 'react';
 
 const formatPhoneNumber = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -21,6 +20,7 @@ const Clients = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
     clientName: '',
     contactNumber: '',
@@ -33,7 +33,7 @@ const Clients = () => {
       setLoading(true);
       const response = await clientService.getAllClients(currentPage - 1, 10);
       setClients(response.data.content || []);
-      setTotalPages(Math.ceil((response.data.totalElements || 0) / 10));
+      setTotalPages(Math.max(1, Math.ceil((response.data.totalElements || 0) / 10)));
     } catch (error) {
       console.error('Error loading clients:', error);
       alert('Failed to load clients');
@@ -89,12 +89,26 @@ const Clients = () => {
   const columns = [
     { key: 'clientName', label: 'Name' },
     { key: 'contactNumber', label: 'Contact' },
-    { 
-      key: 'vip', 
+    {
+      key: 'vip',
       label: 'VIP',
-      render: (value) => value ? '💎 Yes' : '⭐No'
+      render: (value) => (value ? '💎 Yes' : '⭐ No'),
     },
   ];
+
+  const filteredClients = clients.filter((client) => {
+    const haystack = [
+      client.clientName,
+      client.contactNumber,
+      client.vip ? 'vip' : 'regular',
+      client.notes,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(searchQuery.trim().toLowerCase());
+  });
 
   return (
     <PermissionGuard permission="CLIENTS">
@@ -102,7 +116,7 @@ const Clients = () => {
         <div className="page-container">
           <div className="page-header">
             <h1>Clients</h1>
-            <button 
+            <button
               className="btn-primary"
               onClick={() => {
                 setEditingClient(null);
@@ -114,14 +128,27 @@ const Clients = () => {
                 });
                 setModalOpen(true);
               }}
+              type="button"
             >
               ➕ Register New Client
             </button>
           </div>
 
+          <div className="client-search-bar">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="🔎 Search clients by name, contact, or VIP status"
+            />
+          </div>
+
           <DataTable
             columns={columns}
-            data={clients}
+            data={filteredClients}
             onEdit={handleEdit}
             onDelete={handleDelete}
             loading={loading}

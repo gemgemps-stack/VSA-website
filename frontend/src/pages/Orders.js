@@ -623,7 +623,7 @@ const Orders = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search orders by job no, client, item, status, or shop"
+            placeholder="🔎 Search orders by job no, client, item, status, or shop"
           />
         </div>
 

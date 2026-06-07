@@ -130,6 +130,27 @@
   box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
 }
 
+.client-search-bar {
+  margin-bottom: 20px;
+}
+
+.client-search-bar input {
+  width: 100%;
+  max-width: 520px;
+  padding: 12px 14px;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.client-search-bar input:focus {
+  outline: none;
+  border-color: #016667;
+  box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
+}
+
 .btn-primary {
   padding: 10px 20px;
   background-color: var(--primary, #016667);
