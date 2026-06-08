@@ -9,8 +9,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/orders', label: 'Orders', icon: '🛒', permission: 'ORDERS' },
     { path: '/inventory', label: 'Inventory', icon: '📦', permission: 'INVENTORY' },
+    { path: '/orders', label: 'Orders', icon: '🛒', permission: 'ORDERS' },
+    { path: '/teams', label: 'Teams', icon: '👥', permission: 'ORDERS' },
     { path: '/clients', label: 'Clients', icon: '👥', permission: 'CLIENTS' },
   ];
 

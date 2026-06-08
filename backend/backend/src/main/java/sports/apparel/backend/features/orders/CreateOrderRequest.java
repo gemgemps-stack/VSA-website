@@ -47,5 +47,7 @@ public class CreateOrderRequest {
     @NotBlank(message = "Mode of payment is required")
     private String modeOfPayment;
 
+    private String remarks;
+
     private String status;
 }

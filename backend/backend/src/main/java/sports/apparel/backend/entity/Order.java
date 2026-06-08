@@ -59,6 +59,9 @@ public class Order {
     @Column(nullable = false, length = 50)
     private String modeOfPayment;
 
+    @Column(columnDefinition = "TEXT")
+    private String remarks;
+
     @Column(length = 50)
     private String status;
 

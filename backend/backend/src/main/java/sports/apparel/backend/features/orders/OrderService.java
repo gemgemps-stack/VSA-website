@@ -64,6 +64,7 @@ public class OrderService {
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
         order.setModeOfPayment(request.getModeOfPayment());
+        order.setRemarks(request.getRemarks());
         order.setStatus(resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL));
         order.setInventoryDeducted(false);
 
@@ -129,6 +130,9 @@ public class OrderService {
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
         order.setModeOfPayment(request.getModeOfPayment());
+        if (request.getRemarks() != null) {
+            order.setRemarks(request.getRemarks());
+        }
         order.setStatus(resolveStatus(request.getStatus(), order.getStatus()));
 
         if (Boolean.TRUE.equals(order.getInventoryDeducted())) {

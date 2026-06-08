@@ -185,7 +185,7 @@ const Employees = () => {
   const columns = [
     { key: 'username', label: 'Employee Name' },
     { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role' },
+    { key: 'role', label: 'Role / Team' },
     {
       key: 'permissions',
       label: 'Page Access',
@@ -298,7 +298,7 @@ const Employees = () => {
             </div>
 
             <div className="form-group">
-              <label>Role</label>
+              <label>Role / Team</label>
               <select
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}

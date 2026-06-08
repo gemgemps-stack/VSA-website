@@ -206,7 +206,7 @@ const Inventory = () => {
     { key: 'name', label: 'Name' },
     {
       key: 'jerseyType',
-      label: 'Jersey Type',
+      label: 'Version',
       render: (value) => value || '-',
     },
     { key: 'size', label: 'Size', render: (value) => value || '-' },
@@ -266,7 +266,7 @@ const Inventory = () => {
               type="text"
               value={searchFilters.jerseyType}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
-              placeholder="Search jersey type"
+              placeholder="Search version"
             />
             <input
               type="text"
@@ -336,7 +336,7 @@ const Inventory = () => {
               </div>
 
               <div className="form-group">
-                <label>Jersey Type (Optional)</label>
+                <label>Version (Optional)</label>
                 <input
                   type="text"
                   value={formData.jerseyType}

@@ -29,6 +29,7 @@ public class OrderDTO {
     private String shop;
     private LocalDate orderDate;
     private String modeOfPayment;
+    private String remarks;
     private String status;
     private Boolean inventoryDeducted;
     private LocalDateTime createdAt;
@@ -48,6 +49,7 @@ public class OrderDTO {
         this.shop = order.getShop();
         this.orderDate = order.getOrderDate();
         this.modeOfPayment = order.getModeOfPayment();
+        this.remarks = order.getRemarks();
         this.status = order.getStatus();
         this.inventoryDeducted = order.getInventoryDeducted();
         this.createdAt = order.getCreatedAt();

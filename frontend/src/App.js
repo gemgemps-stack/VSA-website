@@ -6,6 +6,7 @@ import PermissionGuard from './components/PermissionGuard';
 import Login from './features/auth/LoginView';
 import Dashboard from './features/dashboard/DashboardView';
 import Orders from './features/orders/OrdersView';
+import Teams from './features/teams/TeamsView';
 import Inventory from './features/inventory/InventoryView';
 import Clients from './features/clients/ClientsView';
 import SourceIncome from './features/source-income/SourceIncomeView';
@@ -19,43 +20,53 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route 
-            path="/dashboard" 
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/orders" 
+          <Route
+            path="/orders"
             element={
               <ProtectedRoute>
                 <PermissionGuard permission="ORDERS">
                   <Orders />
                 </PermissionGuard>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/inventory" 
+          <Route
+            path="/teams"
+            element={
+              <ProtectedRoute>
+                <PermissionGuard permission="ORDERS">
+                  <Teams />
+                </PermissionGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inventory"
             element={
               <ProtectedRoute>
                 <PermissionGuard permission="INVENTORY">
                   <Inventory />
                 </PermissionGuard>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/clients" 
+          <Route
+            path="/clients"
             element={
               <ProtectedRoute>
                 <PermissionGuard permission="CLIENTS">
                   <Clients />
                 </PermissionGuard>
               </ProtectedRoute>
-            } 
+            }
           />
           <Route 
             path="/income" 

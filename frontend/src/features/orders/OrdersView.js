@@ -7,6 +7,7 @@ import inventoryService from '../../services/inventoryService';
 import clientService from '../../services/clientService';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
+import teamService from '../../services/teamService';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
@@ -88,6 +89,7 @@ const getOrderFinancials = (order) => {
 
 const createInitialFormData = () => ({
   clientId: '',
+  teamId: '',
   teamName: '',
   orderRetail: '',
   quantity: '',
@@ -104,6 +106,7 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
   const [inventoryItems, setInventoryItems] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
   const [clientSearch, setClientSearch] = useState('');
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
@@ -117,6 +120,7 @@ const Orders = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [remarks, setRemarks] = useState('');
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -137,6 +141,16 @@ const Orders = () => {
     } catch (error) {
       console.error('Error loading inventory:', error);
       alert('Failed to load inventory');
+    }
+  }, []);
+
+  const loadTeams = useCallback(async () => {
+    try {
+      const response = await teamService.getAllTeams();
+      setTeams(response.data || []);
+    } catch (error) {
+      console.error('Error loading teams:', error);
+      alert('Failed to load teams');
     }
   }, []);
 
@@ -162,8 +176,29 @@ const Orders = () => {
   }, [loadInventory]);
 
   useEffect(() => {
+    loadTeams();
+  }, [loadTeams]);
+
+  useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    if (!modalOpen || !editingOrder || teams.length === 0) {
+      return;
+    }
+
+    const matchedTeam = teams.find(
+      (team) => (team.teamName || '').toLowerCase() === (editingOrder.teamName || '').toLowerCase()
+    );
+
+    if (matchedTeam && formData.teamId !== matchedTeam.id) {
+      setFormData((prev) => ({
+        ...prev,
+        teamId: matchedTeam.id,
+      }));
+    }
+  }, [editingOrder, formData.teamId, modalOpen, teams]);
 
   const selectedClient = clients.find((client) => client.id === formData.clientId);
   const isVipClient = Boolean(selectedClient?.vip);
@@ -261,10 +296,23 @@ const Orders = () => {
       ...prev,
       orderRetail: retailValue,
       price: String(item.price || ''),
-      quantity: '',
+      quantity: prev.teamId ? prev.quantity : '',
     }));
     setRetailSearch(retailValue);
     setRetailSuggestionsOpen(false);
+  };
+
+  const handleTeamSelect = (teamId) => {
+    const selectedTeam = teams.find((team) => team.id === teamId);
+    const fallbackDate = new Date().toISOString().split('T')[0];
+
+    setFormData((prev) => ({
+      ...prev,
+      teamId,
+      teamName: selectedTeam?.teamName || '',
+      quantity: selectedTeam?.quantity != null ? String(selectedTeam.quantity) : '',
+      orderDate: selectedTeam?.transitDate || fallbackDate,
+    }));
   };
 
   const handleRetailInputChange = (value) => {
@@ -339,10 +387,14 @@ const Orders = () => {
         getInventoryLabel(item).toLowerCase() ===
         (order.orderRetail || '').toLowerCase()
     );
+    const matchedTeam = teams.find(
+      (team) => (team.teamName || '').toLowerCase() === (order.teamName || '').toLowerCase()
+    );
     setSelectedInventoryItem(retailRecord || null);
     setEditingOrder(order);
     setFormData({
       clientId: order.clientId || '',
+      teamId: matchedTeam?.id || '',
       teamName: order.teamName || '',
       orderRetail: order.orderRetail || '',
       quantity: order.quantity != null ? String(order.quantity) : '',
@@ -364,6 +416,7 @@ const Orders = () => {
   const handleView = (order) => {
     setSelectedOrder(order);
     setReferenceNumber('');
+    setRemarks(order.remarks || '');
     setDetailsOpen(true);
   };
 
@@ -371,6 +424,7 @@ const Orders = () => {
     setDetailsOpen(false);
     setSelectedOrder(null);
     setReferenceNumber('');
+    setRemarks('');
   };
 
   const buildOrderPayload = (order, statusOverride) => ({
@@ -385,6 +439,7 @@ const Orders = () => {
     shop: order.shop,
     orderDate: order.orderDate,
     modeOfPayment: order.modeOfPayment,
+    remarks: order.remarks || '',
     status: statusOverride || order.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
   });
 
@@ -452,6 +507,26 @@ const Orders = () => {
         error.message ||
         'Unknown error';
       alert(`Failed to save income source: ${apiMessage}`);
+    }
+  };
+
+  const handleRemarksBlur = async () => {
+    if (!selectedOrder) {
+      return;
+    }
+
+    const isRemarksEnabled =
+      selectedOrder.status === ORDER_STATUS.IN_PRODUCTION ||
+      selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID;
+
+    if (!isRemarksEnabled) {
+      return;
+    }
+
+    try {
+      await updateSelectedOrderStatus(selectedOrder.status);
+    } catch (error) {
+      // updateSelectedOrderStatus already shows the error message
     }
   };
 
@@ -537,7 +612,6 @@ const Orders = () => {
       }
 
       const payload = {
-        ...formData,
         clientId: clientRecord.id,
         orderRetail: getInventoryLabel(retailRecord),
         teamName: formData.teamName.trim() || null,
@@ -546,7 +620,9 @@ const Orders = () => {
         price: unitPrice,
         downPayment: Number.isFinite(downPayment) ? downPayment : 0,
         shop: formData.shop.trim(),
+        orderDate: formData.orderDate,
         modeOfPayment: formData.modeOfPayment.trim(),
+        remarks: editingOrder?.remarks || null,
         freebie: formData.freebie.trim() || null,
         status: editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
       };
@@ -697,12 +773,33 @@ const Orders = () => {
               </div>
 
               <div className="form-group">
-                <label>Team Name (Optional)</label>
+                <label>Team</label>
+                <select
+                  value={formData.teamId}
+                  onChange={(e) => handleTeamSelect(e.target.value)}
+                >
+                  <option value="">Select team</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.teamName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Team Name</label>
                 <input
                   type="text"
                   value={formData.teamName}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      teamId: '',
+                      teamName: e.target.value,
+                    }))
+                  }
                   placeholder="Enter team name"
-                  onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
                 />
               </div>
 
@@ -876,6 +973,11 @@ const Orders = () => {
                   onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
                   required
                 />
+                <small className="form-help-text">
+                  {formData.teamId
+                    ? 'Auto-filled from the selected team transit date. You can still adjust it if needed.'
+                    : 'Select a team to auto-fill this date from its transit date.'}
+                </small>
               </div>
 
               <div className="form-group">
@@ -1051,18 +1153,33 @@ const Orders = () => {
                 {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION ||
                   selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
                   <div className="order-status-actions">
-                    {selectedOrder.status === ORDER_STATUS.IN_PRODUCTION ||
-                    selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID ? (
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label>Reference Number</label>
-                        <input
-                          type="text"
-                          value={referenceNumber}
-                          onChange={(e) => setReferenceNumber(e.target.value)}
-                          placeholder="Enter reference number"
-                        />
-                      </div>
-                    ) : null}
+                    <>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label>Reference Number</label>
+                          <input
+                            type="text"
+                            value={referenceNumber}
+                            onChange={(e) => setReferenceNumber(e.target.value)}
+                            placeholder="Enter reference number"
+                          />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label>Remarks</label>
+                          <textarea
+                            value={remarks}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setRemarks(value);
+                              setSelectedOrder((prev) =>
+                                prev ? { ...prev, remarks: value } : prev
+                              );
+                            }}
+                            onBlur={handleRemarksBlur}
+                            placeholder="Enter remarks or comments"
+                            rows={3}
+                          />
+                        </div>
+                    </>
 
                     <p className="order-status-prompt">Full Payment Complete?</p>
                     <div className="order-status-buttons">
