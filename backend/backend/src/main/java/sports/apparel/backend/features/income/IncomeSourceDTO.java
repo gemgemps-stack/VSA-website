@@ -19,7 +19,6 @@ public class IncomeSourceDTO {
     private String shopType;
     private String paymentMethod;
     private LocalDate incomeDate;
-    private String referenceNumber;
     private UUID clientId;
     private String clientCode;
     private String jobOrderNo;
@@ -31,7 +30,6 @@ public class IncomeSourceDTO {
         this.shopType = incomeSource.getShopType();
         this.paymentMethod = incomeSource.getPaymentMethod();
         this.incomeDate = incomeSource.getIncomeDate();
-        this.referenceNumber = incomeSource.getReferenceNumber();
         this.clientId = incomeSource.getClient() != null ? incomeSource.getClient().getId() : null;
         this.clientCode = incomeSource.getClient() != null ? incomeSource.getClient().getClientCode() : incomeSource.getClientCode();
         this.jobOrderNo = incomeSource.getJobOrderNo();

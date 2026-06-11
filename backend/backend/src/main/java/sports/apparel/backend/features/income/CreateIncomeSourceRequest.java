@@ -25,9 +25,6 @@ public class CreateIncomeSourceRequest {
     @NotNull(message = "Date is required")
     private LocalDate incomeDate;
 
-    @NotBlank(message = "Reference number is required")
-    private String referenceNumber;
-
     private UUID clientId;
 
     private String clientCode;

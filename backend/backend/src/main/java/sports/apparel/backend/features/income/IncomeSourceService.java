@@ -31,7 +31,6 @@ public class IncomeSourceService {
         incomeSource.setShopType(request.getShopType());
         incomeSource.setPaymentMethod(request.getPaymentMethod());
         incomeSource.setIncomeDate(request.getIncomeDate());
-        incomeSource.setReferenceNumber(request.getReferenceNumber());
         incomeSource.setJobOrderNo(request.getJobOrderNo());
         incomeSource.setAmount(request.getAmount());
 
@@ -83,7 +82,6 @@ public class IncomeSourceService {
         incomeSource.setShopType(request.getShopType());
         incomeSource.setPaymentMethod(request.getPaymentMethod());
         incomeSource.setIncomeDate(request.getIncomeDate());
-        incomeSource.setReferenceNumber(request.getReferenceNumber());
         incomeSource.setJobOrderNo(request.getJobOrderNo());
         incomeSource.setAmount(request.getAmount());
 

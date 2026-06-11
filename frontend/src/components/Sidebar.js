@@ -10,7 +10,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/inventory', label: 'Inventory', icon: '📦', permission: 'INVENTORY' },
-    { path: '/orders', label: 'Orders', icon: '📋', permission: 'ORDERS' },
+    { path: '/orders', label: 'Inventory Orders', icon: '📋', permission: 'ORDERS' },
     { path: '/customized-orders', label: 'Customized Orders', icon: '🏭', permission: 'ORDERS' },
     { path: '/teams', label: 'Teams', icon: '👥', permission: 'ORDERS' },
     { path: '/clients', label: 'Clients', icon: '👤', permission: 'CLIENTS' },

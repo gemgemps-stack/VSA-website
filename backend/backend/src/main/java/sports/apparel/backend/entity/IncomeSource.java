@@ -39,9 +39,6 @@ public class IncomeSource {
     @Column(name = "income_date", nullable = false)
     private LocalDate incomeDate;
 
-    @Column(name = "reference_number", nullable = false, length = 100)
-    private String referenceNumber;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "client_id")
     private Client client;

@@ -103,6 +103,7 @@ const CustomizedOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [isReferenceNumberEditing, setIsReferenceNumberEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [manufacturingNotes, setManufacturingNotes] = useState('');
@@ -441,6 +442,7 @@ const CustomizedOrders = () => {
     setSelectedOrder(order);
     setManufacturingNotes(order.remarks || '');
     setReferenceNumber(order.referenceNumber || '');
+    setIsReferenceNumberEditing(false);
     setDetailsOpen(true);
   };
 
@@ -449,6 +451,7 @@ const CustomizedOrders = () => {
     setSelectedOrder(null);
     setManufacturingNotes('');
     setReferenceNumber('');
+    setIsReferenceNumberEditing(false);
   };
 
   const buildOrderPayload = (order, statusOverride) => ({
@@ -525,7 +528,6 @@ const CustomizedOrders = () => {
       });
 
       await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
-      setReferenceNumber('');
     } catch (error) {
       console.error('Error saving income source:', error);
       const apiMessage =
@@ -556,6 +558,20 @@ const CustomizedOrders = () => {
     } catch (error) {
       // updateSelectedOrderStatus already shows the error message
     }
+  };
+
+  const handleSaveReferenceNumber = async () => {
+    if (!selectedOrder) {
+      return;
+    }
+
+    await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+    setIsReferenceNumberEditing(false);
+  };
+
+  const handleCancelReferenceNumberEdit = () => {
+    setReferenceNumber(selectedOrder?.referenceNumber || '');
+    setIsReferenceNumberEditing(false);
   };
 
   const columns = [
@@ -1002,19 +1018,69 @@ const CustomizedOrders = () => {
                   <>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Reference Number</label>
-                      <input
-                        type="text"
-                        value={referenceNumber}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setReferenceNumber(value);
-                          setSelectedOrder((prev) =>
-                            prev ? { ...prev, referenceNumber: value } : prev
-                          );
-                        }}
-                        placeholder="Enter reference number"
-                        style={styles.input}
-                      />
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={referenceNumber}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setReferenceNumber(value);
+                            setSelectedOrder((prev) =>
+                              prev ? { ...prev, referenceNumber: value } : prev
+                            );
+                          }}
+                          placeholder="Enter reference number"
+                          readOnly={
+                            selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                            !isReferenceNumberEditing
+                          }
+                          style={{
+                            ...styles.input,
+                            ...(selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                            !isReferenceNumberEditing
+                              ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
+                              : {}),
+                          }}
+                        />
+                        {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                          !isReferenceNumberEditing && (
+                            <button
+                              type="button"
+                              style={{
+                                ...styles.button,
+                                ...styles.buttonSecondary,
+                              }}
+                              onClick={() => setIsReferenceNumberEditing(true)}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                          isReferenceNumberEditing && (
+                            <>
+                              <button
+                                type="button"
+                                style={{
+                                  ...styles.button,
+                                  ...styles.buttonPrimary,
+                                }}
+                                onClick={handleSaveReferenceNumber}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                style={{
+                                  ...styles.button,
+                                  ...styles.buttonSecondary,
+                                }}
+                                onClick={handleCancelReferenceNumberEdit}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                      </div>
                     </div>
                     <div style={styles.notesSection}>
                       <label style={styles.label}>Remarks</label>
@@ -1083,27 +1149,31 @@ const CustomizedOrders = () => {
                 {(selectedOrder?.status === ORDER_STATUS.IN_PRODUCTION ||
                   selectedOrder?.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
                   <div style={styles.statusActions}>
-                    <p style={styles.statusPrompt}>Full Payment Complete?</p>
-                    <div style={styles.modalActions}>
-                      <button
-                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
-                        style={{
-                          ...styles.button,
-                          ...styles.buttonSecondary,
-                        }}
-                      >
-                        No
-                      </button>
-                      <button
-                        onClick={handleFullPaymentYes}
-                        style={{
-                          ...styles.button,
-                          ...styles.buttonPrimary,
-                        }}
-                      >
-                        Yes
-                      </button>
-                    </div>
+                    {selectedOrder?.status !== ORDER_STATUS.FULLY_PAID && (
+                      <>
+                        <p style={styles.statusPrompt}>Full Payment Complete?</p>
+                        <div style={styles.modalActions}>
+                          <button
+                            onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
+                            style={{
+                              ...styles.button,
+                              ...styles.buttonSecondary,
+                            }}
+                          >
+                            No
+                          </button>
+                          <button
+                            onClick={handleFullPaymentYes}
+                            style={{
+                              ...styles.button,
+                              ...styles.buttonPrimary,
+                            }}
+                          >
+                            Yes
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 

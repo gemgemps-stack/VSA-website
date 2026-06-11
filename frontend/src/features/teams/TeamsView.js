@@ -24,7 +24,9 @@ const TeamsView = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
+  const [selectedTeamForDetails, setSelectedTeamForDetails] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState(createInitialFormData());
 
@@ -81,6 +83,11 @@ const TeamsView = () => {
           : [createPlayerRow()],
     });
     setModalOpen(true);
+  };
+
+  const handleViewDetails = (team) => {
+    setSelectedTeamForDetails(team);
+    setDetailsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -237,6 +244,7 @@ const TeamsView = () => {
           <DataTable
             columns={columns}
             data={filteredTeams}
+            onView={handleViewDetails}
             onEdit={handleEdit}
             onDelete={handleDelete}
             loading={loading}
@@ -254,38 +262,40 @@ const TeamsView = () => {
             size="large"
           >
             <form className="order-form-grid">
-              <div className="form-group">
-                <label>Team Name *</label>
-                <input
-                  type="text"
-                  value={formData.teamName}
-                  onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-                  placeholder="Enter team name"
-                  required
-                />
-              </div>
+              <div className="order-modal-row order-modal-row-3">
+                <div className="form-group">
+                  <label>Team Name *</label>
+                  <input
+                    type="text"
+                    value={formData.teamName}
+                    onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
+                    placeholder="Enter team name"
+                    required
+                  />
+                </div>
 
-              <div className="form-group">
-                <label>Quantity *</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.quantity}
-                  readOnly
-                  disabled
-                  placeholder="Auto-calculated from players"
-                />
-                <small className="form-help-text">This updates automatically based on the number of players.</small>
-              </div>
+                <div className="form-group">
+                  <label>Quantity *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.quantity}
+                    readOnly
+                    disabled
+                    placeholder="Auto-calculated from players"
+                  />
+                  <small className="form-help-text">This updates automatically based on the number of players.</small>
+                </div>
 
-              <div className="form-group">
-                <label>Transit Date *</label>
-                <input
-                  type="date"
-                  value={formData.transitDate}
-                  onChange={(e) => setFormData({ ...formData, transitDate: e.target.value })}
-                  required
-                />
+                <div className="form-group">
+                  <label>Transit Date *</label>
+                  <input
+                    type="date"
+                    value={formData.transitDate}
+                    onChange={(e) => setFormData({ ...formData, transitDate: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
 
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
@@ -301,7 +311,7 @@ const TeamsView = () => {
                         background: '#fafafa',
                       }}
                     >
-                      <div className="order-form-grid" style={{ marginBottom: 0 }}>
+                      <div className="order-modal-row order-modal-row-4" style={{ marginBottom: 0 }}>
                         <div className="form-group">
                           <label>Surname *</label>
                           <input
@@ -367,6 +377,71 @@ const TeamsView = () => {
                 </button>
               </div>
             </form>
+          </Modal>
+
+          <Modal
+            isOpen={detailsModalOpen}
+            title="Team Details"
+            onClose={() => setDetailsModalOpen(false)}
+            size="large"
+            submitText="Close"
+            onSubmit={() => setDetailsModalOpen(false)}
+          >
+            {selectedTeamForDetails && (
+              <div className="team-details-container">
+                <div className="details-section">
+                  <h3>Team Information</h3>
+                  <div className="details-row">
+                    <div className="details-item">
+                      <span className="details-label">Team Name:</span>
+                      <span className="details-value">{selectedTeamForDetails.teamName}</span>
+                    </div>
+                    <div className="details-item">
+                      <span className="details-label">Quantity:</span>
+                      <span className="details-value">{selectedTeamForDetails.players?.length || 0}</span>
+                    </div>
+                    <div className="details-item">
+                      <span className="details-label">Transit Date:</span>
+                      <span className="details-value">{selectedTeamForDetails.transitDate}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="details-section">
+                  <h3>Players ({selectedTeamForDetails.players?.length || 0})</h3>
+                  <div className="players-table-wrapper">
+                    <table className="details-table">
+                      <thead>
+                        <tr>
+                          <th>Surname</th>
+                          <th>Jersey Number</th>
+                          <th>Size</th>
+                          <th>Jersey Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedTeamForDetails.players && selectedTeamForDetails.players.length > 0 ? (
+                          selectedTeamForDetails.players.map((player, index) => (
+                            <tr key={player.id || index}>
+                              <td>{player.surname}</td>
+                              <td>{player.number}</td>
+                              <td>{player.size}</td>
+                              <td>{player.type}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" style={{ textAlign: 'center' }}>
+                              No players found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </Modal>
         </div>
       </DashboardLayout>

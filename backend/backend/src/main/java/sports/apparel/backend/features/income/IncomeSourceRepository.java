@@ -11,8 +11,6 @@ import java.util.UUID;
 
 @Repository
 public interface IncomeSourceRepository extends JpaRepository<IncomeSource, UUID> {
-    Optional<IncomeSource> findByReferenceNumber(String referenceNumber);
-
     List<IncomeSource> findByIncomeDate(LocalDate incomeDate);
 
     List<IncomeSource> findByIncomeDateBetween(LocalDate startDate, LocalDate endDate);

@@ -125,6 +125,7 @@ const Orders = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [isReferenceNumberEditing, setIsReferenceNumberEditing] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchQuery, setSearchQuery] = useState('');
@@ -453,6 +454,7 @@ const Orders = () => {
   const handleView = (order) => {
     setSelectedOrder(order);
     setReferenceNumber(order.referenceNumber || '');
+    setIsReferenceNumberEditing(false);
     setRemarks(order.remarks || '');
     setDetailsOpen(true);
   };
@@ -461,6 +463,7 @@ const Orders = () => {
     setDetailsOpen(false);
     setSelectedOrder(null);
     setReferenceNumber('');
+    setIsReferenceNumberEditing(false);
     setRemarks('');
   };
 
@@ -538,7 +541,6 @@ const Orders = () => {
       });
 
       await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
-      setReferenceNumber('');
     } catch (error) {
       console.error('Error saving income source:', error);
       const apiMessage =
@@ -569,6 +571,20 @@ const Orders = () => {
     } catch (error) {
       // updateSelectedOrderStatus already shows the error message
     }
+  };
+
+  const handleSaveReferenceNumber = async () => {
+    if (!selectedOrder) {
+      return;
+    }
+
+    await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+    setIsReferenceNumberEditing(false);
+  };
+
+  const handleCancelReferenceNumberEdit = () => {
+    setReferenceNumber(selectedOrder?.referenceNumber || '');
+    setIsReferenceNumberEditing(false);
   };
 
   const handleCancelSelectedOrder = async () => {
@@ -735,7 +751,7 @@ const Orders = () => {
       <DashboardLayout>
         <div className="page-container">
         <div className="page-header">
-          <h1>Orders</h1>
+          <h1>Inventory Orders</h1>
           <button className="btn-primary" onClick={openNewOrderModal}>
             + New Order
           </button>
@@ -1205,18 +1221,59 @@ const Orders = () => {
                     <>
                         <div className="form-group" style={{ marginBottom: 0 }}>
                           <label>Reference Number</label>
-                        <input
-                          type="text"
-                          value={referenceNumber}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setReferenceNumber(value);
-                            setSelectedOrder((prev) =>
-                              prev ? { ...prev, referenceNumber: value } : prev
-                            );
-                          }}
-                          placeholder="Enter reference number"
-                        />
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            value={referenceNumber}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setReferenceNumber(value);
+                              setSelectedOrder((prev) =>
+                                prev ? { ...prev, referenceNumber: value } : prev
+                              );
+                            }}
+                            placeholder="Enter reference number"
+                            readOnly={
+                              selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
+                              !isReferenceNumberEditing
+                            }
+                            style={{
+                              ...(selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
+                              !isReferenceNumberEditing
+                                ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
+                                : {}),
+                            }}
+                          />
+                          {selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
+                            !isReferenceNumberEditing && (
+                              <button
+                                type="button"
+                                className="status-btn status-btn-secondary"
+                                onClick={() => setIsReferenceNumberEditing(true)}
+                              >
+                                Edit
+                              </button>
+                            )}
+                          {selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
+                            isReferenceNumberEditing && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="status-btn status-btn-primary"
+                                  onClick={handleSaveReferenceNumber}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  className="status-btn status-btn-secondary"
+                                  onClick={handleCancelReferenceNumberEdit}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                        </div>
                         </div>
                         <div className="form-group" style={{ marginBottom: 0 }}>
                           <label>Remarks</label>
@@ -1236,23 +1293,27 @@ const Orders = () => {
                         </div>
                     </>
 
-                    <p className="order-status-prompt">Full Payment Complete?</p>
-                    <div className="order-status-buttons">
-                      <button
-                        type="button"
-                        className="status-btn status-btn-secondary"
-                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
-                      >
-                        No
-                      </button>
-                      <button
-                        type="button"
-                        className="status-btn status-btn-primary"
-                        onClick={handleFullPaymentYes}
-                      >
-                        Yes
-                      </button>
-                    </div>
+                    {selectedOrder.status !== ORDER_STATUS.FULLY_PAID && (
+                      <>
+                        <p className="order-status-prompt">Full Payment Complete?</p>
+                        <div className="order-status-buttons">
+                          <button
+                            type="button"
+                            className="status-btn status-btn-secondary"
+                            onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
+                          >
+                            No
+                          </button>
+                          <button
+                            type="button"
+                            className="status-btn status-btn-primary"
+                            onClick={handleFullPaymentYes}
+                          >
+                            Yes
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 

@@ -3,6 +3,8 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import incomeService from '../../services/incomeService';
+import orderService from '../../services/orderService';
+import customizedOrderService from '../../services/customizedOrderService';
 
 const PAYMENT_METHODS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
 const REPORT_PERIODS = [
@@ -25,6 +27,7 @@ const SourceIncome = () => {
   const [loading, setLoading] = useState(false);
   const [detailsTarget, setDetailsTarget] = useState(null);
   const [reportPeriod, setReportPeriod] = useState('WEEKLY');
+  const [orderReferenceCache, setOrderReferenceCache] = useState({});
 
   const canAccessIncome =
     user?.role === 'ADMIN' || user?.permissions?.some((permission) => permission.pageName === 'SOURCE_OF_INCOME');
@@ -47,6 +50,15 @@ const SourceIncome = () => {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    // Fetch reference numbers for all income entries
+    incomeEntries.forEach((entry) => {
+      if (entry.jobOrderNo && !orderReferenceCache[entry.jobOrderNo]) {
+        fetchOrderReferenceNumber(entry.jobOrderNo);
+      }
+    });
+  }, [incomeEntries]);
 
   const loadPaymentMethods = async () => {
     const stored = window.localStorage.getItem('paymentMethods');
@@ -84,6 +96,47 @@ const SourceIncome = () => {
     const rawDate = entry.incomeDate || entry.createdAt;
     const parsedDate = rawDate ? new Date(rawDate) : new Date(0);
     return Number.isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
+  };
+
+  const fetchOrderReferenceNumber = async (jobOrderNo) => {
+    if (!jobOrderNo) {
+      return 'N/A';
+    }
+
+    // Check if already cached
+    if (orderReferenceCache[jobOrderNo]) {
+      return orderReferenceCache[jobOrderNo];
+    }
+
+    try {
+      // Try to fetch from orders first
+      const orderResponse = await orderService.getOrderByJobOrderNo(jobOrderNo);
+      const referenceNumber = orderResponse.data?.referenceNumber || 'N/A';
+      setOrderReferenceCache((prev) => ({
+        ...prev,
+        [jobOrderNo]: referenceNumber,
+      }));
+      return referenceNumber;
+    } catch (orderError) {
+      try {
+        // If not found in orders, try customized orders
+        const customOrderResponse = await customizedOrderService.getOrderByJobOrderNo(jobOrderNo);
+        const referenceNumber = customOrderResponse.data?.referenceNumber || 'N/A';
+        setOrderReferenceCache((prev) => ({
+          ...prev,
+          [jobOrderNo]: referenceNumber,
+        }));
+        return referenceNumber;
+      } catch (customOrderError) {
+        // If not found in either, cache 'N/A'
+        setOrderReferenceCache((prev) => ({
+          ...prev,
+          [jobOrderNo]: 'N/A',
+        }));
+        console.error(`Could not fetch reference number for job order ${jobOrderNo}:`, customOrderError);
+        return 'N/A';
+      }
+    }
   };
 
   const getPeriodRange = (period) => {
@@ -207,9 +260,12 @@ const SourceIncome = () => {
               entries.map((entry) => (
                 <div key={entry.id} className="income-detail-row">
                   <div className="transaction-history-meta">
-                    <strong className="transaction-reference-number">
-                      {entry.referenceNumber || 'No Reference Number'}
-                    </strong>
+                    <div>
+                      <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Reference Number:</span>
+                      <strong className="transaction-reference-number">
+                        {orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
+                      </strong>
+                    </div>
                     <span className="transaction-client-id">
                       {entry.clientCode ? `Client ID: ${entry.clientCode}` : 'Client ID: Not available'}
                     </span>
@@ -262,9 +318,12 @@ const SourceIncome = () => {
             entries.map((entry) => (
               <div key={entry.id} className="income-detail-row">
                 <div className="transaction-history-meta">
-                  <strong className="transaction-reference-number">
-                    {entry.referenceNumber || 'No Reference Number'}
-                  </strong>
+                  <div>
+                    <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Reference Number:</span>
+                    <strong className="transaction-reference-number">
+                      {orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
+                    </strong>
+                  </div>
                   <span className="transaction-client-id">
                     {entry.clientCode ? `Client ID: ${entry.clientCode}` : 'Client ID: Not available'}
                   </span>
@@ -465,9 +524,12 @@ const SourceIncome = () => {
                     currentReportEntries.map((entry) => (
                       <div key={entry.id} className="income-detail-row">
                         <div className="transaction-history-meta">
-                          <strong className="transaction-reference-number">
-                            {entry.referenceNumber || 'No Reference Number'}
-                          </strong>
+                          <div>
+                            <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Reference Number:</span>
+                            <strong className="transaction-reference-number">
+                              {orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
+                            </strong>
+                          </div>
                           <span className="transaction-client-id">
                             {entry.clientCode ? `Client ID: ${entry.clientCode}` : 'Client ID: Not available'}
                           </span>

@@ -448,6 +448,85 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* Team Details Modal */
+.team-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.details-section {
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.details-section h3 {
+  margin: 0 0 16px 0;
+  color: #016667;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.details-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.details-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.details-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.details-value {
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.players-table-wrapper {
+  overflow-x: auto;
+}
+
+.details-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.details-table thead {
+  background: #e5e7eb;
+}
+
+.details-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #d1d5db;
+}
+
+.details-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.details-table tbody tr:hover {
+  background: #f3f4f6;
+}
+
 .order-modal-row-single {
   grid-template-columns: 1fr;
 }
