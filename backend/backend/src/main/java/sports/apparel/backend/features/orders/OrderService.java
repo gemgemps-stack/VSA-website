@@ -65,6 +65,7 @@ public class OrderService {
         order.setOrderDate(request.getOrderDate());
         order.setModeOfPayment(request.getModeOfPayment());
         order.setRemarks(request.getRemarks());
+        order.setReferenceNumber(request.getReferenceNumber());
         order.setStatus(resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL));
         order.setInventoryDeducted(false);
 
@@ -72,6 +73,7 @@ public class OrderService {
         if (!STATUS_CANCELLED.equalsIgnoreCase(savedOrder.getStatus())) {
             deductInventoryForOrder(savedOrder);
         }
+        orderRepository.save(savedOrder);
         return new OrderDTO(savedOrder);
     }
 
@@ -110,6 +112,12 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    public List<OrderDTO> getOrdersByStatus(String status) {
+        return orderRepository.findByStatus(status).stream()
+                .map(OrderDTO::new)
+                .collect(Collectors.toList());
+    }
+
     public OrderDTO updateOrder(UUID id, CreateOrderRequest request) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
@@ -132,6 +140,9 @@ public class OrderService {
         order.setModeOfPayment(request.getModeOfPayment());
         if (request.getRemarks() != null) {
             order.setRemarks(request.getRemarks());
+        }
+        if (request.getReferenceNumber() != null) {
+            order.setReferenceNumber(request.getReferenceNumber());
         }
         order.setStatus(resolveStatus(request.getStatus(), order.getStatus()));
 
@@ -157,7 +168,8 @@ public class OrderService {
     private void deductInventoryForOrder(Order order) {
         Inventory inventory = findInventoryByRetailLabel(order.getOrderRetail());
         if (inventory == null) {
-            throw new IllegalArgumentException("Matching inventory item not found for order retail: " + order.getOrderRetail());
+            order.setInventoryDeducted(false);
+            return;
         }
 
         int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
@@ -180,7 +192,8 @@ public class OrderService {
     private void restoreInventoryForOrder(Order order) {
         Inventory inventory = findInventoryByRetailLabel(order.getOrderRetail());
         if (inventory == null) {
-            throw new IllegalArgumentException("Matching inventory item not found for order retail: " + order.getOrderRetail());
+            order.setInventoryDeducted(false);
+            return;
         }
 
         int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
@@ -215,9 +228,13 @@ public class OrderService {
     public void deleteOrder(UUID id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
-        if (Boolean.TRUE.equals(order.getInventoryDeducted())) {
-            restoreInventoryForOrder(order);
+        try {
+            if (Boolean.TRUE.equals(order.getInventoryDeducted())) {
+                restoreInventoryForOrder(order);
+            }
+            orderRepository.delete(order);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to delete order: " + e.getMessage(), e);
         }
-        orderRepository.delete(order);
     }
 }

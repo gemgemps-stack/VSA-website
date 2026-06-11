@@ -43,8 +43,9 @@ const Dashboard = () => {
         <div className="stats-grid">
           <PermissionGuard permission="ORDERS">
             <div className="stat-card" onClick={() => navigate('/orders')}>
+              <div className="stat-icon">📋</div>
               <div className="stat-content">
-                <h3>🛒 Total Orders</h3>
+                <h3>Orders</h3>
                 <p className="stat-value">{stats.totalOrders}</p>
               </div>
             </div>
@@ -52,18 +53,20 @@ const Dashboard = () => {
 
           <PermissionGuard permission="CLIENTS">
             <div className="stat-card" onClick={() => navigate('/clients')}>
+              <div className="stat-icon">👤</div>
               <div className="stat-content">
-                <h3>📦 Total Inventory</h3>
-                <p className="stat-value">{stats.totalInventory}</p>
+                <h3>Clients</h3>
+                <p className="stat-value">{stats.totalClients}</p>
               </div>
             </div>
           </PermissionGuard>
 
           <PermissionGuard permission="INVENTORY">
             <div className="stat-card" onClick={() => navigate('/inventory')}>
+              <div className="stat-icon">📦</div>
               <div className="stat-content">
-                <h3>👥 Total Clients</h3>
-                <p className="stat-value">{stats.totalClients}</p>
+                <h3>Inventory</h3>
+                <p className="stat-value">{stats.totalInventory}</p>
               </div>
             </div>
           </PermissionGuard>
@@ -74,7 +77,7 @@ const Dashboard = () => {
           <div className="actions-grid">
             <PermissionGuard permission="ORDERS">
               <button className="action-btn" onClick={() => navigate('/orders')}>
-                🛒 View Orders
+                📋 View Orders
               </button>
             </PermissionGuard>
 
@@ -86,13 +89,19 @@ const Dashboard = () => {
 
             <PermissionGuard permission="CLIENTS">
               <button className="action-btn" onClick={() => navigate('/clients')}>
-                👥 Manage Clients
+                👤 Manage Clients
+              </button>
+            </PermissionGuard>
+
+            <PermissionGuard permission="ATTENDANCE">
+              <button className="action-btn" onClick={() => navigate('/attendance')}>
+                ✓ View Attendance
               </button>
             </PermissionGuard>
 
             {user?.role === 'ADMIN' && (
               <button className="action-btn" onClick={() => navigate('/employees')}>
-                👔 Manage Employees
+                👨‍💼 Manage Employees
               </button>
             )}
           </div>

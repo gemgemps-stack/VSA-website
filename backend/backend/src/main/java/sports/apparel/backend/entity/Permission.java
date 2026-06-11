@@ -29,6 +29,7 @@ public class Permission {
         ORDERS,
         INVENTORY,
         CLIENTS,
-        SOURCE_OF_INCOME
+        SOURCE_OF_INCOME,
+        ATTENDANCE
     }
 }

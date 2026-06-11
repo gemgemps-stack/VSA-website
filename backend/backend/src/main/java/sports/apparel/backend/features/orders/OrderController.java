@@ -79,6 +79,13 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+    @GetMapping("/status")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    public ResponseEntity<List<OrderDTO>> getOrdersByStatus(@RequestParam String status) {
+        List<OrderDTO> orders = orderService.getOrdersByStatus(status);
+        return ResponseEntity.ok(orders);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
     public ResponseEntity<OrderDTO> updateOrder(@PathVariable UUID id, @Valid @RequestBody CreateOrderRequest request) {
@@ -88,8 +95,18 @@ public class OrderController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteOrder(@PathVariable UUID id) {
-        orderService.deleteOrder(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteOrder(@PathVariable UUID id) {
+        try {
+            orderService.deleteOrder(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                new ErrorResponse("error", e.getMessage())
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                new ErrorResponse("error", e.getMessage() != null ? e.getMessage() : "Failed to delete order")
+            );
+        }
     }
 }

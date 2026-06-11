@@ -36,7 +36,8 @@ const Clients = () => {
       setTotalPages(Math.max(1, Math.ceil((response.data.totalElements || 0) / 10)));
     } catch (error) {
       console.error('Error loading clients:', error);
-      alert('Failed to load clients');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load clients';
+      alert(`Failed to load clients: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -87,6 +88,7 @@ const Clients = () => {
   };
 
   const columns = [
+    { key: 'clientCode', label: 'ID', render: (value) => value || '-' },
     { key: 'clientName', label: 'Name' },
     { key: 'contactNumber', label: 'Contact' },
     {
@@ -98,6 +100,7 @@ const Clients = () => {
 
   const filteredClients = clients.filter((client) => {
     const haystack = [
+      client.clientCode,
       client.clientName,
       client.contactNumber,
       client.vip ? 'vip' : 'regular',

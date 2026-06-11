@@ -31,6 +31,7 @@ const Employees = () => {
     { key: 'CLIENTS', label: 'Clients' },
     { key: 'SOURCE_OF_INCOME', label: 'Source Income' },
     { key: 'PAYMENT_METHODS', label: 'Payment Methods' },
+    { key: 'ATTENDANCE', label: 'Attendance' },
     { key: 'REGISTER_CLIENT', label: 'Register Client' },
     { key: 'EMPLOYEES', label: 'Employees' },
   ];
@@ -69,7 +70,8 @@ const Employees = () => {
       setTotalPages(Math.max(1, Math.ceil(totalElements / 10)));
     } catch (error) {
       console.error('Error loading employees:', error);
-      alert('Failed to load employees');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load employees';
+      alert(`Failed to load employees: ${errorMsg}`);
     } finally {
       setLoading(false);
     }

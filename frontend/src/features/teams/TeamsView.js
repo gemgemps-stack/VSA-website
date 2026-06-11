@@ -35,7 +35,8 @@ const TeamsView = () => {
       setTeams(response.data || []);
     } catch (error) {
       console.error('Error loading teams:', error);
-      alert('Failed to load teams');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load teams';
+      alert(`Failed to load teams: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -312,7 +313,7 @@ const TeamsView = () => {
                           />
                         </div>
                         <div className="form-group">
-                          <label>Number *</label>
+                          <label>Jersey Number *</label>
                           <input
                             type="text"
                             value={player.number}
@@ -332,7 +333,7 @@ const TeamsView = () => {
                           />
                         </div>
                         <div className="form-group">
-                          <label>Type *</label>
+                          <label>Jersey Type *</label>
                           <input
                             type="text"
                             value={player.type}

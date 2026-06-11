@@ -19,6 +19,7 @@ public class OrderDTO {
     private String jobOrderNo;
     private UUID clientId;
     private String clientName;
+    private String clientCode;
     private String teamName;
     private String orderRetail;
     private Integer quantity;
@@ -30,6 +31,7 @@ public class OrderDTO {
     private LocalDate orderDate;
     private String modeOfPayment;
     private String remarks;
+    private String referenceNumber;
     private String status;
     private Boolean inventoryDeducted;
     private LocalDateTime createdAt;
@@ -39,6 +41,7 @@ public class OrderDTO {
         this.jobOrderNo = order.getJobOrderNo();
         this.clientId = order.getClient().getId();
         this.clientName = order.getClient().getClientName();
+        this.clientCode = order.getClient().getClientCode();
         this.teamName = order.getTeamName();
         this.orderRetail = order.getOrderRetail();
         this.quantity = order.getQuantity();
@@ -50,6 +53,7 @@ public class OrderDTO {
         this.orderDate = order.getOrderDate();
         this.modeOfPayment = order.getModeOfPayment();
         this.remarks = order.getRemarks();
+        this.referenceNumber = order.getReferenceNumber();
         this.status = order.getStatus();
         this.inventoryDeducted = order.getInventoryDeducted();
         this.createdAt = order.getCreatedAt();

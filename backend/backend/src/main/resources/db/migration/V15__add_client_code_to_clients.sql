@@ -1,0 +1,2 @@
+ALTER TABLE clients
+ADD COLUMN IF NOT EXISTS client_code VARCHAR(20);

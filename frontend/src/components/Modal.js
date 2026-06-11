@@ -10,12 +10,13 @@ const Modal = ({
   submitText = 'Save',
   cancelText = 'Cancel',
   loading = false,
-  size = 'default'
+  size = 'default',
+  zIndex = 1000
 }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex }}>
       <div className={`modal-content modal-${size}`} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title}</h2>

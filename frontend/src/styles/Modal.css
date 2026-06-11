@@ -40,8 +40,8 @@
 }
 
 .modal-xlarge {
-  width: 92vw;
-  max-width: 1500px;
+  width: 65vw;
+  max-width: 1100px;
 }
 
 @keyframes slideUp {
@@ -101,7 +101,7 @@
 }
 
 .modal-xlarge .modal-body {
-  max-height: 82vh;
+  max-height: 84vh;
 }
 
 @media (max-width: 900px) {
@@ -111,8 +111,8 @@
   }
 
   .modal-xlarge {
-    width: 94%;
-    max-width: 94%;
+    width: 92%;
+    max-width: 92%;
   }
 }
 

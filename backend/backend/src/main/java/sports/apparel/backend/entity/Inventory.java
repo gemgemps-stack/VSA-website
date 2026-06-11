@@ -39,6 +39,9 @@ public class Inventory {
     @Column(length = 50)
     private String number;
 
+    @Column(length = 1000)
+    private String notes;
+
     @Column(nullable = false)
     private Integer quantity;
 

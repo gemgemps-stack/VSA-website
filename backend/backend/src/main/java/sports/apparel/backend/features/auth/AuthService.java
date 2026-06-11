@@ -22,7 +22,7 @@ public class AuthService {
     private static final String DEV_ADMIN_EMAIL = "admin@verdidaapparel.com";
     private static final String DEV_ADMIN_PASSWORD = "AdminPassword123!";
     private static final String[] DEV_ADMIN_PERMISSIONS = {
-            "ORDERS", "INVENTORY", "CLIENTS", "SOURCE_OF_INCOME", "PAYMENT_METHODS", "EMPLOYEES"
+            "ORDERS", "INVENTORY", "CLIENTS", "SOURCE_OF_INCOME", "PAYMENT_METHODS", "EMPLOYEES", "ATTENDANCE"
     };
 
     private final UserRepository userRepository;

@@ -49,5 +49,7 @@ public class CreateOrderRequest {
 
     private String remarks;
 
+    private String referenceNumber;
+
     private String status;
 }

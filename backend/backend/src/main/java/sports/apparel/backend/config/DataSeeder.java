@@ -19,6 +19,7 @@ public class DataSeeder {
                                        PermissionRepository permissionRepository,
                                        PasswordEncoder passwordEncoder) {
         return args -> {
+            // Only seed admin user - don't seed test employees anymore
             if (!userRepository.existsByEmail("admin@verdidaapparel.com")) {
                 User admin = new User();
                 admin.setUsername("admin");
@@ -28,7 +29,7 @@ public class DataSeeder {
 
                 admin = userRepository.save(admin);
 
-                for (String pageName : new String[] {"ORDERS", "INVENTORY", "CLIENTS", "SOURCE_OF_INCOME"}) {
+                for (String pageName : new String[] {"ORDERS", "INVENTORY", "CLIENTS", "SOURCE_OF_INCOME", "ATTENDANCE"}) {
                     if (!permissionRepository.existsByUserIdAndPageName(admin.getId(), pageName)) {
                         Permission permission = new Permission();
                         permission.setUser(admin);
@@ -37,58 +38,10 @@ public class DataSeeder {
                     }
                 }
             }
-
-            seedSampleEmployee(userRepository, permissionRepository, passwordEncoder,
-                    "jane.employee@verdidaapparel.com",
-                    "Jane Marketing",
-                    "Password123!",
-                    User.Role.EMPLOYEE,
-                    new String[] {"ORDERS", "CLIENTS"});
-
-            seedSampleEmployee(userRepository, permissionRepository, passwordEncoder,
-                    "mike.staff@verdidaapparel.com",
-                    "Mike Production",
-                    "Password123!",
-                    User.Role.EMPLOYEE,
-                    new String[] {"INVENTORY"});
-
-            seedSampleEmployee(userRepository, permissionRepository, passwordEncoder,
-                    "susan.sewing@verdidaapparel.com",
-                    "Susan Sewing",
-                    "Password123!",
-                    User.Role.EMPLOYEE,
-                    new String[] {"INVENTORY"});
+            // Test employees (Jane, Mike, Susan) are no longer seeded automatically
+            // They were hardcoded and would keep reappearing after deletion
+            // To add them back, manually create them through the UI or add them to a SQL migration
         };
     }
-
-    private void seedSampleEmployee(UserRepository userRepository,
-                                    PermissionRepository permissionRepository,
-                                    PasswordEncoder passwordEncoder,
-                                    String email,
-                                    String username,
-                                    String password,
-                                    User.Role role,
-                                    String[] permissions) {
-        if (userRepository.existsByEmail(email)) {
-            return;
-        }
-
-        User employee = new User();
-        employee.setUsername(username);
-        employee.setEmail(email);
-        employee.setPassword(passwordEncoder.encode(password));
-        employee.setRole(role);
-        employee.setSalary(BigDecimal.valueOf(18000));
-
-        employee = userRepository.save(employee);
-
-        for (String pageName : permissions) {
-            if (!permissionRepository.existsByUserIdAndPageName(employee.getId(), pageName)) {
-                Permission permission = new Permission();
-                permission.setUser(employee);
-                permission.setPageName(pageName);
-                permissionRepository.save(permission);
-            }
-        }
-    }
 }
+

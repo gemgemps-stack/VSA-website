@@ -32,6 +32,7 @@ public class InventoryService {
         inventory.setShop(request.getShop());
         inventory.setSize(request.getSize());
         inventory.setNumber(request.getNumber());
+        inventory.setNotes(request.getNotes());
         inventory.setQuantity(request.getQuantity());
         inventory.setPrice(request.getPrice());
 
@@ -79,6 +80,7 @@ public class InventoryService {
         inventory.setShop(request.getShop());
         inventory.setSize(request.getSize());
         inventory.setNumber(request.getNumber());
+        inventory.setNotes(request.getNotes());
         inventory.setQuantity(request.getQuantity());
         inventory.setPrice(request.getPrice());
 
@@ -110,6 +112,12 @@ public class InventoryService {
         }
         if (request.getNumber() != null) {
             request.setNumber(request.getNumber().trim());
+        }
+        if (request.getNotes() != null && request.getNotes().trim().isEmpty()) {
+            request.setNotes(null);
+        }
+        if (request.getNotes() != null) {
+            request.setNotes(request.getNotes().trim());
         }
         if (request.getJerseyType() != null && request.getJerseyType().trim().isEmpty()) {
             request.setJerseyType(null);

@@ -20,6 +20,9 @@ const orderService = {
   getOrdersByYearAndMonth: (year, month) => 
     api.get('/api/orders/year-month', { params: { year, month } }),
 
+  getOrdersByStatus: (status, page = 0, size = 100) =>
+    api.get('/api/orders/status', { params: { status, page, size } }),
+
   updateOrder: (id, orderData) => api.put(`/api/orders/${id}`, orderData),
 
   deleteOrder: (id) => api.delete(`/api/orders/${id}`),

@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -26,6 +27,12 @@ public class CreateIncomeSourceRequest {
 
     @NotBlank(message = "Reference number is required")
     private String referenceNumber;
+
+    private UUID clientId;
+
+    private String clientCode;
+
+    private String jobOrderNo;
 
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Amount must be greater than 0")

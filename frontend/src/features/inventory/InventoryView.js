@@ -4,8 +4,6 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
 import inventoryService from '../../services/inventoryService';
-
-const ITEM_TYPE_OPTIONS = ['Jersey', 'Polo Shirt', 'Chinese Collar', 'Ready Made'];
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopppee', 'Verdida Sports Apparel'];
 const SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'XL', 'XXL'];
 const INITIAL_PAGE_SIZE = 100;
@@ -81,6 +79,7 @@ const createInitialFormData = () => ({
   number: '',
   quantity: '',
   price: '',
+  notes: '',
 });
 
 const createInitialSearchFilters = () => ({
@@ -100,6 +99,7 @@ const Inventory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [detailsItem, setDetailsItem] = useState(null);
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchFilters, setSearchFilters] = useState(createInitialSearchFilters());
 
@@ -114,7 +114,8 @@ const Inventory = () => {
       setInventory(response.data.content || []);
     } catch (error) {
       console.error('Error loading inventory:', error);
-      alert('Failed to load inventory');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load inventory';
+      alert(`Failed to load inventory: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -141,7 +142,7 @@ const Inventory = () => {
   const handleEdit = (item) => {
     setEditingItem(item);
     setFormData({
-      itemType: item.itemType || 'Jersey',
+      itemType: item.itemType || '',
       jerseyType: item.jerseyType || '',
       name: item.name || '',
       shop: item.shop || '',
@@ -149,8 +150,17 @@ const Inventory = () => {
       number: item.number || '',
       quantity: item.quantity != null ? String(item.quantity) : '',
       price: item.price != null ? String(item.price) : '',
+      notes: item.notes || '',
     });
     setModalOpen(true);
+  };
+
+  const handleViewDetails = (item) => {
+    setDetailsItem(item);
+  };
+
+  const closeDetails = () => {
+    setDetailsItem(null);
   };
 
   const handleDelete = async (id) => {
@@ -180,6 +190,7 @@ const Inventory = () => {
         number: formData.number.trim() || null,
         quantity: parseInt(formData.quantity, 10),
         price: parseFloat(formData.price),
+        notes: formData.notes.trim() || null,
       };
 
       if (editingItem) {
@@ -303,6 +314,7 @@ const Inventory = () => {
           <DataTable
             columns={columns}
             data={paginatedInventory}
+            onView={handleViewDetails}
             onEdit={handleEdit}
             onDelete={handleDelete}
             loading={loading}
@@ -317,104 +329,172 @@ const Inventory = () => {
             onClose={() => setModalOpen(false)}
             onSubmit={handleSubmit}
             submitText={editingItem ? 'Update' : 'Add'}
+            size="xlarge"
           >
-            <form>
-              <div className="form-group">
-                <label>Item Type</label>
-                <select
-                  value={formData.itemType}
-                  onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}
-                  required
-                >
-                  <option value="">Select item type</option>
-                  {ITEM_TYPE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+            <form className="inventory-modal-form">
+              <div className="inventory-modal-grid inventory-modal-grid-row-2">
+                <div className="form-group">
+                  <label>Item Type</label>
+                  <input
+                    type="text"
+                    value={formData.itemType}
+                    onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}
+                    placeholder="Enter item type"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Item Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter item name"
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Version (Optional)</label>
-                <input
-                  type="text"
-                  value={formData.jerseyType}
-                  onChange={(e) => setFormData({ ...formData, jerseyType: e.target.value })}
-                />
+              <div className="inventory-modal-grid inventory-modal-grid-row-3">
+                <div className="form-group">
+                  <label>Version (Optional)</label>
+                  <input
+                    type="text"
+                    value={formData.jerseyType}
+                    onChange={(e) => setFormData({ ...formData, jerseyType: e.target.value })}
+                    placeholder="Enter version"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Size</label>
+                  <select
+                    value={formData.size}
+                    onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                  >
+                    <option value="">Select size</option>
+                    {SIZE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Size Number</label>
+                  <input
+                    type="number"
+                    value={formData.number}
+                    onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                    placeholder="Enter size number"
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+              <div className="inventory-modal-grid inventory-modal-grid-row-3">
+                <div className="form-group">
+                  <label>Quantity</label>
+                  <input
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Shop</label>
+                  <select
+                    value={formData.shop}
+                    onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
+                  >
+                    <option value="">Select shop</option>
+                    {SHOP_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Shop</label>
-                <select
-                  value={formData.shop}
-                  onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
-                >
-                  <option value="">Select shop</option>
-                  {SHOP_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Size</label>
-                <select
-                  value={formData.size}
-                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                >
-                  <option value="">Select size</option>
-                  {SIZE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Number</label>
-                <input
-                  type="number"
-                  value={formData.number}
-                  onChange={(e) => setFormData({ ...formData, number: e.target.value })}
-                  placeholder="Enter number"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Price</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  required
+              <div className="form-group inventory-notes-group">
+                <label>Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Add any notes"
+                  rows={4}
                 />
               </div>
             </form>
+          </Modal>
+
+          <Modal
+            isOpen={Boolean(detailsItem)}
+            title="Item Details"
+            onClose={closeDetails}
+            size="large"
+          >
+            {detailsItem && (
+              <div className="inventory-details">
+                <div className="inventory-details-hero">
+                  <div>
+                    <p className="inventory-details-eyebrow">Inventory Item</p>
+                    <h3>{detailsItem.name || '-'}</h3>
+                  </div>
+                  <div className="inventory-details-hero-badge">
+                    {detailsItem.itemType || 'Item Type'}
+                  </div>
+                </div>
+
+                <div className="inventory-details-grid">
+                  <div className="inventory-details-item">
+                    <span>Version</span>
+                    <strong>{detailsItem.jerseyType || '-'}</strong>
+                  </div>
+                  <div className="inventory-details-item">
+                    <span>Shop</span>
+                    <strong>{detailsItem.shop || '-'}</strong>
+                  </div>
+                  <div className="inventory-details-item">
+                    <span>Size</span>
+                    <strong>{detailsItem.size || '-'}</strong>
+                  </div>
+                  <div className="inventory-details-item">
+                    <span>Size Number</span>
+                    <strong>{detailsItem.number || '-'}</strong>
+                  </div>
+                  <div className="inventory-details-item">
+                    <span>Quantity</span>
+                    <strong>{detailsItem.quantity != null ? detailsItem.quantity : '-'}</strong>
+                  </div>
+                  <div className="inventory-details-item">
+                    <span>Price</span>
+                    <strong>
+                      {detailsItem.price != null ? Number(detailsItem.price).toFixed(2) : '-'}
+                    </strong>
+                  </div>
+                  <div className="inventory-details-item inventory-details-item-full">
+                    <span>Notes</span>
+                    <strong>{detailsItem.notes || '-'}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
           </Modal>
         </div>
       </DashboardLayout>

@@ -254,6 +254,132 @@
   margin-bottom: 0;
 }
 
+.inventory-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.inventory-modal-grid {
+  display: grid;
+  gap: 18px 20px;
+}
+
+.inventory-modal-grid-row-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inventory-modal-grid-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.inventory-notes-group {
+  margin-bottom: 0;
+}
+
+.inventory-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.inventory-details {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.inventory-details-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #016667 0%, #0f8f88 100%);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(1, 102, 103, 0.18);
+}
+
+.inventory-details-eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.inventory-details-hero h3 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.1;
+  color: #fff;
+  word-break: break-word;
+}
+
+.inventory-details-hero-badge {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(8px);
+}
+
+.inventory-details-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #dfe7e3;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.02);
+}
+
+.inventory-details-item span {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6e645a;
+}
+
+.inventory-details-item strong {
+  font-size: 15px;
+  color: #20150d;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.inventory-details-item-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .inventory-modal-grid-row-2,
+  .inventory-modal-grid-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-details-hero {
+    flex-direction: column;
+  }
+
+  .inventory-details-hero h3 {
+    font-size: 24px;
+  }
+}
+
 .permission-section {
   margin-top: 24px;
   padding: 18px;
@@ -300,13 +426,30 @@
 }
 
 .order-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .order-form-grid .form-group {
   margin-bottom: 0;
+}
+
+.order-modal-row {
+  display: grid;
+  gap: 18px 20px;
+}
+
+.order-modal-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.order-modal-row-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.order-modal-row-single {
+  grid-template-columns: 1fr;
 }
 
 .client-search-wrapper {
@@ -434,7 +577,8 @@
 }
 
 @media (max-width: 768px) {
-  .order-form-grid {
+  .order-modal-row-3,
+  .order-modal-row-4 {
     grid-template-columns: 1fr;
   }
 
@@ -626,6 +770,20 @@
   overflow-y: auto;
 }
 
+.transaction-histories-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #20150d;
+}
+
+.transaction-histories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
 .income-detail-row {
   display: flex;
   justify-content: space-between;
@@ -643,10 +801,205 @@
   white-space: nowrap;
 }
 
+.transaction-history-meta {
+  min-width: 0;
+}
+
+.transaction-reference-number {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.transaction-client-id {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6e645a;
+  overflow-wrap: anywhere;
+}
+
 .income-details-empty {
   margin: 0;
   color: #6e645a;
   font-size: 14px;
+}
+
+.finance-sections-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.finance-panel {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #dfe7e3;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 8px 28px rgba(18, 38, 36, 0.05);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.finance-panel-full {
+  grid-column: 1 / -1;
+}
+
+.finance-panel .page-header h2 {
+  font-size: 22px;
+}
+
+.finance-panel .income-grid-card {
+  padding: 16px;
+  padding-bottom: 16px;
+  min-height: 146px;
+  box-sizing: border-box;
+}
+
+.finance-panel .income-shop-grids {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.finance-panel .income-grids-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.finance-panel .income-grid-card h3 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.finance-panel .income-grid-value {
+  font-size: 20px;
+}
+
+.finance-panel .income-details-btn {
+  margin-top: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.finance-panel .income-total-card {
+  width: 100%;
+  margin-top: auto;
+}
+
+.finance-panel .payment-method-card {
+  padding: 16px;
+  padding-bottom: 16px;
+  min-height: 146px;
+  box-sizing: border-box;
+}
+
+.finance-panel .payment-methods-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+  align-items: stretch;
+  flex: 1;
+}
+
+.finance-panel .payment-method-header h3 {
+  font-size: 15px;
+}
+
+.finance-panel .payment-header-details-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(1, 102, 103, 0.1);
+  color: #016667;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.finance-panel .payment-header-details-btn:hover {
+  background: rgba(1, 102, 103, 0.16);
+  transform: translateY(-1px);
+}
+
+.finance-panel .status-badge {
+  font-size: 10px;
+  padding: 3px 10px;
+}
+
+.finance-panel .payment-detail {
+  margin-bottom: 2px;
+}
+
+.finance-panel .payment-detail label {
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.finance-panel .payment-detail p {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.finance-panel .payment-method-card .income-details-btn {
+  margin-top: 4px;
+}
+
+.finance-panel .no-details {
+  font-size: 10px;
+}
+
+.finance-panel .income-details-summary > div {
+  padding: 12px 14px;
+}
+
+.finance-panel .income-details-label {
+  font-size: 11px;
+}
+
+.finance-panel .income-details-summary strong {
+  font-size: 14px;
+}
+
+.finance-panel .report-filter-btn {
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.report-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.report-filter-btn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #dfe7e3;
+  background: #fff;
+  color: #6e645a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.report-filter-btn:hover {
+  border-color: #016667;
+  color: #016667;
+  transform: translateY(-1px);
+}
+
+.report-filter-btn.active {
+  background: #016667;
+  color: #fff;
+  border-color: #016667;
 }
 
 .order-status-badge {
@@ -848,12 +1201,21 @@
 }
 
 @media (max-width: 1200px) {
+  .finance-sections-grid {
+    grid-template-columns: 1fr;
+  }
+
   .income-shop-grids {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
+  .finance-panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
   .income-shop-grids {
     grid-template-columns: 1fr;
   }
@@ -883,6 +1245,10 @@
 
   .orders-filter-bar {
     gap: 8px;
+  }
+
+  .transaction-histories-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1016,4 +1382,333 @@
 
 .btn-edit:active {
   transform: translateY(1px);
+}
+
+/* Attendance Styles */
+.attendance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.attendance-summary-card {
+  padding: 18px 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
+  border: 1px solid #dfe7e3;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.attendance-summary-card span {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6e645a;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.attendance-summary-card strong {
+  font-size: 28px;
+  color: #016667;
+}
+
+.attendance-controls {
+  display: grid;
+  grid-template-columns: 160px 160px minmax(260px, 1fr) 160px;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.attendance-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attendance-control label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6e645a;
+}
+
+.attendance-control input,
+.attendance-control select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Montserrat', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.attendance-control input:focus,
+.attendance-control select:focus {
+  outline: none;
+  border-color: #016667;
+  box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
+}
+
+.attendance-search {
+  min-width: 0;
+}
+
+.attendance-calendar {
+  background: #fff;
+  border: 1px solid #dfe7e3;
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 8px 28px rgba(18, 38, 36, 0.06);
+}
+
+.attendance-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.attendance-calendar-header h2 {
+  margin: 0;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 28px;
+  color: #20150d;
+}
+
+.attendance-today-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(1, 102, 103, 0.1);
+  color: #016667;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.attendance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 10px;
+}
+
+.attendance-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6e645a;
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legend-present {
+  background: #016667;
+}
+
+.legend-late {
+  background: #d9b26f;
+}
+
+.legend-absent {
+  background: #c0392b;
+}
+
+.legend-half-day {
+  background: #8e44ad;
+}
+
+.legend-leave {
+  background: #7f8c8d;
+}
+
+.attendance-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.weekday-row {
+  margin-bottom: 10px;
+}
+
+.attendance-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6e645a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.attendance-day {
+  min-height: 75px;
+  border: 1px solid #dfe7e3;
+  border-radius: 16px;
+  padding: 12px;
+  background: #fff;
+  text-align: left;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.attendance-day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(1, 102, 103, 0.08);
+}
+
+.attendance-day.empty {
+  background: transparent;
+  border-style: dashed;
+  cursor: default;
+}
+
+.attendance-day.today {
+  border-color: #016667;
+  box-shadow: inset 0 0 0 1px rgba(1, 102, 103, 0.12);
+}
+
+.attendance-day.selected {
+  background: rgba(1, 102, 103, 0.04);
+}
+
+.attendance-day.has-present {
+  border-color: rgba(1, 102, 103, 0.45);
+}
+
+.attendance-day.has-late {
+  border-color: rgba(217, 178, 111, 0.7);
+}
+
+.attendance-day.has-absent {
+  border-color: rgba(192, 57, 43, 0.45);
+}
+
+.attendance-day.has-half-day {
+  border-color: rgba(142, 68, 173, 0.45);
+}
+
+.attendance-day.has-leave {
+  border-color: rgba(127, 140, 141, 0.55);
+}
+
+.attendance-day-number {
+  font-size: 18px;
+  font-weight: 800;
+  color: #20150d;
+}
+
+.attendance-day-count {
+  font-size: 12px;
+  color: #6e645a;
+}
+
+.attendance-day-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.attendance-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f7faf9;
+  color: #016667;
+  white-space: nowrap;
+}
+
+.tag-present {
+  background: rgba(1, 102, 103, 0.1);
+}
+
+.tag-late {
+  background: rgba(217, 178, 111, 0.18);
+  color: #9c6e1b;
+}
+
+.tag-absent {
+  background: rgba(192, 57, 43, 0.12);
+  color: #c0392b;
+}
+
+.tag-half_day {
+  background: rgba(142, 68, 173, 0.12);
+  color: #8e44ad;
+}
+
+.tag-leave {
+  background: rgba(127, 140, 141, 0.14);
+  color: #566573;
+}
+
+.attendance-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.attendance-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.attendance-status-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(1, 102, 103, 0.1);
+  color: #016667;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.attendance-detail-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 1200px) {
+  .attendance-summary-grid,
+  .attendance-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .attendance-summary-grid,
+  .attendance-controls,
+  .attendance-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-calendar-grid {
+    gap: 8px;
+  }
+
+  .attendance-day {
+    min-height: 96px;
+  }
 }

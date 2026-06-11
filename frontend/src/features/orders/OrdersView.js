@@ -34,6 +34,8 @@ const ORDER_FILTERS = [
 
 const INITIAL_PAGE_SIZE = 100;
 
+const cleanArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
 const getStatusLabel = (status) => {
   const labels = {
     [ORDER_STATUS.FOR_CLIENT_APPROVAL]: 'For Client Approval',
@@ -100,6 +102,7 @@ const createInitialFormData = () => ({
   shop: '',
   orderDate: new Date().toISOString().split('T')[0],
   modeOfPayment: 'Cash',
+  notes: '',
 });
 
 const Orders = () => {
@@ -110,6 +113,8 @@ const Orders = () => {
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
   const [clientSearch, setClientSearch] = useState('');
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
+  const [teamSearch, setTeamSearch] = useState('');
+  const [teamSuggestionsOpen, setTeamSuggestionsOpen] = useState(false);
   const [retailSearch, setRetailSearch] = useState('');
   const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -127,30 +132,33 @@ const Orders = () => {
   const loadClients = useCallback(async () => {
     try {
       const response = await clientService.getAllClients(0, INITIAL_PAGE_SIZE);
-      setClients(response.data.content || []);
+      setClients(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading clients:', error);
-      alert('Failed to load clients');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load clients';
+      alert(`Failed to load clients: ${errorMsg}`);
     }
   }, []);
 
   const loadInventory = useCallback(async () => {
     try {
       const response = await inventoryService.getAllInventory(0, INITIAL_PAGE_SIZE);
-      setInventoryItems(response.data.content || []);
+      setInventoryItems(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading inventory:', error);
-      alert('Failed to load inventory');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load inventory';
+      alert(`Failed to load inventory: ${errorMsg}`);
     }
   }, []);
 
   const loadTeams = useCallback(async () => {
     try {
       const response = await teamService.getAllTeams();
-      setTeams(response.data || []);
+      setTeams(cleanArray(response.data));
     } catch (error) {
       console.error('Error loading teams:', error);
-      alert('Failed to load teams');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load teams';
+      alert(`Failed to load teams: ${errorMsg}`);
     }
   }, []);
 
@@ -161,7 +169,8 @@ const Orders = () => {
       setOrders(response.data.content || []);
     } catch (error) {
       console.error('Error loading orders:', error);
-      alert('Failed to load orders');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load orders';
+      alert(`Failed to load orders: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -200,7 +209,7 @@ const Orders = () => {
     }
   }, [editingOrder, formData.teamId, modalOpen, teams]);
 
-  const selectedClient = clients.find((client) => client.id === formData.clientId);
+  const selectedClient = clients.find((client) => client?.id === formData.clientId);
   const isVipClient = Boolean(selectedClient?.vip);
   const filteredOrders = orders.filter((order) => {
     const normalizedStatus = (order.status || '').toUpperCase();
@@ -231,9 +240,17 @@ const Orders = () => {
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);
   
-  const filteredClients = clients.filter((client) =>
-    client.clientName.toLowerCase().includes(clientSearch.trim().toLowerCase())
-  );
+  const filteredClients = clients
+    .filter(Boolean)
+    .filter((client) =>
+      String(client.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
+    );
+
+  const filteredTeams = teams
+    .filter(Boolean)
+    .filter((team) =>
+      String(team.teamName ?? '').toLowerCase().includes(teamSearch.trim().toLowerCase())
+    );
   
   const filteredInventory = inventoryItems.filter((item) => {
     const searchTerm = retailSearch.trim().toLowerCase();
@@ -265,7 +282,7 @@ const Orders = () => {
   }, [currentPage, totalPages]);
 
   const handleClientSelect = (clientId) => {
-    const client = clients.find((item) => item.id === clientId);
+    const client = clients.find((item) => item?.id === clientId);
     setFormData((prev) => ({
       ...prev,
       clientId,
@@ -289,6 +306,36 @@ const Orders = () => {
     window.setTimeout(() => setClientSuggestionsOpen(false), 150);
   };
 
+  const handleTeamSelect = (teamId) => {
+    const selectedTeam = teams.find((team) => team?.id === teamId);
+    const fallbackDate = new Date().toISOString().split('T')[0];
+
+    setFormData((prev) => ({
+      ...prev,
+      teamId,
+      teamName: selectedTeam?.teamName || '',
+      quantity: selectedTeam?.quantity != null ? String(selectedTeam.quantity) : '',
+      orderDate: selectedTeam?.transitDate || fallbackDate,
+    }));
+    setTeamSearch(selectedTeam?.teamName || '');
+    setTeamSuggestionsOpen(false);
+  };
+
+  const handleTeamInputChange = (value) => {
+    setTeamSearch(value);
+    setTeamSuggestionsOpen(true);
+    setFormData((prev) => ({
+      ...prev,
+      teamId: '',
+      teamName: value,
+      quantity: prev.quantity,
+    }));
+  };
+
+  const handleTeamInputBlur = () => {
+    window.setTimeout(() => setTeamSuggestionsOpen(false), 150);
+  };
+
   const handleRetailSelect = (item) => {
     const retailValue = getInventoryLabel(item);
     setSelectedInventoryItem(item);
@@ -300,19 +347,6 @@ const Orders = () => {
     }));
     setRetailSearch(retailValue);
     setRetailSuggestionsOpen(false);
-  };
-
-  const handleTeamSelect = (teamId) => {
-    const selectedTeam = teams.find((team) => team.id === teamId);
-    const fallbackDate = new Date().toISOString().split('T')[0];
-
-    setFormData((prev) => ({
-      ...prev,
-      teamId,
-      teamName: selectedTeam?.teamName || '',
-      quantity: selectedTeam?.quantity != null ? String(selectedTeam.quantity) : '',
-      orderDate: selectedTeam?.transitDate || fallbackDate,
-    }));
   };
 
   const handleRetailInputChange = (value) => {
@@ -405,17 +439,20 @@ const Orders = () => {
       shop: order.shop || '',
       orderDate: order.orderDate || new Date().toISOString().split('T')[0],
       modeOfPayment: order.modeOfPayment || 'Cash',
+      notes: order.remarks || '',
     });
-    setClientSearch(clients.find(c => c.id === order.clientId)?.clientName || '');
+    setClientSearch(clients.find((c) => c?.id === order.clientId)?.clientName || '');
+    setTeamSearch(order.teamName || matchedTeam?.teamName || '');
     setRetailSearch(order.orderRetail || '');
     setClientSuggestionsOpen(false);
+    setTeamSuggestionsOpen(false);
     setRetailSuggestionsOpen(false);
     setModalOpen(true);
   };
 
   const handleView = (order) => {
     setSelectedOrder(order);
-    setReferenceNumber('');
+    setReferenceNumber(order.referenceNumber || '');
     setRemarks(order.remarks || '');
     setDetailsOpen(true);
   };
@@ -440,6 +477,7 @@ const Orders = () => {
     orderDate: order.orderDate,
     modeOfPayment: order.modeOfPayment,
     remarks: order.remarks || '',
+    referenceNumber: referenceNumber.trim() || null,
     status: statusOverride || order.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
   });
 
@@ -493,6 +531,9 @@ const Orders = () => {
         paymentMethod: selectedOrder.modeOfPayment,
         incomeDate: new Date().toISOString().split('T')[0],
         referenceNumber: trimmedReference,
+        clientId: selectedOrder.clientId,
+        clientCode: selectedOrder.clientCode,
+        jobOrderNo: selectedOrder.jobOrderNo,
         amount,
       });
 
@@ -546,17 +587,21 @@ const Orders = () => {
       loadOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
-      alert('Failed to delete order');
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to delete order';
+      alert(`Failed to delete order: ${errorMessage}`);
     }
   };
 
   const handleSubmit = async () => {
     try {
       const clientRecord =
-        clients.find((client) => client.id === formData.clientId) ||
+        clients.find((client) => client?.id === formData.clientId) ||
         clients.find(
           (client) =>
-            client.clientName.toLowerCase() === clientSearch.trim().toLowerCase()
+            String(client?.clientName ?? '').toLowerCase() === clientSearch.trim().toLowerCase()
         );
 
       if (!clientRecord) {
@@ -622,7 +667,7 @@ const Orders = () => {
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
         modeOfPayment: formData.modeOfPayment.trim(),
-        remarks: editingOrder?.remarks || null,
+        remarks: formData.notes.trim() || null,
         freebie: formData.freebie.trim() || null,
         status: editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
       };
@@ -678,6 +723,8 @@ const Orders = () => {
     setFormData(createInitialFormData());
     setClientSearch('');
     setClientSuggestionsOpen(false);
+    setTeamSearch('');
+    setTeamSuggestionsOpen(false);
     setRetailSearch('');
     setRetailSuggestionsOpen(false);
     setModalOpen(true);
@@ -737,152 +784,116 @@ const Orders = () => {
             size="large"
           >
             <form className="order-form-grid">
-              <div className="form-group">
-                <label>Client Name *</label>
-                <div className="client-search-wrapper">
-                  <input
-                    type="text"
-                    value={clientSearch}
-                    onChange={(e) => handleClientInputChange(e.target.value)}
-                    onFocus={() => setClientSuggestionsOpen(true)}
-                    onBlur={handleClientInputBlur}
-                    placeholder={clients.length === 0 ? 'No clients available' : 'Search client name'}
-                    autoComplete="off"
-                    required
-                    disabled={clients.length === 0}
-                  />
-                  {clientSuggestionsOpen && filteredClients.length > 0 && (
-                    <div className="client-search-results">
-                      {filteredClients.map((client) => (
-                        <button
-                          type="button"
-                          key={client.id}
-                          className="client-search-item"
-                          onClick={() => handleClientSelect(client.id)}
-                        >
-                          <span>{client.clientName}</span>
-                          {client.vipClient && <span className="vip-badge">VIP</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {clientSuggestionsOpen && filteredClients.length === 0 && (
-                    <div className="client-search-results empty">No matching clients found</div>
-                  )}
+              <div className="order-modal-row order-modal-row-3">
+                <div className="form-group">
+                  <label>Client Name *</label>
+                  <div className="client-search-wrapper">
+                    <input
+                      type="text"
+                      value={clientSearch}
+                      onChange={(e) => handleClientInputChange(e.target.value)}
+                      onFocus={() => setClientSuggestionsOpen(true)}
+                      onBlur={handleClientInputBlur}
+                      placeholder={clients.length === 0 ? 'No clients available' : 'Search client name'}
+                      autoComplete="off"
+                      required
+                      disabled={clients.length === 0}
+                    />
+                    {clientSuggestionsOpen && filteredClients.length > 0 && (
+                      <div className="client-search-results">
+                        {filteredClients.map((client) => (
+                          <button
+                            type="button"
+                            key={client.id}
+                            className="client-search-item"
+                            onClick={() => handleClientSelect(client.id)}
+                          >
+                            <span>{client.clientName}</span>
+                            {client.vipClient && <span className="vip-badge">VIP</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {clientSuggestionsOpen && filteredClients.length === 0 && (
+                      <div className="client-search-results empty">No matching clients found</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Team</label>
+                  <div className="client-search-wrapper">
+                    <input
+                      type="text"
+                      value={teamSearch}
+                      onChange={(e) => handleTeamInputChange(e.target.value)}
+                      onFocus={() => setTeamSuggestionsOpen(true)}
+                      onBlur={handleTeamInputBlur}
+                      placeholder={teams.length === 0 ? 'No teams available' : 'Search team'}
+                      autoComplete="off"
+                      disabled={teams.length === 0}
+                    />
+                    {teamSuggestionsOpen && filteredTeams.length > 0 && (
+                      <div className="client-search-results">
+                        {filteredTeams.map((team) => (
+                          <button
+                            type="button"
+                            key={team.id}
+                            className="client-search-item"
+                            onClick={() => handleTeamSelect(team.id)}
+                          >
+                            <span>{team.teamName}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {teamSuggestionsOpen && filteredTeams.length === 0 && (
+                      <div className="client-search-results empty">No matching teams found</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Item *</label>
+                  <div className="order-retail-search-wrapper">
+                    <input
+                      type="text"
+                      value={retailSearch}
+                      onChange={(e) => handleRetailInputChange(e.target.value)}
+                      onFocus={() => setRetailSuggestionsOpen(true)}
+                      onBlur={handleRetailInputBlur}
+                      placeholder={inventoryItems.length === 0 ? 'No inventory available' : 'Search item'}
+                      autoComplete="off"
+                      required
+                      disabled={inventoryItems.length === 0}
+                    />
+                    {retailSuggestionsOpen && filteredInventory.length > 0 && (
+                      <div className="order-retail-results">
+                        {filteredInventory.map((item) => (
+                          <button
+                            type="button"
+                            key={item.id}
+                            className="order-retail-item"
+                            onClick={() => handleRetailSelect(item)}
+                          >
+                            <span>{getInventoryLabel(item)}</span>
+                            <span className="order-retail-meta">
+                              Qty {item.quantity}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {retailSuggestionsOpen && filteredInventory.length === 0 && (
+                      <div className="order-retail-results empty">No matching inventory found</div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Team</label>
-                <select
-                  value={formData.teamId}
-                  onChange={(e) => handleTeamSelect(e.target.value)}
-                >
-                  <option value="">Select team</option>
-                  {teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.teamName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Team Name</label>
-                <input
-                  type="text"
-                  value={formData.teamName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      teamId: '',
-                      teamName: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter team name"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Order Retail *</label>
-                <div className="order-retail-search-wrapper">
-                  <input
-                    type="text"
-                    value={retailSearch}
-                    onChange={(e) => handleRetailInputChange(e.target.value)}
-                    onFocus={() => setRetailSuggestionsOpen(true)}
-                    onBlur={handleRetailInputBlur}
-                    placeholder={inventoryItems.length === 0 ? 'No inventory available' : 'Search inventory item'}
-                    autoComplete="off"
-                    required
-                    disabled={inventoryItems.length === 0}
-                  />
-                  {retailSuggestionsOpen && filteredInventory.length > 0 && (
-                    <div className="order-retail-results">
-                      {filteredInventory.map((item) => (
-                        <button
-                          type="button"
-                          key={item.id}
-                          className="order-retail-item"
-                          onClick={() => handleRetailSelect(item)}
-                        >
-                          <span>{getInventoryLabel(item)}</span>
-                          <span className="order-retail-meta">
-                            Qty {item.quantity}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {retailSuggestionsOpen && filteredInventory.length === 0 && (
-                    <div className="order-retail-results empty">No matching inventory found</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Quantity *</label>
-                <input
-                  type="number"
-                  min="1"
-                  max={selectedInventoryItem?.quantity || undefined}
-                  value={formData.quantity}
-                  onChange={handleQuantityChange}
-                  placeholder={selectedInventoryItem ? `Max: ${selectedInventoryItem.quantity}` : 'Select item first'}
-                  disabled={!selectedInventoryItem}
-                  required
-                />
-                {selectedInventoryItem && (
-                  <small className="form-help-text">Available: {selectedInventoryItem.quantity}</small>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Freebie</label>
-                <input
-                  type="text"
-                  value={formData.freebie}
-                  placeholder="Enter freebie if any"
-                  onChange={(e) => setFormData({ ...formData, freebie: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Discount (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={formData.discount}
-                  onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                  placeholder="Enter discount percentage"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Price *</label>
-                <div className="price-display">
+              <div className="order-modal-row order-modal-row-4">
+                <div className="form-group">
+                  <label>Price *</label>
                   <input
                     type="number"
                     min="0"
@@ -893,28 +904,52 @@ const Orders = () => {
                     placeholder={selectedInventoryItem ? `Unit: ${selectedInventoryItem.price}` : 'Select item first'}
                     required
                   />
-                  {selectedInventoryItem && formData.quantity && (
-                    <div className="price-calculation">
-                      <small>
-                        {(() => {
-                          const basePrice = parseFloat(formData.price || 0);
-                          const quantity = parseInt(formData.quantity || 0);
-                          const discountPercent = parseFloat(formData.discount || 0);
-                          const discountedPrice = basePrice * (1 - discountPercent / 100);
-                          const total = discountedPrice * quantity;
-                          
-                          return discountPercent > 0 
-                            ? `Original: ${(basePrice * quantity).toFixed(2)} | After ${discountPercent}% Discount: ${total.toFixed(2)}`
-                            : `Total: ${(basePrice * quantity).toFixed(2)}`;
-                        })()}
-                      </small>
-                    </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Quantity *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={selectedInventoryItem?.quantity || undefined}
+                    value={formData.quantity}
+                    onChange={handleQuantityChange}
+                    placeholder={selectedInventoryItem ? `Max: ${selectedInventoryItem.quantity}` : 'Select item first'}
+                    disabled={!selectedInventoryItem}
+                    required
+                  />
+                  {selectedInventoryItem && (
+                    <small className="form-help-text">Available: {selectedInventoryItem.quantity}</small>
                   )}
+                </div>
+
+                <div className="form-group">
+                  <label>Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={formData.discount}
+                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
+                    placeholder="Enter discount percentage"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Freebie(s)</label>
+                  <input
+                    type="text"
+                    value={formData.freebie}
+                    placeholder="Enter freebie if any"
+                    onChange={(e) => setFormData({ ...formData, freebie: e.target.value })}
+                  />
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Down Payment</label>
+              <div className="order-modal-row order-modal-row-4">
+                <div className="form-group">
+                  <label>Down Payment</label>
                   <input
                     type="number"
                     min="0"
@@ -932,68 +967,81 @@ const Orders = () => {
                   {isVipClient && (
                     <small className="form-help-text">Auto-set to 0 for VIP clients.</small>
                   )}
-                  {selectedInventoryItem && formData.quantity && formData.price && (
-                    <div className="payment-calculation">
-                      <small>
-                        {(() => {
-                          const discountedTotal = getDiscountedTotal();
-                          const downPayment = Number.parseFloat(formData.downPayment || 0);
-                          const remaining = discountedTotal - downPayment;
-                          
-                          return discountedTotal > 0 || downPayment > 0
-                            ? `Total: ${discountedTotal.toFixed(2)} | Down: ${Math.min(downPayment, discountedTotal).toFixed(2)} | Remaining: ${Math.max(0, remaining).toFixed(2)}`
-                            : `Total: ${discountedTotal.toFixed(2)} | Remaining: ${discountedTotal.toFixed(2)}`;
-                        })()}
-                      </small>
-                    </div>
-                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Total Price</label>
+                  <input
+                    type="text"
+                    value={
+                      selectedInventoryItem && formData.quantity
+                        ? formatMoney(getDiscountedTotal())
+                        : '-'
+                    }
+                    readOnly
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Shop *</label>
+                  <select
+                    value={formData.shop}
+                    onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
+                    required
+                  >
+                    <option value="">Select shop</option>
+                    {SHOP_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Mode of Payment *</label>
+                  <select
+                    value={formData.modeOfPayment}
+                    onChange={(e) => setFormData({ ...formData, modeOfPayment: e.target.value })}
+                    required
+                  >
+                    <option value="">Select mode of payment</option>
+                    {PAYMENT_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Shop *</label>
-                <select
-                  value={formData.shop}
-                  onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
-                  required
-                >
-                  <option value="">Select shop</option>
-                  {SHOP_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+              <div className="order-modal-row order-modal-row-single">
+                <div className="form-group">
+                  <label>Date *</label>
+                  <input
+                    type="date"
+                    value={formData.orderDate}
+                    onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
+                    required
+                  />
+                  <small className="form-help-text">
+                    {formData.teamId
+                      ? 'Auto-filled from the selected team transit date. You can still adjust it if needed.'
+                      : 'Select a team to auto-fill this date from its transit date.'}
+                  </small>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Date *</label>
-                <input
-                  type="date"
-                  value={formData.orderDate}
-                  onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                  required
-                />
-                <small className="form-help-text">
-                  {formData.teamId
-                    ? 'Auto-filled from the selected team transit date. You can still adjust it if needed.'
-                    : 'Select a team to auto-fill this date from its transit date.'}
-                </small>
-              </div>
-
-              <div className="form-group">
-                <label>Mode of Payment *</label>
-                <select
-                  value={formData.modeOfPayment}
-                  onChange={(e) => setFormData({ ...formData, modeOfPayment: e.target.value })}
-                  required
-                >
-                  <option value="">Select mode of payment</option>
-                  {PAYMENT_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+              <div className="order-modal-row order-modal-row-single">
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Add notes for this order"
+                    rows={4}
+                  />
+                </div>
               </div>
             </form>
           </Modal>
@@ -1151,25 +1199,32 @@ const Orders = () => {
                 )}
 
                 {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION ||
-                  selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
+                  selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID ||
+                  selectedOrder.status === ORDER_STATUS.FULLY_PAID) && (
                   <div className="order-status-actions">
                     <>
                         <div className="form-group" style={{ marginBottom: 0 }}>
                           <label>Reference Number</label>
-                          <input
-                            type="text"
-                            value={referenceNumber}
-                            onChange={(e) => setReferenceNumber(e.target.value)}
-                            placeholder="Enter reference number"
-                          />
+                        <input
+                          type="text"
+                          value={referenceNumber}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setReferenceNumber(value);
+                            setSelectedOrder((prev) =>
+                              prev ? { ...prev, referenceNumber: value } : prev
+                            );
+                          }}
+                          placeholder="Enter reference number"
+                        />
                         </div>
                         <div className="form-group" style={{ marginBottom: 0 }}>
                           <label>Remarks</label>
-                          <textarea
-                            value={remarks}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setRemarks(value);
+                        <textarea
+                          value={remarks}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setRemarks(value);
                               setSelectedOrder((prev) =>
                                 prev ? { ...prev, remarks: value } : prev
                               );

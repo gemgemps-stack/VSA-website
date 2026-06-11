@@ -14,6 +14,7 @@ import java.util.UUID;
 public class ClientDTO {
 
     private UUID id;
+    private String clientCode;
     private String clientName;
     private String contactNumber;
     private Boolean vip;
@@ -22,6 +23,7 @@ public class ClientDTO {
 
     public ClientDTO(Client client) {
         this.id = client.getId();
+        this.clientCode = client.getClientCode();
         this.clientName = client.getClientName();
         this.contactNumber = client.getContactNumber();
         this.vip = client.getVip();

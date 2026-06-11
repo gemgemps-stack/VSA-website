@@ -62,6 +62,9 @@ public class Order {
     @Column(columnDefinition = "TEXT")
     private String remarks;
 
+    @Column(length = 100)
+    private String referenceNumber;
+
     @Column(length = 50)
     private String status;
 

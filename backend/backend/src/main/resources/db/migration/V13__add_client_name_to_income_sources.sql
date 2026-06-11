@@ -1,0 +1,2 @@
+ALTER TABLE income_sources
+ADD COLUMN IF NOT EXISTS client_name VARCHAR(150);

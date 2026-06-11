@@ -21,6 +21,7 @@ public class InventoryDTO {
     private String shop;
     private String size;
     private String number;
+    private String notes;
     private Integer quantity;
     private BigDecimal price;
     private LocalDateTime createdAt;
@@ -33,6 +34,7 @@ public class InventoryDTO {
         this.shop = inventory.getShop();
         this.size = inventory.getSize();
         this.number = inventory.getNumber();
+        this.notes = inventory.getNotes();
         this.quantity = inventory.getQuantity();
         this.price = inventory.getPrice();
         this.createdAt = inventory.getCreatedAt();

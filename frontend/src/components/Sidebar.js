@@ -10,15 +10,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/inventory', label: 'Inventory', icon: '📦', permission: 'INVENTORY' },
-    { path: '/orders', label: 'Orders', icon: '🛒', permission: 'ORDERS' },
+    { path: '/orders', label: 'Orders', icon: '📋', permission: 'ORDERS' },
+    { path: '/customized-orders', label: 'Customized Orders', icon: '🏭', permission: 'ORDERS' },
     { path: '/teams', label: 'Teams', icon: '👥', permission: 'ORDERS' },
-    { path: '/clients', label: 'Clients', icon: '👥', permission: 'CLIENTS' },
+    { path: '/clients', label: 'Clients', icon: '👤', permission: 'CLIENTS' },
+    { path: '/attendance', label: 'Attendance', icon: '✓', permission: 'ATTENDANCE' },
   ];
 
   const adminItems = [
-    { path: '/income', label: 'Source Income', icon: '💰' },
-    { path: '/payment-methods', label: 'Payment Methods', icon: '💳' },
-    { path: '/employees', label: 'Employees', icon: '👔' },
+    { path: '/income', label: 'Finance', icon: '💰' },
+    { path: '/employees', label: 'Employees', icon: '👨‍💼' },
   ];
 
   const canAccess = (permission) => {

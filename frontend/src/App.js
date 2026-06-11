@@ -6,12 +6,13 @@ import PermissionGuard from './components/PermissionGuard';
 import Login from './features/auth/LoginView';
 import Dashboard from './features/dashboard/DashboardView';
 import Orders from './features/orders/OrdersView';
+import CustomizedOrders from './features/customized-orders/CustomizedOrdersView';
 import Teams from './features/teams/TeamsView';
 import Inventory from './features/inventory/InventoryView';
 import Clients from './features/clients/ClientsView';
 import SourceIncome from './features/source-income/SourceIncomeView';
-import PaymentMethods from './features/payment-methods/PaymentMethodsView';
 import Employees from './features/employees/EmployeesView';
+import Attendance from './features/attendance/AttendanceView';
 import './App.css';
 
 function App() {
@@ -34,6 +35,16 @@ function App() {
               <ProtectedRoute>
                 <PermissionGuard permission="ORDERS">
                   <Orders />
+                </PermissionGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customized-orders"
+            element={
+              <ProtectedRoute>
+                <PermissionGuard permission="ORDERS">
+                  <CustomizedOrders />
                 </PermissionGuard>
               </ProtectedRoute>
             }
@@ -80,13 +91,7 @@ function App() {
           />
           <Route 
             path="/payment-methods" 
-            element={
-              <ProtectedRoute>
-                <PermissionGuard permission="PAYMENT_METHODS">
-                  <PaymentMethods />
-                </PermissionGuard>
-              </ProtectedRoute>
-            } 
+            element={<Navigate to="/income" replace />} 
           />
           <Route 
             path="/employees" 
@@ -97,6 +102,16 @@ function App() {
                 </PermissionGuard>
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="/attendance"
+            element={
+              <ProtectedRoute>
+                <PermissionGuard permission="ATTENDANCE">
+                  <Attendance />
+                </PermissionGuard>
+              </ProtectedRoute>
+            }
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
