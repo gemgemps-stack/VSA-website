@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
@@ -28,39 +28,14 @@ const SourceIncome = () => {
   const [detailsTarget, setDetailsTarget] = useState(null);
   const [reportPeriod, setReportPeriod] = useState('WEEKLY');
   const [orderReferenceCache, setOrderReferenceCache] = useState({});
+  const orderReferenceCacheRef = useRef(orderReferenceCache);
 
   const canAccessIncome =
     user?.role === 'ADMIN' || user?.permissions?.some((permission) => permission.pageName === 'SOURCE_OF_INCOME');
   const canAccessPayment =
     user?.role === 'ADMIN' || user?.permissions?.some((permission) => permission.pageName === 'PAYMENT_METHODS');
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        await Promise.all([loadPaymentMethods(), loadIncomeEntries()]);
-      } catch (error) {
-        console.error('Error loading finance data:', error);
-        const errorMsg = error.response?.data?.message || error.message || 'Failed to load finance data';
-        alert(`Failed to load finance data: ${errorMsg}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    // Fetch reference numbers for all income entries
-    incomeEntries.forEach((entry) => {
-      if (entry.jobOrderNo && !orderReferenceCache[entry.jobOrderNo]) {
-        fetchOrderReferenceNumber(entry.jobOrderNo);
-      }
-    });
-  }, [incomeEntries]);
-
-  const loadPaymentMethods = async () => {
+  const loadPaymentMethods = useCallback(async () => {
     const stored = window.localStorage.getItem('paymentMethods');
 
     if (stored) {
@@ -83,29 +58,22 @@ const SourceIncome = () => {
     });
 
     setPaymentData(initialized);
-  };
+  }, []);
 
-  const loadIncomeEntries = async () => {
+  const loadIncomeEntries = useCallback(async () => {
     const response = await incomeService.getAllIncomeSources(0, 1000);
     setIncomeEntries(response.data.content || []);
-  };
+  }, []);
 
-  const getIncomeAmount = (entry) => Number.parseFloat(entry.amount) || 0;
-
-  const getIncomeDate = (entry) => {
-    const rawDate = entry.incomeDate || entry.createdAt;
-    const parsedDate = rawDate ? new Date(rawDate) : new Date(0);
-    return Number.isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
-  };
-
-  const fetchOrderReferenceNumber = async (jobOrderNo) => {
+  const fetchOrderReferenceNumber = useCallback(async (jobOrderNo) => {
     if (!jobOrderNo) {
       return 'N/A';
     }
 
     // Check if already cached
-    if (orderReferenceCache[jobOrderNo]) {
-      return orderReferenceCache[jobOrderNo];
+    const cachedReference = orderReferenceCacheRef.current[jobOrderNo];
+    if (cachedReference) {
+      return cachedReference;
     }
 
     try {
@@ -137,6 +105,44 @@ const SourceIncome = () => {
         return 'N/A';
       }
     }
+  }, []);
+
+  useEffect(() => {
+    orderReferenceCacheRef.current = orderReferenceCache;
+  }, [orderReferenceCache]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        await Promise.all([loadPaymentMethods(), loadIncomeEntries()]);
+      } catch (error) {
+        console.error('Error loading finance data:', error);
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to load finance data';
+        alert(`Failed to load finance data: ${errorMsg}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [loadPaymentMethods, loadIncomeEntries]);
+
+  useEffect(() => {
+    // Fetch reference numbers for all income entries
+    incomeEntries.forEach((entry) => {
+      if (entry.jobOrderNo) {
+        fetchOrderReferenceNumber(entry.jobOrderNo);
+      }
+    });
+  }, [incomeEntries, fetchOrderReferenceNumber]);
+
+  const getIncomeAmount = (entry) => Number.parseFloat(entry.amount) || 0;
+
+  const getIncomeDate = (entry) => {
+    const rawDate = entry.incomeDate || entry.createdAt;
+    const parsedDate = rawDate ? new Date(rawDate) : new Date(0);
+    return Number.isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
   };
 
   const getPeriodRange = (period) => {
