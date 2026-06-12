@@ -10,6 +10,9 @@ import orderService from '../../services/orderService';
 import teamService from '../../services/teamService';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
+const SHOP_ALIASES = {
+  Shopppee: 'Shoppee',
+};
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
 const ORDER_STATUS = {
   FOR_CLIENT_APPROVAL: 'FOR_CLIENT_APPROVAL',
@@ -26,7 +29,7 @@ const ORDER_FILTERS = [
   { key: ORDER_STATUS.FOR_CLIENT_APPROVAL, label: 'For Client Approval' },
   { key: ORDER_STATUS.NOT_APPROVED, label: 'Not Approved' },
   { key: ORDER_STATUS.DOWN_PAYMENT_PENDING, label: 'Down Payment Pending' },
-  { key: ORDER_STATUS.IN_PRODUCTION, label: 'In Production' },
+  { key: ORDER_STATUS.IN_PRODUCTION, label: 'To Be Packaged' },
   { key: ORDER_STATUS.NOT_YET_FULLY_PAID, label: 'Not Yet Fully Paid' },
   { key: ORDER_STATUS.FULLY_PAID, label: 'Fully Paid / Completed' },
   { key: ORDER_STATUS.CANCELLED, label: 'Cancelled Orders' },
@@ -41,7 +44,7 @@ const getStatusLabel = (status) => {
     [ORDER_STATUS.FOR_CLIENT_APPROVAL]: 'For Client Approval',
     [ORDER_STATUS.NOT_APPROVED]: 'Not Approved',
     [ORDER_STATUS.DOWN_PAYMENT_PENDING]: 'Down Payment Pending',
-    [ORDER_STATUS.IN_PRODUCTION]: 'In Production',
+    [ORDER_STATUS.IN_PRODUCTION]: 'To Be Packaged',
     [ORDER_STATUS.NOT_YET_FULLY_PAID]: 'Not Yet Fully Paid',
     [ORDER_STATUS.FULLY_PAID]: 'Fully Paid',
     [ORDER_STATUS.CANCELLED]: 'Cancelled',
@@ -72,6 +75,8 @@ const getRetailDetails = (orderRetail) => {
 };
 
 const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
+
+const normalizeShopOption = (shop) => SHOP_ALIASES[shop] || shop || '';
 
 const getOrderFinancials = (order) => {
   const quantity = Number(order?.quantity) || 0;
@@ -345,6 +350,7 @@ const Orders = () => {
       orderRetail: retailValue,
       price: String(item.price || ''),
       quantity: prev.teamId ? prev.quantity : '',
+      shop: normalizeShopOption(item.shop),
     }));
     setRetailSearch(retailValue);
     setRetailSuggestionsOpen(false);
@@ -437,7 +443,7 @@ const Orders = () => {
       discount: order.discount != null ? String(order.discount) : '0',
       price: order.price != null ? String(order.price) : '',
       downPayment: order.downPayment != null ? String(order.downPayment) : '0',
-      shop: order.shop || '',
+      shop: normalizeShopOption(order.shop || retailRecord?.shop),
       orderDate: order.orderDate || new Date().toISOString().split('T')[0],
       modeOfPayment: order.modeOfPayment || 'Cash',
       notes: order.remarks || '',
@@ -1003,6 +1009,7 @@ const Orders = () => {
                   <select
                     value={formData.shop}
                     onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
+                    disabled={Boolean(selectedInventoryItem)}
                     required
                   >
                     <option value="">Select shop</option>
@@ -1012,6 +1019,9 @@ const Orders = () => {
                       </option>
                     ))}
                   </select>
+                  {selectedInventoryItem && (
+                    <small className="form-help-text">Auto-filled from the selected inventory item.</small>
+                  )}
                 </div>
 
                 <div className="form-group">
