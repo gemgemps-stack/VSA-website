@@ -114,6 +114,12 @@ public class AuthService {
     }
 
     private User createDevAdminAccount() {
+        // Check if admin user already exists (by username or email)
+        if (userRepository.existsByUsername("admin") || userRepository.existsByEmail(DEV_ADMIN_EMAIL)) {
+            return userRepository.findByEmailIgnoreCase(DEV_ADMIN_EMAIL)
+                    .orElseGet(() -> userRepository.findByUsernameIgnoreCase("admin").orElse(null));
+        }
+
         User user = new User();
         user.setUsername("admin");
         user.setEmail(DEV_ADMIN_EMAIL);
