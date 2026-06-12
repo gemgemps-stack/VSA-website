@@ -19,8 +19,8 @@ public class DataSeeder {
                                        PermissionRepository permissionRepository,
                                        PasswordEncoder passwordEncoder) {
         return args -> {
-            // Only seed admin user - don't seed test employees anymore
-            if (!userRepository.existsByEmail("admin@verdidaapparel.com")) {
+            // Only seed admin user if it doesn't already exist (check both email and username)
+            if (!userRepository.existsByEmail("admin@verdidaapparel.com") && !userRepository.existsByUsername("admin")) {
                 User admin = new User();
                 admin.setUsername("admin");
                 admin.setEmail("admin@verdidaapparel.com");
