@@ -1,9 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { hasPermission } from '../utils/permissions';
 import '../styles/Sidebar.css';
-
-const normalizePermission = (value) => String(value || '').trim().toUpperCase();
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { user } = useAuth();
@@ -12,24 +11,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/inventory', label: 'Inventory', icon: '📦', permission: 'INVENTORY' },
-    { path: '/orders', label: 'Inventory Orders', icon: '📋', permission: 'ORDERS' },
-    { path: '/customized-orders', label: 'Customized Orders', icon: '🏭', permission: 'ORDERS' },
-    { path: '/teams', label: 'Teams', icon: '👥', permission: 'ORDERS' },
+    { path: '/orders', label: 'Inventory Orders', icon: '📋', permission: 'INVENTORY_ORDERS' },
+    { path: '/customized-orders', label: 'Customized Orders', icon: '🏭', permission: 'CUSTOMIZED_ORDERS' },
+    { path: '/teams', label: 'Teams', icon: '👥', permission: 'TEAMS' },
     { path: '/clients', label: 'Clients', icon: '👤', permission: 'CLIENTS' },
     { path: '/attendance', label: 'Attendance', icon: '✓', permission: 'ATTENDANCE' },
   ];
 
-  const adminItems = [
-    { path: '/income', label: 'Finance', icon: '💰' },
-    { path: '/employees', label: 'Employees', icon: '👨‍💼' },
+  const managementItems = [
+    { path: '/income', label: 'Finance', icon: '💰', permission: 'SOURCE_OF_INCOME' },
+    { path: '/employees', label: 'Employees', icon: '👨‍💼', permission: 'EMPLOYEES' },
   ];
 
   const canAccess = (permission) => {
     if (!permission) return true;
-    return (
-      user?.role === 'ADMIN' ||
-      user?.permissions?.some((p) => normalizePermission(p.pageName) === normalizePermission(permission))
-    );
+    return hasPermission(user?.permissions, permission);
   };
 
   return (
@@ -55,22 +51,25 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </ul>
         </div>
 
-        {user?.role === 'ADMIN' && (
+        {managementItems.some((item) => canAccess(item.permission)) && (
           <div className="menu-section admin-section">
-            <h3 className="section-title">ADMIN</h3>
+            <h3 className="section-title">MANAGEMENT</h3>
             <ul>
-              {adminItems.map((item) => (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={location.pathname === item.path ? 'active' : ''}
-                    onClick={toggleSidebar}
-                  >
-                    <span className="menu-icon">{item.icon}</span>
-                    <span className="menu-label">{item.label}</span>
-                  </Link>
-                </li>
-              ))}
+              {managementItems.map(
+                (item) =>
+                  canAccess(item.permission) && (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        className={location.pathname === item.path ? 'active' : ''}
+                        onClick={toggleSidebar}
+                      >
+                        <span className="menu-icon">{item.icon}</span>
+                        <span className="menu-label">{item.label}</span>
+                      </Link>
+                    </li>
+                  )
+              )}
             </ul>
           </div>
         )}

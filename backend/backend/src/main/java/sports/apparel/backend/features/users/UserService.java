@@ -33,11 +33,19 @@ public class UserService {
             throw new IllegalArgumentException("Email already exists");
         }
 
+        if (request.getRole() == null || request.getRole().isBlank()) {
+            throw new IllegalArgumentException("Role is required");
+        }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(User.Role.valueOf(request.getRole().toUpperCase()));
+        try {
+            user.setRole(User.Role.valueOf(request.getRole().trim().toUpperCase()));
+        } catch (IllegalArgumentException error) {
+            throw new IllegalArgumentException("Invalid role selected");
+        }
         user.setSalary(request.getSalary());
 
         User savedUser = userRepository.save(user);
@@ -84,7 +92,11 @@ public class UserService {
         }
 
         if (request.getRole() != null) {
-            user.setRole(User.Role.valueOf(request.getRole().toUpperCase()));
+            try {
+                user.setRole(User.Role.valueOf(request.getRole().trim().toUpperCase()));
+            } catch (IllegalArgumentException error) {
+                throw new IllegalArgumentException("Invalid role selected");
+            }
         }
 
         if (request.getSalary() != null) {

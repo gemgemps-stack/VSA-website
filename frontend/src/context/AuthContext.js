@@ -1,30 +1,49 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
 import authService from '../services/authService';
+import { hasPermission } from '../utils/permissions';
 
 const AuthContext = createContext();
-const normalizePermission = (value) => String(value || '').trim().toUpperCase();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => authService.getCurrentUser());
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => authService.isAuthenticated());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const authSequenceRef = useRef(0);
 
   useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-    setLoading(false);
-
     const handleAuthLogout = () => {
+      authSequenceRef.current += 1;
       setUser(null);
       setIsAuthenticated(false);
+      setLoading(false);
     };
 
     window.addEventListener('auth:logout', handleAuthLogout);
+
+    const bootstrap = async () => {
+      const sequence = ++authSequenceRef.current;
+      try {
+        const currentUser = await authService.refreshCurrentUser();
+        if (sequence !== authSequenceRef.current) {
+          return;
+        }
+        setUser(currentUser);
+        setIsAuthenticated(!!currentUser);
+      } catch (error) {
+        if (sequence !== authSequenceRef.current) {
+          return;
+        }
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        if (sequence !== authSequenceRef.current) {
+          return;
+        }
+        setLoading(false);
+      }
+    };
+
+    bootstrap();
 
     return () => {
       window.removeEventListener('auth:logout', handleAuthLogout);
@@ -33,21 +52,25 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authService.login(email, password);
-    setUser(response.user || authService.getCurrentUser());
-    setIsAuthenticated(true);
+    authSequenceRef.current += 1;
+    const nextUser = response.user || authService.getCurrentUser();
+    setUser(nextUser);
+    setIsAuthenticated(!!nextUser);
+    setLoading(false);
     return response;
   };
 
-  const logout = () => {
-    authService.logout();
+  const logout = async () => {
+    await authService.logout();
+    authSequenceRef.current += 1;
     setUser(null);
     setIsAuthenticated(false);
+    setLoading(false);
   };
 
   const canAccess = (permission) => {
     if (!user) return false;
-    if (user.role === 'ADMIN') return true;
-    return user.permissions?.some((p) => normalizePermission(p.pageName) === normalizePermission(permission)) || false;
+    return hasPermission(user.permissions, permission);
   };
 
   return (

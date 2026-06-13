@@ -41,7 +41,7 @@ const Dashboard = () => {
         <p className="welcome">Welcome, {user?.username}!</p>
 
         <div className="stats-grid">
-          <PermissionGuard permission="ORDERS">
+          <PermissionGuard permission="INVENTORY_ORDERS">
             <div className="stat-card" onClick={() => navigate('/orders')}>
               <div className="stat-icon">📋</div>
               <div className="stat-content">
@@ -75,7 +75,7 @@ const Dashboard = () => {
         <div className="quick-actions">
           <h2>Quick Actions</h2>
           <div className="actions-grid">
-            <PermissionGuard permission="ORDERS">
+            <PermissionGuard permission="INVENTORY_ORDERS">
               <button className="action-btn" onClick={() => navigate('/orders')}>
                 📋 View Orders
               </button>
@@ -99,11 +99,11 @@ const Dashboard = () => {
               </button>
             </PermissionGuard>
 
-            {user?.role === 'ADMIN' && (
+            <PermissionGuard permission="EMPLOYEES">
               <button className="action-btn" onClick={() => navigate('/employees')}>
                 👨‍💼 Manage Employees
               </button>
-            )}
+            </PermissionGuard>
           </div>
         </div>
       </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-
-const normalizePermission = (value) => String(value || '').trim().toUpperCase();
+import { hasPermission } from '../utils/permissions';
 
 const PermissionGuard = ({ permission, children, fallback = null }) => {
   const { user } = useAuth();
@@ -10,9 +9,7 @@ const PermissionGuard = ({ permission, children, fallback = null }) => {
     return fallback;
   }
 
-  const hasAccess =
-    user.role === 'ADMIN' ||
-    user.permissions?.some((p) => normalizePermission(p.pageName) === normalizePermission(permission));
+  const hasAccess = hasPermission(user.permissions, permission);
 
   if (!hasAccess) {
     return fallback || <div className="access-denied">Access Denied</div>;

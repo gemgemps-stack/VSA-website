@@ -9,6 +9,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,14 +20,24 @@ import java.util.function.Function;
 @Component
 public class JwtProvider {
 
-    @Value("${jwt.secret:VerdidaSportsApparelSecretKeyFor2026JWTAuthenticationTokenGeneration}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("JWT secret must be configured through JWT_SECRET");
+        }
+
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-512")
+                    .digest(jwtSecret.getBytes(StandardCharsets.UTF_8));
+            return Keys.hmacShaKeyFor(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Unable to initialize JWT signing key", ex);
+        }
     }
 
     public String generateToken(UserDetails userDetails) {

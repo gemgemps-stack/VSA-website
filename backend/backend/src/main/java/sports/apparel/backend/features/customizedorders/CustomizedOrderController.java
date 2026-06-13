@@ -26,42 +26,42 @@ public class CustomizedOrderController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<CustomizedOrderDTO> createOrder(@Valid @RequestBody CreateCustomizedOrderRequest request) {
         CustomizedOrderDTO orderDTO = customizedOrderService.createOrder(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(orderDTO);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<CustomizedOrderDTO> getOrderById(@PathVariable UUID id) {
         CustomizedOrderDTO orderDTO = customizedOrderService.getOrderById(id);
         return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping("/job-order-no/{jobOrderNo}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<CustomizedOrderDTO> getOrderByJobOrderNo(@PathVariable String jobOrderNo) {
         CustomizedOrderDTO orderDTO = customizedOrderService.getOrderByJobOrderNo(jobOrderNo);
         return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<Page<CustomizedOrderDTO>> getAllOrders(Pageable pageable) {
         Page<CustomizedOrderDTO> orders = customizedOrderService.getAllOrders(pageable);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/client/{clientId}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<List<CustomizedOrderDTO>> getOrdersByClientId(@PathVariable UUID clientId) {
         List<CustomizedOrderDTO> orders = customizedOrderService.getOrdersByClientId(clientId);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/date-range")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<List<CustomizedOrderDTO>> getOrdersByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
@@ -70,7 +70,7 @@ public class CustomizedOrderController {
     }
 
     @GetMapping("/year-month")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<List<CustomizedOrderDTO>> getOrdersByYearAndMonth(
             @RequestParam int year,
             @RequestParam int month) {
@@ -79,14 +79,14 @@ public class CustomizedOrderController {
     }
 
     @GetMapping("/status")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<List<CustomizedOrderDTO>> getOrdersByStatus(@RequestParam String status) {
         List<CustomizedOrderDTO> orders = customizedOrderService.getOrdersByStatus(status);
         return ResponseEntity.ok(orders);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('CUSTOMIZED_ORDERS', 'ORDERS')")
     public ResponseEntity<CustomizedOrderDTO> updateOrder(@PathVariable UUID id,
                                                           @Valid @RequestBody CreateCustomizedOrderRequest request) {
         CustomizedOrderDTO orderDTO = customizedOrderService.updateOrder(id, request);

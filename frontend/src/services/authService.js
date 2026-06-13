@@ -1,47 +1,47 @@
 import api from './api';
+import { hasPermission } from '../utils/permissions';
 
-const normalizePermission = (value) => String(value || '').trim().toUpperCase();
+let currentUser = null;
 
 const authService = {
   login: async (email, password) => {
     const response = await api.post('/api/auth/login', { email, password });
-    if (response.data.accessToken) {
-      localStorage.setItem('accessToken', response.data.accessToken);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
+    currentUser = response.data.user || null;
     return response.data;
   },
 
-  logout: () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
+  logout: async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } finally {
+      currentUser = null;
+      window.dispatchEvent(new Event('auth:logout'));
+    }
   },
 
-  getCurrentUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+  refreshCurrentUser: async () => {
+    try {
+      const response = await api.get('/api/auth/me');
+      currentUser = response.data || null;
+      return currentUser;
+    } catch (error) {
+      currentUser = null;
+      throw error;
+    }
   },
 
-  getToken: () => {
-    return localStorage.getItem('accessToken');
-  },
-
-  isAuthenticated: () => {
-    return !!localStorage.getItem('accessToken');
-  },
+  getCurrentUser: () => currentUser,
 
   hasRole: (role) => {
-    const user = authService.getCurrentUser();
-    return user && user.role === role;
+    return currentUser && currentUser.role === role;
   },
 
   hasPermission: (permission) => {
-    const user = authService.getCurrentUser();
-    return user?.permissions?.some((p) => normalizePermission(p.pageName) === normalizePermission(permission));
+    return hasPermission(currentUser?.permissions, permission);
   },
 
   canAccess: (permission) => {
-    return authService.hasRole('ADMIN') || authService.hasPermission(permission);
+    return authService.hasPermission(permission);
   },
 };
 

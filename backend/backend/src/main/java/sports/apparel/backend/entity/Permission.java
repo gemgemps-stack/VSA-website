@@ -27,6 +27,9 @@ public class Permission {
 
     public enum PageName {
         ORDERS,
+        INVENTORY_ORDERS,
+        CUSTOMIZED_ORDERS,
+        TEAMS,
         INVENTORY,
         CLIENTS,
         SOURCE_OF_INCOME,

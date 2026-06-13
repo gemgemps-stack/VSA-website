@@ -19,6 +19,7 @@ const SOURCE_GRIDS = [
   { key: 'shopeeShop', label: 'Shoppee', color: '#f77f00' },
   { key: 'sportsApparelShop', label: 'Verdida Sports Apparel', color: '#2d6a4f' },
 ];
+const normalizePermission = (value) => String(value || '').trim().toUpperCase();
 
 const SourceIncome = () => {
   const { user } = useAuth();
@@ -31,9 +32,9 @@ const SourceIncome = () => {
   const orderReferenceCacheRef = useRef(orderReferenceCache);
 
   const canAccessIncome =
-    user?.role === 'ADMIN' || user?.permissions?.some((permission) => permission.pageName === 'SOURCE_OF_INCOME');
+    user?.permissions?.some((permission) => normalizePermission(permission.pageName) === 'SOURCE_OF_INCOME');
   const canAccessPayment =
-    user?.role === 'ADMIN' || user?.permissions?.some((permission) => permission.pageName === 'PAYMENT_METHODS');
+    user?.permissions?.some((permission) => normalizePermission(permission.pageName) === 'PAYMENT_METHODS');
 
   const loadPaymentMethods = useCallback(async () => {
     const stored = window.localStorage.getItem('paymentMethods');

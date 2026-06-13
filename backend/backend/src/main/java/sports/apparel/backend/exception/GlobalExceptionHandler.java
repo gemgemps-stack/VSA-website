@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import sports.apparel.backend.features.auth.LoginLockedException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -25,6 +26,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request.getDescription(false).replace("uri=", "")
         );
         return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(LoginLockedException.class)
+    public ResponseEntity<ApiError> handleLoginLockedException(
+            LoginLockedException ex, WebRequest request) {
+        ApiError apiError = new ApiError(
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "TOO_MANY_REQUESTS",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(apiError, HttpStatus.TOO_MANY_REQUESTS);
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)

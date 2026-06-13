@@ -27,42 +27,42 @@ public class OrderController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<OrderDTO> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         OrderDTO orderDTO = orderService.createOrder(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(orderDTO);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<OrderDTO> getOrderById(@PathVariable UUID id) {
         OrderDTO orderDTO = orderService.getOrderById(id);
         return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping("/job-order-no/{jobOrderNo}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<OrderDTO> getOrderByJobOrderNo(@PathVariable String jobOrderNo) {
         OrderDTO orderDTO = orderService.getOrderByJobOrderNo(jobOrderNo);
         return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<Page<OrderDTO>> getAllOrders(Pageable pageable) {
         Page<OrderDTO> orders = orderService.getAllOrders(pageable);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/client/{clientId}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<List<OrderDTO>> getOrdersByClientId(@PathVariable UUID clientId) {
         List<OrderDTO> orders = orderService.getOrdersByClientId(clientId);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/date-range")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<List<OrderDTO>> getOrdersByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
@@ -71,7 +71,7 @@ public class OrderController {
     }
 
     @GetMapping("/year-month")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<List<OrderDTO>> getOrdersByYearAndMonth(
             @RequestParam int year,
             @RequestParam int month) {
@@ -80,14 +80,14 @@ public class OrderController {
     }
 
     @GetMapping("/status")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<List<OrderDTO>> getOrdersByStatus(@RequestParam String status) {
         List<OrderDTO> orders = orderService.getOrdersByStatus(status);
         return ResponseEntity.ok(orders);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<OrderDTO> updateOrder(@PathVariable UUID id, @Valid @RequestBody CreateOrderRequest request) {
         OrderDTO orderDTO = orderService.updateOrder(id, request);
         return ResponseEntity.ok(orderDTO);

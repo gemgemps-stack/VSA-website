@@ -753,7 +753,7 @@ const Orders = () => {
   };
 
   return (
-    <PermissionGuard permission="ORDERS">
+    <PermissionGuard permission="INVENTORY_ORDERS">
       <DashboardLayout>
         <div className="page-container">
         <div className="page-header">

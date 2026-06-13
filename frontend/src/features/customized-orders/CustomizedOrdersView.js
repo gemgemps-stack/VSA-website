@@ -605,7 +605,7 @@ const CustomizedOrders = () => {
   };
 
   return (
-    <PermissionGuard permission="ORDERS">
+    <PermissionGuard permission="CUSTOMIZED_ORDERS">
       <DashboardLayout>
         <div style={styles.container}>
           <div style={styles.header}>

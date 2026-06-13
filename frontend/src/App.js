@@ -33,7 +33,7 @@ function App() {
             path="/orders"
             element={
               <ProtectedRoute>
-                <PermissionGuard permission="ORDERS">
+                <PermissionGuard permission="INVENTORY_ORDERS">
                   <Orders />
                 </PermissionGuard>
               </ProtectedRoute>
@@ -43,7 +43,7 @@ function App() {
             path="/customized-orders"
             element={
               <ProtectedRoute>
-                <PermissionGuard permission="ORDERS">
+                <PermissionGuard permission="CUSTOMIZED_ORDERS">
                   <CustomizedOrders />
                 </PermissionGuard>
               </ProtectedRoute>
@@ -53,7 +53,7 @@ function App() {
             path="/teams"
             element={
               <ProtectedRoute>
-                <PermissionGuard permission="ORDERS">
+                <PermissionGuard permission="TEAMS">
                   <Teams />
                 </PermissionGuard>
               </ProtectedRoute>

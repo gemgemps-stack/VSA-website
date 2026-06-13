@@ -222,7 +222,7 @@ const TeamsView = () => {
   ];
 
   return (
-    <PermissionGuard permission="ORDERS">
+    <PermissionGuard permission="TEAMS">
       <DashboardLayout>
         <div className="page-container">
           <div className="page-header">

@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
+import { expandPermissions } from '../../utils/permissions';
 
 const extractUsers = (payload) => {
   if (Array.isArray(payload)) {
@@ -30,13 +31,13 @@ const Employees = () => {
   ];
 
   const pagePermissions = [
-    { key: 'ORDERS', label: 'Orders' },
     { key: 'INVENTORY', label: 'Inventory' },
+    { key: 'INVENTORY_ORDERS', label: 'Inventory Orders' },
+    { key: 'CUSTOMIZED_ORDERS', label: 'Customized Orders' },
+    { key: 'TEAMS', label: 'Teams' },
     { key: 'CLIENTS', label: 'Clients' },
-    { key: 'SOURCE_OF_INCOME', label: 'Source Income' },
-    { key: 'PAYMENT_METHODS', label: 'Payment Methods' },
     { key: 'ATTENDANCE', label: 'Attendance' },
-    { key: 'REGISTER_CLIENT', label: 'Register Client' },
+    { key: 'SOURCE_OF_INCOME', label: 'Finance' },
     { key: 'EMPLOYEES', label: 'Employees' },
   ];
 
@@ -44,7 +45,7 @@ const Employees = () => {
     username: '',
     email: '',
     password: '',
-    role: 'EMPLOYEE',
+    role: '',
   });
 
   const [users, setUsers] = useState([]);
@@ -111,7 +112,7 @@ const Employees = () => {
 
   const openPermissionsModal = (employee) => {
     setSelectedUser(employee);
-    setSelectedPermissions((employee.permissions || []).map((permission) => permission.pageName));
+    setSelectedPermissions(expandPermissions((employee.permissions || []).map((permission) => permission.pageName)));
     setPermissionsModalOpen(true);
   };
 
@@ -140,8 +141,18 @@ const Employees = () => {
 
   const handleRegisterEmployee = async () => {
     try {
+      const payload = {
+        ...formData,
+        role: String(formData.role || '').trim().toUpperCase(),
+      };
+
+      if (!payload.role) {
+        alert("Please select Employee's Role / Team before saving.");
+        return;
+      }
+
       setFormLoading(true);
-      const response = await userService.createUser(formData);
+      const response = await userService.createUser(payload);
       const createdUser = response.data;
       let permissionSyncFailed = false;
 
@@ -174,7 +185,7 @@ const Employees = () => {
 
     try {
       setPermissionSaving(true);
-      const currentPermissions = (selectedUser.permissions || []).map((permission) => permission.pageName);
+      const currentPermissions = expandPermissions((selectedUser.permissions || []).map((permission) => permission.pageName));
       await syncPermissions(selectedUser.id, selectedPermissions, currentPermissions);
       alert('Permissions updated successfully');
       closePermissionsModal();
@@ -321,7 +332,11 @@ const Employees = () => {
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    required
                   >
+                    <option value="" disabled>
+                      Select Employee's Role / Team
+                    </option>
                     <option value="ADMIN">Admin</option>
                     <option value="MARKETING">Marketing</option>
                     <option value="PRODUCTION">Production</option>
@@ -333,7 +348,7 @@ const Employees = () => {
               <div className="permission-section">
                 <div className="permission-section-header">
                   <h3>Page Viewing Permissions</h3>
-                  <p>Select the pages this employee can view.</p>
+                  <p>Dashboard is always available. Select from the current sidebar pages below.</p>
                 </div>
 
                 <div className="permission-checkbox-grid">
@@ -363,7 +378,7 @@ const Employees = () => {
               <div className="permission-section">
                 <div className="permission-section-header">
                   <h3>Page Viewing Permissions</h3>
-                  <p>Update which pages this employee can access.</p>
+                  <p>Dashboard is always available. Update access for the current sidebar pages below.</p>
                 </div>
 
                 <div className="permission-checkbox-grid">

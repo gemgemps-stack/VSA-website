@@ -2,148 +2,91 @@ package sports.apparel.backend.features.auth;
 
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sports.apparel.backend.features.auth.LoginRequest;
-import sports.apparel.backend.features.auth.LoginResponse;
-import sports.apparel.backend.features.users.UserDTO;
+import sports.apparel.backend.security.JwtProvider;
 import sports.apparel.backend.entity.User;
 import sports.apparel.backend.features.users.UserRepository;
-import sports.apparel.backend.security.JwtProvider;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 @Service
 public class AuthService {
 
-    private static final String DEV_ADMIN_EMAIL = "admin@verdidaapparel.com";
-    private static final String DEV_ADMIN_PASSWORD = "AdminPassword123!";
-    private static final String[] DEV_ADMIN_PERMISSIONS = {
-            "ORDERS", "INVENTORY", "CLIENTS", "SOURCE_OF_INCOME", "PAYMENT_METHODS", "EMPLOYEES", "ATTENDANCE"
-    };
-
     private final UserRepository userRepository;
-    private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
+    private final LoginAttemptService loginAttemptService;
 
     public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
                        JwtProvider jwtProvider,
-                       PasswordEncoder passwordEncoder) {
+                       LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
-        this.jwtProvider = jwtProvider;
         this.passwordEncoder = passwordEncoder;
+        this.jwtProvider = jwtProvider;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Transactional
-    public LoginResponse login(LoginRequest loginRequest) {
-        String loginValue = loginRequest.getEmail().trim();
+    public AuthSession authenticate(LoginRequest loginRequest, String clientIp) {
+        String loginValue = loginRequest.getEmail() == null ? "" : loginRequest.getEmail().trim();
         String rawPassword = loginRequest.getPassword();
+        String rateLimitKey = buildRateLimitKey(loginValue, clientIp);
+        String ipRateLimitKey = buildIpRateLimitKey(clientIp);
 
-        if (isDevAdminLogin(loginValue, rawPassword)) {
-            User user = userRepository.findByEmailIgnoreCase(loginValue)
-                    .orElseGet(this::createDevAdminAccount);
-            user = ensureDevAdminAccount(user);
+        loginAttemptService.assertNotLocked(rateLimitKey);
+        loginAttemptService.assertNotLocked(ipRateLimitKey);
 
-            UserDetails userDetails = buildUserDetails(user);
-            String token = jwtProvider.generateToken(userDetails);
-            UserDTO userDTO = new UserDTO(user);
-
-            return new LoginResponse(token, userDTO);
-        }
-
-        User user = userRepository.findByEmailIgnoreCase(loginValue)
-                .orElse(null);
-
-        if (user == null) {
-            throw new BadCredentialsException("Invalid email or password");
-        }
-
-        String storedPassword = user.getPassword();
-
-        boolean matches = passwordEncoder.matches(rawPassword, storedPassword);
-        boolean legacyPlaintextMatch = storedPassword != null && storedPassword.equals(rawPassword);
-
-        if (!matches && !legacyPlaintextMatch) {
-            throw new BadCredentialsException("Invalid email or password");
-        }
-
-        if (legacyPlaintextMatch) {
-            user.setPassword(passwordEncoder.encode(rawPassword));
-            userRepository.save(user);
-        }
-
-        UserDetails userDetails = buildUserDetails(user);
-        String token = jwtProvider.generateToken(userDetails);
-        UserDTO userDTO = new UserDTO(user);
-
-        return new LoginResponse(token, userDTO);
-    }
-
-    private boolean isDevAdminLogin(String loginValue, String rawPassword) {
-        return DEV_ADMIN_PASSWORD.equals(rawPassword)
-                && DEV_ADMIN_EMAIL.equalsIgnoreCase(loginValue);
-    }
-
-    private User ensureDevAdminAccount(User user) {
-        user.setUsername("admin");
-        user.setEmail(DEV_ADMIN_EMAIL);
-        user.setPassword(passwordEncoder.encode(DEV_ADMIN_PASSWORD));
-        user.setRole(User.Role.ADMIN);
-
-        User savedUser = userRepository.save(user);
-        if (savedUser.getPermissions() == null) {
-            savedUser.setPermissions(new java.util.ArrayList<>());
-        }
-
-        for (String pageName : DEV_ADMIN_PERMISSIONS) {
-            boolean alreadyHasPermission = savedUser.getPermissions().stream()
-                    .anyMatch(permission -> pageName.equalsIgnoreCase(permission.getPageName()));
-
-            if (!alreadyHasPermission) {
-                sports.apparel.backend.entity.Permission permission = new sports.apparel.backend.entity.Permission();
-                permission.setUser(savedUser);
-                permission.setPageName(pageName);
-                savedUser.getPermissions().add(permission);
+        try {
+            if (loginValue.isBlank() || rawPassword == null || rawPassword.isBlank()) {
+                throw new BadCredentialsException("Invalid email or password");
             }
-        }
 
-        return userRepository.save(savedUser);
+            User user = userRepository.findByEmailIgnoreCase(loginValue)
+                    .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+
+            String storedPassword = user.getPassword();
+            boolean matches = storedPassword != null && passwordEncoder.matches(rawPassword, storedPassword);
+
+            if (!matches) {
+                throw new BadCredentialsException("Invalid email or password");
+            }
+
+            loginAttemptService.clear(rateLimitKey);
+            loginAttemptService.clear(ipRateLimitKey);
+            String token = jwtProvider.generateToken(buildUserDetails(user));
+            return new AuthSession(token, new AuthUserDTO(user));
+        } catch (BadCredentialsException ex) {
+            loginAttemptService.recordFailure(rateLimitKey);
+            loginAttemptService.recordFailure(ipRateLimitKey);
+            throw ex;
+        }
     }
 
-    private User createDevAdminAccount() {
-        // Check if admin user already exists (by username or email)
-        if (userRepository.existsByUsername("admin") || userRepository.existsByEmail(DEV_ADMIN_EMAIL)) {
-            return userRepository.findByEmailIgnoreCase(DEV_ADMIN_EMAIL)
-                    .orElseGet(() -> userRepository.findByUsernameIgnoreCase("admin").orElse(null));
-        }
-
-        User user = new User();
-        user.setUsername("admin");
-        user.setEmail(DEV_ADMIN_EMAIL);
-        user.setPassword(passwordEncoder.encode(DEV_ADMIN_PASSWORD));
-        user.setRole(User.Role.ADMIN);
-        user.setPermissions(new java.util.ArrayList<>());
-
-        User savedUser = userRepository.save(user);
-        for (String pageName : DEV_ADMIN_PERMISSIONS) {
-            sports.apparel.backend.entity.Permission permission = new sports.apparel.backend.entity.Permission();
-            permission.setUser(savedUser);
-            permission.setPageName(pageName);
-            savedUser.getPermissions().add(permission);
-        }
-        return userRepository.save(savedUser);
+    @Transactional(readOnly = true)
+    public AuthUserDTO getCurrentUser(String email) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new BadCredentialsException("Invalid session"));
+        return new AuthUserDTO(user);
     }
 
-    private UserDetails buildUserDetails(User user) {
-        Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+    private String buildRateLimitKey(String loginValue, String clientIp) {
+        String normalizedEmail = loginValue == null ? "unknown" : loginValue.trim().toLowerCase();
+        String normalizedIp = clientIp == null || clientIp.isBlank() ? "unknown-ip" : clientIp.trim();
+        return normalizedEmail + "|" + normalizedIp;
+    }
+
+    private String buildIpRateLimitKey(String clientIp) {
+        String normalizedIp = clientIp == null || clientIp.isBlank() ? "unknown-ip" : clientIp.trim();
+        return "ip|" + normalizedIp;
+    }
+
+    private org.springframework.security.core.userdetails.User buildUserDetails(User user) {
+        java.util.List<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
+        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
         if (user.getPermissions() != null) {
             user.getPermissions().forEach(permission ->
-                    authorities.add(new SimpleGrantedAuthority(permission.getPageName()))
+                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(permission.getPageName()))
             );
         }
 

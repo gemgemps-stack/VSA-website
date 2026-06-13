@@ -24,7 +24,7 @@ public class CreateUserRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @NotNull(message = "Role is required")
+    @NotBlank(message = "Role is required")
     private String role;
 
     @DecimalMin(value = "0.0", inclusive = false, message = "Salary must be greater than 0")
