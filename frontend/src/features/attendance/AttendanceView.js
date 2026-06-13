@@ -81,8 +81,8 @@ const AttendanceView = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [employeeNameQuery, setEmployeeNameQuery] = useState('');
+  const [statusQuery, setStatusQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [detailsRecord, setDetailsRecord] = useState(null);
@@ -119,23 +119,18 @@ const AttendanceView = () => {
   }, [loadAttendance, loadUsers]);
 
   const filteredRecords = useMemo(() => {
+    const normalizedEmployeeQuery = employeeNameQuery.trim().toLowerCase();
+    const normalizedStatusQuery = statusQuery.trim().toLowerCase();
+
     return attendanceRecords.filter((record) => {
-      const matchesStatus = statusFilter === 'ALL' || (record.status || '').toUpperCase() === statusFilter;
-      const haystack = [
-        record.username,
-        record.email,
-        record.role,
-        record.attendanceDate,
-        record.status,
-        record.notes,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
-      return matchesStatus && matchesSearch;
+      const employeeHaystack = String(record.username || '').toLowerCase();
+      const statusHaystack = String(record.status || '').toLowerCase();
+
+      const matchesEmployee = !normalizedEmployeeQuery || employeeHaystack.includes(normalizedEmployeeQuery);
+      const matchesStatus = !normalizedStatusQuery || statusHaystack.includes(normalizedStatusQuery);
+      return matchesEmployee && matchesStatus;
     });
-  }, [attendanceRecords, searchQuery, statusFilter]);
+  }, [attendanceRecords, employeeNameQuery, statusQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / 10));
   const paginatedRecords = filteredRecords.slice((currentPage - 1) * 10, currentPage * 10);
@@ -143,7 +138,7 @@ const AttendanceView = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, selectedMonth, selectedYear]);
+  }, [employeeNameQuery, statusQuery, selectedMonth, selectedYear]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -389,28 +384,6 @@ const AttendanceView = () => {
               ))}
             </select>
           </div>
-
-          <div className="attendance-control attendance-search">
-            <label>Search</label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search employee, notes, or status"
-            />
-          </div>
-
-          <div className="attendance-control">
-            <label>Status</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="ALL">All</option>
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status.key} value={status.key}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         <div className="attendance-calendar">
@@ -464,8 +437,12 @@ const AttendanceView = () => {
                 <button
                   key={dateKey}
                   type="button"
+                  disabled={!isToday}
                   className={`attendance-day ${tone ? `has-${tone}` : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
                   onClick={() => {
+                    if (!isToday) {
+                      return;
+                    }
                     setSelectedDay(dateKey);
                     setDayDetailsDate(dateKey);
                   }}
@@ -487,13 +464,35 @@ const AttendanceView = () => {
             <h2 style={{ margin: 0 }}>Attendance Records</h2>
           </div>
 
+          <div className="attendance-record-filters">
+            <div className="attendance-control attendance-record-search">
+              <label>Employee Name</label>
+              <input
+                type="text"
+                value={employeeNameQuery}
+                onChange={(e) => setEmployeeNameQuery(e.target.value)}
+                placeholder="Search employee name"
+              />
+            </div>
+
+            <div className="attendance-control attendance-record-search">
+              <label>Status</label>
+              <input
+                type="text"
+                value={statusQuery}
+                onChange={(e) => setStatusQuery(e.target.value)}
+                placeholder="Search status"
+              />
+            </div>
+          </div>
+
           <DataTable
             columns={columns}
-          data={paginatedRecords}
-          onView={handleView}
-          onEdit={openEditModal}
-          onDelete={isAdmin ? handleDelete : null}
-          loading={loading}
+            data={paginatedRecords}
+            onView={handleView}
+            onEdit={openEditModal}
+            onDelete={isAdmin ? handleDelete : null}
+            loading={loading}
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
@@ -531,7 +530,10 @@ const AttendanceView = () => {
               <input
                 type="date"
                 value={formData.attendanceDate}
+                min={!editingRecord ? getTodayInputValue() : undefined}
+                max={!editingRecord ? getTodayInputValue() : undefined}
                 onChange={(e) => setFormData({ ...formData, attendanceDate: e.target.value })}
+                disabled={!editingRecord}
               />
             </div>
 

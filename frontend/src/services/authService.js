@@ -1,5 +1,7 @@
 import api from './api';
 
+const normalizePermission = (value) => String(value || '').trim().toUpperCase();
+
 const authService = {
   login: async (email, password) => {
     const response = await api.post('/api/auth/login', { email, password });
@@ -35,7 +37,7 @@ const authService = {
 
   hasPermission: (permission) => {
     const user = authService.getCurrentUser();
-    return user?.permissions?.some(p => p.pageName === permission);
+    return user?.permissions?.some((p) => normalizePermission(p.pageName) === normalizePermission(permission));
   },
 
   canAccess: (permission) => {

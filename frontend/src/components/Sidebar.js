@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Sidebar.css';
 
+const normalizePermission = (value) => String(value || '').trim().toUpperCase();
+
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { user } = useAuth();
   const location = useLocation();
@@ -24,7 +26,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const canAccess = (permission) => {
     if (!permission) return true;
-    return user?.role === 'ADMIN' || user?.permissions?.some((p) => p.pageName === permission);
+    return (
+      user?.role === 'ADMIN' ||
+      user?.permissions?.some((p) => normalizePermission(p.pageName) === normalizePermission(permission))
+    );
   };
 
   return (

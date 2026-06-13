@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
+import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
 
 const extractUsers = (payload) => {
@@ -17,6 +18,9 @@ const extractUsers = (payload) => {
 };
 
 const Employees = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const employeeFilters = [
     { key: 'ALL', label: 'All Employees' },
     { key: 'ADMIN', label: 'Admins' },
@@ -58,15 +62,21 @@ const Employees = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadUsers = useCallback(async () => {
+    if (!isAdmin) {
+      setUsers([]);
+      setTotalPages(1);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await userService.getAllUsers(currentPage - 1, 10);
       const nextUsers = extractUsers(response.data);
       setUsers(nextUsers);
 
-      const totalElements = typeof response.data?.totalElements === 'number'
-        ? response.data.totalElements
-        : nextUsers.length;
+      const totalElements =
+        typeof response.data?.totalElements === 'number' ? response.data.totalElements : nextUsers.length;
       setTotalPages(Math.max(1, Math.ceil(totalElements / 10)));
     } catch (error) {
       console.error('Error loading employees:', error);
@@ -75,11 +85,17 @@ const Employees = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage]);
+  }, [currentPage, isAdmin]);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    if (isAdmin) {
+      loadUsers();
+    } else {
+      setLoading(false);
+      setUsers([]);
+      setTotalPages(1);
+    }
+  }, [isAdmin, loadUsers]);
 
   const openRegisterModal = () => {
     setFormData(createInitialFormData());
@@ -93,9 +109,9 @@ const Employees = () => {
     setSelectedPermissions([]);
   };
 
-  const openPermissionsModal = (user) => {
-    setSelectedUser(user);
-    setSelectedPermissions((user.permissions || []).map((permission) => permission.pageName));
+  const openPermissionsModal = (employee) => {
+    setSelectedUser(employee);
+    setSelectedPermissions((employee.permissions || []).map((permission) => permission.pageName));
     setPermissionsModalOpen(true);
   };
 
@@ -107,9 +123,7 @@ const Employees = () => {
 
   const handlePermissionToggle = (permissionKey) => {
     setSelectedPermissions((current) =>
-      current.includes(permissionKey)
-        ? current.filter((item) => item !== permissionKey)
-        : [...current, permissionKey]
+      current.includes(permissionKey) ? current.filter((item) => item !== permissionKey) : [...current, permissionKey]
     );
   };
 
@@ -198,10 +212,9 @@ const Employees = () => {
     },
   ];
 
-  const filteredUsers = users.filter((user) => {
-    const matchesRole =
-      employeeFilter === 'ALL' || (user.role || '').toUpperCase() === employeeFilter;
-    const haystack = `${user.username || ''} ${user.email || ''} ${user.role || ''}`.toLowerCase();
+  const filteredUsers = users.filter((employee) => {
+    const matchesRole = employeeFilter === 'ALL' || (employee.role || '').toUpperCase() === employeeFilter;
+    const haystack = `${employee.username || ''} ${employee.email || ''} ${employee.role || ''}`.toLowerCase();
     const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
 
     return matchesRole && matchesSearch;
@@ -212,157 +225,170 @@ const Employees = () => {
       <div className="page-container">
         <div className="page-header">
           <h1>Employees</h1>
-          <button className="btn-primary" onClick={openRegisterModal} type="button">
-            + Register New Employee
-          </button>
-        </div>
-
-        <div className="employee-search-bar">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="🔎 Search employees by name, email, or role"
-          />
-        </div>
-
-        <div className="orders-filter-bar">
-          {employeeFilters.map((filter) => (
-            <button
-              key={filter.key}
-              type="button"
-              className={`order-filter-btn ${employeeFilter === filter.key ? 'active' : ''}`}
-              onClick={() => {
-                setEmployeeFilter(filter.key);
-                setCurrentPage(1);
-              }}
-            >
-              {filter.label}
+          {isAdmin && (
+            <button className="btn-primary" onClick={openRegisterModal} type="button">
+              + Register New Employee
             </button>
-          ))}
+          )}
         </div>
 
-        <DataTable
-          columns={columns}
-          data={filteredUsers}
-          onEdit={openPermissionsModal}
-          onDelete={handleDeleteUser}
-          loading={loading}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-
-        <Modal
-          isOpen={registerModalOpen}
-          title="Register New Employee"
-          onClose={closeRegisterModal}
-          onSubmit={handleRegisterEmployee}
-          submitText="Register Employee"
-          loading={formLoading}
-          size="large"
-        >
-          <div className="employee-modal-grid">
-            <div className="form-group">
-              <label>Employee Name</label>
+        {isAdmin ? (
+          <>
+            <div className="employee-search-bar">
               <input
                 type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="Enter employee name"
-                required
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search employees by name, email, or role"
               />
             </div>
 
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Enter email address"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Password</label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Create a password"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Role / Team</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              >
-                <option value="ADMIN">Admin</option>
-                <option value="MARKETING">Marketing</option>
-                <option value="PRODUCTION">Production</option>
-                <option value="SEWING">Sewing</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="permission-section">
-            <div className="permission-section-header">
-              <h3>Page Viewing Permissions</h3>
-              <p>Select the pages this employee can view.</p>
-            </div>
-
-            <div className="permission-checkbox-grid">
-              {pagePermissions.map((permission) => (
-                <label key={permission.key} className="permission-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedPermissions.includes(permission.key)}
-                    onChange={() => handlePermissionToggle(permission.key)}
-                  />
-                  <span>{permission.label}</span>
-                </label>
+            <div className="orders-filter-bar">
+              {employeeFilters.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  className={`order-filter-btn ${employeeFilter === filter.key ? 'active' : ''}`}
+                  onClick={() => {
+                    setEmployeeFilter(filter.key);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {filter.label}
+                </button>
               ))}
             </div>
-          </div>
-        </Modal>
 
-        <Modal
-          isOpen={permissionsModalOpen}
-          title={selectedUser ? `Manage Permissions: ${selectedUser.username}` : 'Manage Permissions'}
-          onClose={closePermissionsModal}
-          onSubmit={handleSavePermissions}
-          submitText="Save Permissions"
-          loading={permissionSaving}
-          size="large"
-        >
-          <div className="permission-section">
-            <div className="permission-section-header">
-              <h3>Page Viewing Permissions</h3>
-              <p>Update which pages this employee can access.</p>
-            </div>
+            <DataTable
+              columns={columns}
+              data={filteredUsers}
+              onEdit={openPermissionsModal}
+              onDelete={handleDeleteUser}
+              loading={loading}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
 
-            <div className="permission-checkbox-grid">
-              {pagePermissions.map((permission) => (
-                <label key={permission.key} className="permission-checkbox">
+            <Modal
+              isOpen={registerModalOpen}
+              title="Register New Employee"
+              onClose={closeRegisterModal}
+              onSubmit={handleRegisterEmployee}
+              submitText="Register Employee"
+              loading={formLoading}
+              size="large"
+            >
+              <div className="employee-modal-grid">
+                <div className="form-group">
+                  <label>Employee Name</label>
                   <input
-                    type="checkbox"
-                    checked={selectedPermissions.includes(permission.key)}
-                    onChange={() => handlePermissionToggle(permission.key)}
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    placeholder="Enter employee name"
+                    required
                   />
-                  <span>{permission.label}</span>
-                </label>
-              ))}
+                </div>
+
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Enter email address"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Create a password"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Role / Team</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  >
+                    <option value="ADMIN">Admin</option>
+                    <option value="MARKETING">Marketing</option>
+                    <option value="PRODUCTION">Production</option>
+                    <option value="SEWING">Sewing</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="permission-section">
+                <div className="permission-section-header">
+                  <h3>Page Viewing Permissions</h3>
+                  <p>Select the pages this employee can view.</p>
+                </div>
+
+                <div className="permission-checkbox-grid">
+                  {pagePermissions.map((permission) => (
+                    <label key={permission.key} className="permission-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedPermissions.includes(permission.key)}
+                        onChange={() => handlePermissionToggle(permission.key)}
+                      />
+                      <span>{permission.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </Modal>
+
+            <Modal
+              isOpen={permissionsModalOpen}
+              title={selectedUser ? `Manage Permissions: ${selectedUser.username}` : 'Manage Permissions'}
+              onClose={closePermissionsModal}
+              onSubmit={handleSavePermissions}
+              submitText="Save Permissions"
+              loading={permissionSaving}
+              size="large"
+            >
+              <div className="permission-section">
+                <div className="permission-section-header">
+                  <h3>Page Viewing Permissions</h3>
+                  <p>Update which pages this employee can access.</p>
+                </div>
+
+                <div className="permission-checkbox-grid">
+                  {pagePermissions.map((permission) => (
+                    <label key={permission.key} className="permission-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedPermissions.includes(permission.key)}
+                        onChange={() => handlePermissionToggle(permission.key)}
+                      />
+                      <span>{permission.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </Modal>
+          </>
+        ) : (
+          <div className="permission-section" style={{ marginTop: '8px' }}>
+            <div className="permission-section-header">
+              <h3>Employees Access</h3>
+              <p>You have permission to open this page, but employee management controls are reserved for administrators.</p>
             </div>
           </div>
-        </Modal>
+        )}
       </div>
     </DashboardLayout>
   );

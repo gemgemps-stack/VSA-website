@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
 
 const AuthContext = createContext();
+const normalizePermission = (value) => String(value || '').trim().toUpperCase();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => authService.getCurrentUser());
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   const canAccess = (permission) => {
     if (!user) return false;
     if (user.role === 'ADMIN') return true;
-    return user.permissions?.some(p => p.pageName === permission) || false;
+    return user.permissions?.some((p) => normalizePermission(p.pageName) === normalizePermission(permission)) || false;
   };
 
   return (
