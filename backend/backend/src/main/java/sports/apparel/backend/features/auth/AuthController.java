@@ -26,13 +26,16 @@ public class AuthController {
     private final AuthService authService;
     private final long jwtExpiration;
     private final boolean cookieSecure;
+    private final String cookieSameSite;
 
     public AuthController(AuthService authService,
                           @Value("${jwt.expiration}") long jwtExpiration,
-                          @Value("${app.auth.cookie.secure:false}") boolean cookieSecure) {
+                          @Value("${app.auth.cookie.secure:false}") boolean cookieSecure,
+                          @Value("${app.auth.cookie.same-site:Lax}") String cookieSameSite) {
         this.authService = authService;
         this.jwtExpiration = jwtExpiration;
         this.cookieSecure = cookieSecure;
+        this.cookieSameSite = cookieSameSite;
     }
 
     @PostMapping("/login")
@@ -74,7 +77,7 @@ public class AuthController {
         return ResponseCookie.from(JwtAuthenticationFilter.AUTH_COOKIE_NAME, token)
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .path(COOKIE_PATH)
                 .maxAge(Duration.ofMillis(expirationMillis))
                 .build();
@@ -84,7 +87,7 @@ public class AuthController {
         return ResponseCookie.from(JwtAuthenticationFilter.AUTH_COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .path(COOKIE_PATH)
                 .maxAge(Duration.ZERO)
                 .build();
