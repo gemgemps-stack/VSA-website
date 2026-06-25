@@ -16,7 +16,7 @@ const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex }}>
+    <div className="modal-overlay" style={{ zIndex }}>
       <div className={`modal-content modal-${size}`} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title}</h2>

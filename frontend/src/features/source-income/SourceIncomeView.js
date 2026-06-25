@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import customizedOrderService from '../../services/customizedOrderService';
+import { hasPermission } from '../../utils/permissions';
 
 const PAYMENT_METHODS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
 const REPORT_PERIODS = [
@@ -19,7 +20,6 @@ const SOURCE_GRIDS = [
   { key: 'shopeeShop', label: 'Shoppee', color: '#f77f00' },
   { key: 'sportsApparelShop', label: 'Verdida Sports Apparel', color: '#2d6a4f' },
 ];
-const normalizePermission = (value) => String(value || '').trim().toUpperCase();
 
 const SourceIncome = () => {
   const { user } = useAuth();
@@ -31,10 +31,8 @@ const SourceIncome = () => {
   const [orderReferenceCache, setOrderReferenceCache] = useState({});
   const orderReferenceCacheRef = useRef(orderReferenceCache);
 
-  const canAccessIncome =
-    user?.permissions?.some((permission) => normalizePermission(permission.pageName) === 'SOURCE_OF_INCOME');
-  const canAccessPayment =
-    user?.permissions?.some((permission) => normalizePermission(permission.pageName) === 'PAYMENT_METHODS');
+  const canAccessIncome = hasPermission(user?.permissions, 'SOURCE_OF_INCOME');
+  const canAccessPayment = hasPermission(user?.permissions, 'PAYMENT_METHODS');
 
   const loadPaymentMethods = useCallback(async () => {
     const stored = window.localStorage.getItem('paymentMethods');
