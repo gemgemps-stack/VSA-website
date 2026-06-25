@@ -26,8 +26,11 @@ public class Order {
     private String jobOrderNo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
+    @JoinColumn(name = "client_id", nullable = true)
     private Client client;
+
+    @Column(length = 255)
+    private String clientName;
 
     @Column(length = 255, nullable = true)
     private String teamName;

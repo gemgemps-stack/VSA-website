@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
 import teamService from '../../services/teamService';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const createPlayerRow = () => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -37,7 +38,10 @@ const TeamsView = () => {
       setTeams(response.data || []);
     } catch (error) {
       console.error('Error loading teams:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load teams';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load teams');
       alert(`Failed to load teams: ${errorMsg}`);
     } finally {
       setLoading(false);

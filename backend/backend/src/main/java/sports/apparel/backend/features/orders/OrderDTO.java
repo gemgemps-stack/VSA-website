@@ -39,9 +39,15 @@ public class OrderDTO {
     public OrderDTO(Order order) {
         this.id = order.getId();
         this.jobOrderNo = order.getJobOrderNo();
-        this.clientId = order.getClient().getId();
-        this.clientName = order.getClient().getClientName();
-        this.clientCode = order.getClient().getClientCode();
+        if (order.getClient() != null) {
+            this.clientId = order.getClient().getId();
+            this.clientName = order.getClient().getClientName();
+            this.clientCode = order.getClient().getClientCode();
+        } else {
+            this.clientId = null;
+            this.clientName = order.getClientName() != null ? order.getClientName() : "Walk-in Client";
+            this.clientCode = null;
+        }
         this.teamName = order.getTeamName();
         this.orderRetail = order.getOrderRetail();
         this.quantity = order.getQuantity();

@@ -5,8 +5,9 @@ import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
 import incomeService from '../../services/incomeService';
 import customizedOrderService from '../../services/customizedOrderService';
-import clientService from '../../services/clientService';
 import teamService from '../../services/teamService';
+import clientService from '../../services/clientService';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
@@ -61,11 +62,13 @@ const getOrderFinancials = (order) => {
       remainingAfterDownPayment: 0,
     };
   }
-  const quantity = Number(order?.quantity) || 0;
-  const unitPrice = Number(order?.price) || 0;
+  
+  const total = (order.items || []).reduce((sum, item) => {
+    return sum + (Number(item.unitPrice || 0) * Number(item.quantity || 0));
+  }, 0);
+  
   const discountPercent = Number(order?.discount) || 0;
   const downPayment = Number(order?.downPayment) || 0;
-  const total = unitPrice * quantity;
   const afterDiscountTotal = total * (1 - discountPercent / 100);
   const remainingAfterDownPayment = afterDiscountTotal - downPayment;
 
@@ -77,14 +80,12 @@ const getOrderFinancials = (order) => {
 };
 
 const createInitialFormData = () => ({
-  clientId: '',
+  clientId: null,
   teamId: '',
   teamName: '',
-  orderRetail: '',
-  quantity: '',
+  items: [{ productName: '', unitPrice: '', quantity: '' }],
   freebie: '',
   discount: '0',
-  price: '',
   downPayment: '0',
   shop: '',
   orderDate: new Date().toISOString().split('T')[0],
@@ -94,8 +95,8 @@ const createInitialFormData = () => ({
 
 const CustomizedOrders = () => {
   const [orders, setOrders] = useState([]);
-  const [clients, setClients] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -113,21 +114,24 @@ const CustomizedOrders = () => {
   const [teamSearch, setTeamSearch] = useState('');
   const [teamSuggestionsOpen, setTeamSuggestionsOpen] = useState(false);
 
-  const loadClients = useCallback(async () => {
-    try {
-      const response = await clientService.getAllClients(0, INITIAL_PAGE_SIZE);
-      setClients(cleanArray(response.data.content));
-    } catch (error) {
-      console.error('Error loading clients:', error);
-    }
-  }, []);
-
   const loadTeams = useCallback(async () => {
     try {
       const response = await teamService.getAllTeams();
       setTeams(cleanArray(response.data));
     } catch (error) {
       console.error('Error loading teams:', error);
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+    }
+  }, []);
+
+  const loadClients = useCallback(async () => {
+    try {
+      const response = await clientService.getAllClients(0, 1000);
+      setClients(cleanArray(response.data.content));
+    } catch (error) {
+      console.error('Error loading clients:', error);
     }
   }, []);
 
@@ -138,30 +142,31 @@ const CustomizedOrders = () => {
       setOrders(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading orders:', error);
-      alert('Failed to load orders');
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      alert(getApiErrorMessage(error, 'Failed to load orders'));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadClients();
     loadTeams();
-  }, [loadClients, loadTeams]);
+    loadClients();
+  }, [loadTeams, loadClients]);
 
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
 
-  const selectedClient = clients.find((client) => client?.id === formData.clientId);
-  const isVipClient = Boolean(selectedClient?.vip);
-
   const filteredOrders = orders.filter((order) => {
     const matchesStatus =
-      statusFilter === 'ALL' ||
-      (statusFilter === ORDER_STATUS.FULLY_PAID
-        ? order?.status === ORDER_STATUS.FULLY_PAID
-        : order?.status === statusFilter);
+      statusFilter === 'ALL'
+        ? order?.status !== ORDER_STATUS.FULLY_PAID
+        : (statusFilter === ORDER_STATUS.FULLY_PAID
+          ? order?.status === ORDER_STATUS.FULLY_PAID
+          : order?.status === statusFilter);
 
     const haystack = [
       order?.jobOrderNo,
@@ -183,26 +188,24 @@ const CustomizedOrders = () => {
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);
 
-  const filteredClients = clients
-    .filter(Boolean)
-    .filter((client) =>
-      String(client?.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
-    );
-
   const filteredTeams = teams
     .filter(Boolean)
     .filter((team) =>
       String(team?.teamName ?? '').toLowerCase().includes(teamSearch.trim().toLowerCase())
     );
 
-  const handleClientSelect = (clientId) => {
-    const client = clients.find((item) => item?.id === clientId);
+  const filteredClients = clients
+    .filter(Boolean)
+    .filter((client) =>
+      String(client?.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
+    );
+
+  const handleClientSelect = (client) => {
     setFormData((prev) => ({
       ...prev,
-      clientId,
-      downPayment: client?.vip ? '0' : prev.downPayment || '0',
+      clientId: client.id,
     }));
-    setClientSearch(client?.clientName || '');
+    setClientSearch(client.clientName || '');
     setClientSuggestionsOpen(false);
   };
 
@@ -211,8 +214,7 @@ const CustomizedOrders = () => {
     setClientSuggestionsOpen(true);
     setFormData((prev) => ({
       ...prev,
-      clientId: '',
-      downPayment: prev.downPayment,
+      clientId: null,
     }));
   };
 
@@ -228,7 +230,6 @@ const CustomizedOrders = () => {
       ...prev,
       teamId,
       teamName: selectedTeam?.teamName || '',
-      quantity: selectedTeam?.quantity != null ? String(selectedTeam.quantity) : '',
       orderDate: selectedTeam?.transitDate || fallbackDate,
     }));
     setTeamSearch(selectedTeam?.teamName || '');
@@ -242,7 +243,6 @@ const CustomizedOrders = () => {
       ...prev,
       teamId: '',
       teamName: value,
-      quantity: prev.quantity,
     }));
   };
 
@@ -250,22 +250,41 @@ const CustomizedOrders = () => {
     window.setTimeout(() => setTeamSuggestionsOpen(false), 150);
   };
 
-  const handleQuantityChange = (e) => {
-    const value = e.target.value;
-    setFormData({ ...formData, quantity: value });
+  const handleAddItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, { productName: '', unitPrice: '', quantity: '' }],
+    }));
+  };
+
+  const handleRemoveItem = (index) => {
+    if (formData.items.length <= 1) return;
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    setFormData((prev) => {
+      const newItems = [...prev.items];
+      newItems[index] = { ...newItems[index], [field]: value };
+      return { ...prev, items: newItems };
+    });
+  };
+
+  const calculateSubtotal = () => {
+    return formData.items.reduce((sum, item) => {
+      const price = Number.parseFloat(item.unitPrice || 0);
+      const qty = Number.parseInt(item.quantity || 0, 10);
+      return sum + (price * qty);
+    }, 0);
   };
 
   const getDiscountedTotal = () => {
-    const basePrice = Number.parseFloat(formData.price || 0);
-    const quantity = Number.parseInt(formData.quantity || 0, 10);
+    const subtotal = calculateSubtotal();
     const discountPercent = Number.parseFloat(formData.discount || 0);
-
-    if (!Number.isFinite(basePrice) || !Number.isFinite(quantity)) {
-      return 0;
-    }
-
-    const originalTotal = basePrice * quantity;
-    return originalTotal * (1 - discountPercent / 100);
+    return subtotal * (1 - discountPercent / 100);
   };
 
   const handleDownPaymentChange = (e) => {
@@ -293,8 +312,8 @@ const CustomizedOrders = () => {
     setEditingOrder(null);
     setFormData(createInitialFormData());
     setClientSearch('');
-    setTeamSearch('');
     setClientSuggestionsOpen(false);
+    setTeamSearch('');
     setTeamSuggestionsOpen(false);
     setModalOpen(true);
   };
@@ -304,31 +323,36 @@ const CustomizedOrders = () => {
     setEditingOrder(null);
     setFormData(createInitialFormData());
     setClientSearch('');
-    setTeamSearch('');
     setClientSuggestionsOpen(false);
+    setTeamSearch('');
     setTeamSuggestionsOpen(false);
   };
 
   const handleEdit = (order) => {
     setEditingOrder(order);
     setFormData({
-      clientId: order?.clientId || '',
+      clientId: order?.clientId || null,
       teamId: '',
       teamName: order?.teamName || '',
-      orderRetail: order?.orderRetail || '',
-      quantity: order?.quantity != null ? String(order.quantity) : '',
+      items: (order?.items || []).map(item => ({
+        productName: item.productName || '',
+        unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
+        quantity: item.quantity != null ? String(item.quantity) : '',
+      })),
       freebie: order?.freebie || '',
       discount: order?.discount != null ? String(order.discount) : '0',
-      price: order?.price != null ? String(order.price) : '',
       downPayment: order?.downPayment != null ? String(order.downPayment) : '0',
       shop: order?.shop || '',
       orderDate: order?.orderDate || new Date().toISOString().split('T')[0],
       modeOfPayment: order?.modeOfPayment || 'Cash',
       notes: order?.remarks || '',
     });
+    if (order?.items?.length === 0) {
+      setFormData(prev => ({ ...prev, items: [{ productName: '', unitPrice: '', quantity: '' }] }));
+    }
     setClientSearch(order?.clientName || '');
-    setTeamSearch(order?.teamName || '');
     setClientSuggestionsOpen(false);
+    setTeamSearch(order?.teamName || '');
     setTeamSuggestionsOpen(false);
     setModalOpen(true);
   };
@@ -352,20 +376,14 @@ const CustomizedOrders = () => {
 
   const handleSubmitOrder = async () => {
     try {
-      const clientRecord =
-        clients.find((client) => client?.id === formData.clientId) ||
-        clients.find(
-          (client) =>
-            String(client?.clientName ?? '').toLowerCase() === clientSearch.trim().toLowerCase()
-        );
-
-      if (!clientRecord) {
-        alert('Please select a valid client from the search list.');
+      if (!clientSearch.trim()) {
+        alert('Please enter a client name.');
         return;
       }
 
-      if (!formData.orderRetail || !formData.orderRetail.trim()) {
-        alert('Please enter a product name.');
+      const invalidItem = formData.items.find(item => !item.productName.trim() || !item.unitPrice || !item.quantity);
+      if (invalidItem) {
+        alert('Please fill in all product details (Name, Price, and Quantity).');
         return;
       }
 
@@ -379,35 +397,26 @@ const CustomizedOrders = () => {
         return;
       }
 
-      const orderQuantity = Number(formData.quantity);
-      if (!Number.isFinite(orderQuantity) || orderQuantity < 1) {
-        alert('Please enter a valid quantity.');
-        return;
-      }
-
-      const unitPrice = Number(formData.price || 0);
-      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
-        alert('Please enter a valid price.');
-        return;
-      }
-
       const discount = Number(formData.discount || 0);
-      const downPayment = clientRecord.vip ? 0 : Number(formData.downPayment || 0);
-      const discountedTotal = unitPrice * orderQuantity * (1 - discount / 100);
+      const downPaymentAmount = Number(formData.downPayment || 0);
+      const discountedTotal = getDiscountedTotal();
 
-      if (!clientRecord.vip && downPayment > discountedTotal) {
+      if (downPaymentAmount > discountedTotal) {
         alert(`Down payment cannot exceed the total discounted amount (${discountedTotal.toFixed(2)}).`);
         return;
       }
 
       const payload = {
-        clientId: clientRecord.id,
-        orderRetail: formData.orderRetail.trim(),
+        clientId: formData.clientId || null,
+        clientName: clientSearch.trim(),
         teamName: formData.teamName.trim() || null,
-        quantity: orderQuantity,
+        items: formData.items.map(item => ({
+          productName: item.productName.trim(),
+          unitPrice: Number(item.unitPrice),
+          quantity: Number(item.quantity),
+        })),
         discount: Number.isFinite(discount) ? discount : 0,
-        price: unitPrice,
-        downPayment: Number.isFinite(downPayment) ? downPayment : 0,
+        downPayment: Number.isFinite(downPaymentAmount) ? downPaymentAmount : 0,
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
         modeOfPayment: formData.modeOfPayment.trim(),
@@ -456,12 +465,15 @@ const CustomizedOrders = () => {
 
   const buildOrderPayload = (order, statusOverride) => ({
     clientId: order.clientId,
+    clientName: order.clientName || null,
     teamName: order.teamName || null,
-    orderRetail: order.orderRetail,
-    quantity: Number(order.quantity),
+    items: (order.items || []).map(item => ({
+      productName: item.productName,
+      unitPrice: Number(item.unitPrice),
+      quantity: Number(item.quantity),
+    })),
     freebie: order.freebie || null,
     discount: Number(order.discount || 0),
-    price: Number(order.price),
     downPayment: Number(order.downPayment || 0),
     shop: order.shop,
     orderDate: order.orderDate,
@@ -578,7 +590,11 @@ const CustomizedOrders = () => {
     { key: 'jobOrderNo', label: 'Job Order No' },
     { key: 'clientName', label: 'Client Name' },
     { key: 'teamName', label: 'Team Name' },
-    { key: 'orderRetail', label: 'Product' },
+    { 
+      key: 'items', 
+      label: 'Products', 
+      render: (items) => (items || []).map(i => `${i.productName} (x${i.quantity})`).join(', ') 
+    },
     { key: 'status', label: 'Status', render: (value) => getStatusLabel(value) },
     { key: 'orderDate', label: 'Date' },
   ];
@@ -666,6 +682,8 @@ const CustomizedOrders = () => {
                 onView={handleView}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+                canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
                 onRowClick={handleView}
                 rowStyle={(row) => ({
                   cursor: 'pointer',
@@ -713,11 +731,11 @@ const CustomizedOrders = () => {
                   {/* Row 1: Client and Team */}
                   <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr' }}>
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Client *</label>
+                      <label style={styles.label}>Client Name*</label>
                       <div style={styles.autocompleteContainer}>
                         <input
                           type="text"
-                          placeholder="Search client..."
+                          placeholder="Enter client name"
                           value={clientSearch}
                           onChange={(e) => handleClientInputChange(e.target.value)}
                           onFocus={() => setClientSuggestionsOpen(true)}
@@ -729,7 +747,7 @@ const CustomizedOrders = () => {
                             {filteredClients.map((client) => (
                               <div
                                 key={client.id}
-                                onClick={() => handleClientSelect(client.id)}
+                                onClick={() => handleClientSelect(client)}
                                 style={styles.suggestionItem}
                               >
                                 {client?.clientName || ''}
@@ -737,6 +755,7 @@ const CustomizedOrders = () => {
                             ))}
                           </div>
                         )}
+                        <small style={styles.hint}>Type any client name. This does not need to match a saved client.</small>
                       </div>
                     </div>
 
@@ -769,43 +788,79 @@ const CustomizedOrders = () => {
                     </div>
                   </div>
 
-                  {/* Row 2: Product (text-based only) */}
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Product *</label>
-                    <input
-                      type="text"
-                      placeholder="Enter product name or description..."
-                      value={formData.orderRetail}
-                      onChange={(e) => setFormData({ ...formData, orderRetail: e.target.value })}
-                      style={styles.input}
-                    />
+                  {/* Dynamic Product Items */}
+                  {formData.items.map((item, index) => (
+                    <div key={index} style={{ ...styles.formGrid, gridTemplateColumns: '1fr 0.6fr 0.4fr auto', alignItems: 'end', marginBottom: '10px' }}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>{index === 0 ? 'Product Name *' : ''}</label>
+                        <input
+                          type="text"
+                          placeholder="Enter product name..."
+                          value={item.productName}
+                          onChange={(e) => handleItemChange(index, 'productName', e.target.value)}
+                          style={styles.input}
+                        />
+                      </div>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>
+                        <input
+                          type="number"
+                          value={item.unitPrice}
+                          onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
+                          placeholder="0.00"
+                          step="0.01"
+                          style={styles.input}
+                        />
+                      </div>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>{index === 0 ? 'Quantity *' : ''}</label>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                          placeholder="0"
+                          style={styles.input}
+                        />
+                      </div>
+
+                      {formData.items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(index)}
+                          style={{
+                            ...styles.button,
+                            backgroundColor: '#ff5252',
+                            color: 'white',
+                            padding: '8px 12px',
+                            marginBottom: '15px',
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      style={{
+                        ...styles.button,
+                        backgroundColor: '#2196F3',
+                        color: 'white',
+                        fontSize: '0.85em',
+                        padding: '6px 12px',
+                      }}
+                    >
+                      + Add Another Product
+                    </button>
                   </div>
 
-                  {/* Row 3: Unit Price, Quantity, Discount, Down Payment */}
-                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Unit Price *</label>
-                      <input
-                        type="number"
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        placeholder="0.00"
-                        step="0.01"
-                        style={styles.input}
-                      />
-                    </div>
-
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Quantity *</label>
-                      <input
-                        type="number"
-                        value={formData.quantity}
-                        onChange={handleQuantityChange}
-                        placeholder="0"
-                        style={styles.input}
-                      />
-                    </div>
-
+                  {/* Row 3: Discount (10%), Down Payment (20%), Total Price (25%), Freebie (45%) */}
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: '0.1fr 0.2fr 0.25fr 0.45fr' }}>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Discount %</label>
                       <input
@@ -826,25 +881,34 @@ const CustomizedOrders = () => {
                         onChange={handleDownPaymentChange}
                         placeholder="0.00"
                         step="0.01"
-                        disabled={isVipClient}
                         style={styles.input}
                       />
-                      {isVipClient && <small style={styles.hint}>VIP clients have no down payment</small>}
                     </div>
-                  </div>
 
-                  {/* Row 4: Total Price, Shop, Mode of Payment, Order Date, Freebie */}
-                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(5, 1fr)' }}>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Total Price</label>
                       <input
                         type="text"
-                        value={formatMoney((Number(formData.price) || 0) * (Number(formData.quantity) || 0))}
+                        value={formatMoney(calculateSubtotal())}
                         disabled
                         style={{ ...styles.input, backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                       />
                     </div>
 
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Freebie</label>
+                      <input
+                        type="text"
+                        value={formData.freebie}
+                        onChange={(e) => setFormData({ ...formData, freebie: e.target.value })}
+                        placeholder="e.g., T-shirt, Cap"
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 4: Shop, Mode of Payment, Order Date */}
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(3, 1fr)' }}>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Shop *</label>
                       <select
@@ -886,17 +950,6 @@ const CustomizedOrders = () => {
                         style={styles.input}
                       />
                     </div>
-
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Freebie</label>
-                      <input
-                        type="text"
-                        value={formData.freebie}
-                        onChange={(e) => setFormData({ ...formData, freebie: e.target.value })}
-                        placeholder="e.g., T-shirt, Cap"
-                        style={styles.input}
-                      />
-                    </div>
                   </div>
 
                   {/* Row 5: Notes */}
@@ -914,7 +967,7 @@ const CustomizedOrders = () => {
                     <div style={styles.totalSection}>
                       <div style={styles.totalRow}>
                         <span>Total Amount:</span>
-                        <span>{formatMoney((Number(formData.price) || 0) * (Number(formData.quantity) || 0))}</span>
+                        <span>{formatMoney(calculateSubtotal())}</span>
                       </div>
                       <div style={styles.totalRow}>
                         <span>After Discount:</span>
@@ -945,22 +998,6 @@ const CustomizedOrders = () => {
                     <span>{selectedOrder?.teamName || '-'}</span>
                   </div>
                   <div style={styles.detailRow}>
-                    <label style={styles.label}>Product:</label>
-                    <span>{selectedOrder?.orderRetail || '-'}</span>
-                  </div>
-                  <div style={styles.detailRow}>
-                    <label style={styles.label}>Quantity:</label>
-                    <span>{selectedOrder?.quantity ?? '-'}</span>
-                  </div>
-                  <div style={styles.detailRow}>
-                    <label style={styles.label}>Unit Price:</label>
-                    <span>{formatMoney(selectedOrder?.price)}</span>
-                  </div>
-                  <div style={styles.detailRow}>
-                    <label style={styles.label}>Discount:</label>
-                    <span>{selectedOrder?.discount || 0}%</span>
-                  </div>
-                  <div style={styles.detailRow}>
                     <label style={styles.label}>Shop:</label>
                     <span>{selectedOrder?.shop || '-'}</span>
                   </div>
@@ -982,6 +1019,33 @@ const CustomizedOrders = () => {
                     >
                       {getStatusLabel(selectedOrder?.status)}
                     </span>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '25px' }}>
+                  <label style={styles.label}>Products:</label>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                        <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Unit Price</th>
+                        <th style={{ padding: '10px' }}>Quantity</th>
+                        <th style={{ padding: '10px' }}>Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedOrder?.items || []).map((item, index) => (
+                        <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '10px' }}>{item.productName}</td>
+                          <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice)}</td>
+                          <td style={{ padding: '10px' }}>{item.quantity}</td>
+                          <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice * item.quantity)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ marginTop: '10px', textAlign: 'right' }}>
+                    <label style={styles.label}>Discount: {selectedOrder?.discount || 0}%</label>
                   </div>
                 </div>
 

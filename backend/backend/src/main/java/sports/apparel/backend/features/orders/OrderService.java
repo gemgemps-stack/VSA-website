@@ -46,14 +46,18 @@ public class OrderService {
     }
 
     public OrderDTO createOrder(CreateOrderRequest request) {
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+        Client client = null;
+        if (request.getClientId() != null) {
+            client = clientRepository.findById(request.getClientId())
+                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+        }
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
 
         Order order = new Order();
         order.setJobOrderNo(jobOrderNumberService.generateJobOrderNumber(request.getOrderDate()));
         order.setClient(client);
+        order.setClientName(request.getClientName());
         order.setTeamName(request.getTeamName());
         order.setOrderRetail(request.getOrderRetail());
         order.setQuantity(request.getQuantity());
@@ -122,12 +126,16 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+        Client client = null;
+        if (request.getClientId() != null) {
+            client = clientRepository.findById(request.getClientId())
+                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+        }
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
 
         order.setClient(client);
+        order.setClientName(request.getClientName());
         order.setTeamName(request.getTeamName());
         order.setOrderRetail(request.getOrderRetail());
         order.setQuantity(request.getQuantity());

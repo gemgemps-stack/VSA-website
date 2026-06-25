@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -14,26 +15,35 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreateCustomizedOrderRequest {
 
-    @NotNull(message = "Client ID is required")
     private UUID clientId;
+
+    private String clientName;
 
     private String teamName;
 
-    @NotBlank(message = "Order retail is required")
-    private String orderRetail;
+    @NotEmpty(message = "At least one item is required")
+    private List<ItemRequest> items;
 
-    @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
-    private Integer quantity;
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ItemRequest {
+        @NotBlank(message = "Product name is required")
+        private String productName;
+
+        @NotNull(message = "Unit price is required")
+        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+        private BigDecimal unitPrice;
+
+        @NotNull(message = "Quantity is required")
+        @Min(value = 1, message = "Quantity must be at least 1")
+        private Integer quantity;
+    }
 
     private String freebie;
 
     @DecimalMin(value = "0.0", message = "Discount must be non-negative")
     private BigDecimal discount;
-
-    @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
-    private BigDecimal price;
 
     @DecimalMin(value = "0.0", message = "Down payment must be non-negative")
     private BigDecimal downPayment;

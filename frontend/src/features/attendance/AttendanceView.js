@@ -5,6 +5,7 @@ import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
 import attendanceService from '../../services/attendanceService';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const STATUS_OPTIONS = [
   { key: 'PRESENT', label: 'Present', tone: 'present' },
@@ -90,6 +91,8 @@ const AttendanceView = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [formData, setFormData] = useState(createInitialFormData());
   const [formLoading, setFormLoading] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [employeeSuggestionsOpen, setEmployeeSuggestionsOpen] = useState(false);
 
   const loadUsers = useCallback(async () => {
     const response = await userService.getAllUsers(0, 1000);
@@ -108,7 +111,10 @@ const AttendanceView = () => {
         await Promise.all([loadUsers(), loadAttendance()]);
       } catch (error) {
         console.error('Error loading attendance data:', error);
-        const errorMsg = error.response?.data?.message || error.message || 'Failed to load attendance data';
+        if (isAuthOrPermissionError(error)) {
+          return;
+        }
+        const errorMsg = getApiErrorMessage(error, 'Failed to load attendance data');
         alert(`Failed to load attendance data: ${errorMsg}`);
       } finally {
         setLoading(false);
@@ -135,6 +141,26 @@ const AttendanceView = () => {
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / 10));
   const paginatedRecords = filteredRecords.slice((currentPage - 1) * 10, currentPage * 10);
   const isAdmin = user?.role === 'ADMIN';
+
+  const filteredEmployees = users.filter((u) =>
+    String(u.username || '').toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
+  const handleEmployeeSelect = (u) => {
+    setFormData({ ...formData, userId: u.id });
+    setEmployeeSearch(u.username);
+    setEmployeeSuggestionsOpen(false);
+  };
+
+  const handleEmployeeInputChange = (value) => {
+    setEmployeeSearch(value);
+    setEmployeeSuggestionsOpen(true);
+    setFormData({ ...formData, userId: '' });
+  };
+
+  const handleEmployeeInputBlur = () => {
+    setTimeout(() => setEmployeeSuggestionsOpen(false), 150);
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -205,6 +231,8 @@ const AttendanceView = () => {
       ...createInitialFormData(),
       attendanceDate: dateOverride || getTodayInputValue(),
     });
+    setEmployeeSearch('');
+    setEmployeeSuggestionsOpen(false);
     setModalOpen(true);
   };
 
@@ -218,6 +246,8 @@ const AttendanceView = () => {
       status: (record.status || 'PRESENT').toUpperCase(),
       notes: record.notes || '',
     });
+    setEmployeeSearch(record.username || '');
+    setEmployeeSuggestionsOpen(false);
     setModalOpen(true);
   };
 
@@ -237,6 +267,8 @@ const AttendanceView = () => {
     setModalOpen(false);
     setEditingRecord(null);
     setFormData(createInitialFormData());
+    setEmployeeSearch('');
+    setEmployeeSuggestionsOpen(false);
   };
 
   const handleView = (record) => {
@@ -506,53 +538,74 @@ const AttendanceView = () => {
           onSubmit={handleSubmit}
           submitText={editingRecord ? 'Update' : 'Save'}
           loading={formLoading}
-          size="large"
+          size="attendance"
           zIndex={1300}
         >
           <div className="attendance-form-grid">
-            <div className="form-group">
-              <label>Employee</label>
-              <select
-                value={formData.userId}
-                onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-              >
-                <option value="">Select employee</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.username} ({user.role})
-                  </option>
-                ))}
-              </select>
+            <div className="attendance-row-70-30">
+              <div className="form-group">
+                <label>Employee</label>
+                <div className="client-search-wrapper">
+                  <input
+                    type="text"
+                    value={employeeSearch}
+                    onChange={(e) => handleEmployeeInputChange(e.target.value)}
+                    onFocus={() => setEmployeeSuggestionsOpen(true)}
+                    onBlur={handleEmployeeInputBlur}
+                    placeholder="Search employee name"
+                    autoComplete="off"
+                  />
+                  {employeeSuggestionsOpen && filteredEmployees.length > 0 && (
+                    <div className="client-search-results">
+                      {filteredEmployees.map((u) => (
+                        <button
+                          type="button"
+                          key={u.id}
+                          className="client-search-item"
+                          onClick={() => handleEmployeeSelect(u)}
+                        >
+                          <span>{u.username} ({u.role})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {employeeSuggestionsOpen && filteredEmployees.length === 0 && (
+                    <div className="client-search-results empty">No matching employees found</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Date</label>
+                <input
+                  type="date"
+                  value={formData.attendanceDate}
+                  min={!editingRecord ? getTodayInputValue() : undefined}
+                  max={!editingRecord ? getTodayInputValue() : undefined}
+                  onChange={(e) => setFormData({ ...formData, attendanceDate: e.target.value })}
+                  disabled={!editingRecord}
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label>Date</label>
-              <input
-                type="date"
-                value={formData.attendanceDate}
-                min={!editingRecord ? getTodayInputValue() : undefined}
-                max={!editingRecord ? getTodayInputValue() : undefined}
-                onChange={(e) => setFormData({ ...formData, attendanceDate: e.target.value })}
-                disabled={!editingRecord}
-              />
-            </div>
+            <div className="form-group-2-col">
+              <div className="form-group">
+                <label>Time In</label>
+                <input
+                  type="time"
+                  value={formData.timeIn}
+                  onChange={(e) => setFormData({ ...formData, timeIn: e.target.value })}
+                />
+              </div>
 
-            <div className="form-group">
-              <label>Time In</label>
-              <input
-                type="time"
-                value={formData.timeIn}
-                onChange={(e) => setFormData({ ...formData, timeIn: e.target.value })}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Time Out</label>
-              <input
-                type="time"
-                value={formData.timeOut}
-                onChange={(e) => setFormData({ ...formData, timeOut: e.target.value })}
-              />
+              <div className="form-group">
+                <label>Time Out</label>
+                <input
+                  type="time"
+                  value={formData.timeOut}
+                  onChange={(e) => setFormData({ ...formData, timeOut: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="form-group">
@@ -569,7 +622,7 @@ const AttendanceView = () => {
               </select>
             </div>
 
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <div className="form-group">
               <label>Notes</label>
               <textarea
                 rows="4"

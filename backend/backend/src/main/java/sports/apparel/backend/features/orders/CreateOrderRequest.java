@@ -14,8 +14,9 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreateOrderRequest {
 
-    @NotNull(message = "Client ID is required")
     private UUID clientId;
+
+    private String clientName;
 
     private String teamName;
 

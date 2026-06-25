@@ -6,6 +6,7 @@ import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import customizedOrderService from '../../services/customizedOrderService';
 import { hasPermission } from '../../utils/permissions';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const PAYMENT_METHODS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
 const REPORT_PERIODS = [
@@ -117,7 +118,10 @@ const SourceIncome = () => {
         await Promise.all([loadPaymentMethods(), loadIncomeEntries()]);
       } catch (error) {
         console.error('Error loading finance data:', error);
-        const errorMsg = error.response?.data?.message || error.message || 'Failed to load finance data';
+        if (isAuthOrPermissionError(error)) {
+          return;
+        }
+        const errorMsg = getApiErrorMessage(error, 'Failed to load finance data');
         alert(`Failed to load finance data: ${errorMsg}`);
       } finally {
         setLoading(false);

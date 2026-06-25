@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
 import inventoryService from '../../services/inventoryService';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopppee', 'Verdida Sports Apparel'];
 const SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'XL', 'XXL'];
 const INITIAL_PAGE_SIZE = 100;
@@ -87,7 +88,7 @@ const createInitialSearchFilters = () => ({
   name: '',
   jerseyType: '',
   size: '',
-  number: '',
+  quantity: '',
   price: '',
   shop: '',
   createdAt: '',
@@ -114,7 +115,10 @@ const Inventory = () => {
       setInventory(response.data.content || []);
     } catch (error) {
       console.error('Error loading inventory:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load inventory';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load inventory');
       alert(`Failed to load inventory: ${errorMsg}`);
     } finally {
       setLoading(false);
@@ -126,7 +130,7 @@ const Inventory = () => {
     matchesText(item.name, searchFilters.name) &&
     matchesText(item.jerseyType, searchFilters.jerseyType) &&
     matchesText(item.size, searchFilters.size) &&
-    matchesText(item.number, searchFilters.number) &&
+    matchesText(item.quantity, searchFilters.quantity) &&
     matchesPrice(item.price, searchFilters.price) &&
     matchesText(item.shop, searchFilters.shop) &&
     matchesDate(item.createdAt, searchFilters.createdAt)
@@ -221,7 +225,7 @@ const Inventory = () => {
       render: (value) => value || '-',
     },
     { key: 'size', label: 'Size', render: (value) => value || '-' },
-    { key: 'number', label: 'Number', render: (value) => value || '-' },
+    { key: 'quantity', label: 'Quantity', render: (value) => value || '0' },
     {
       key: 'price',
       label: 'Price',
@@ -287,9 +291,9 @@ const Inventory = () => {
             />
             <input
               type="text"
-              value={searchFilters.number}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, number: e.target.value }))}
-              placeholder="Search number"
+              value={searchFilters.quantity}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, quantity: e.target.value }))}
+              placeholder="Search quantity"
             />
             <input
               type="text"

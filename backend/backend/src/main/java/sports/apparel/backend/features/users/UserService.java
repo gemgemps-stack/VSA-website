@@ -29,23 +29,41 @@ public class UserService {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
-        }
-
         if (request.getRole() == null || request.getRole().isBlank()) {
             throw new IllegalArgumentException("Role is required");
         }
 
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        User.Role role;
         try {
-            user.setRole(User.Role.valueOf(request.getRole().trim().toUpperCase()));
+            role = User.Role.valueOf(request.getRole().trim().toUpperCase());
         } catch (IllegalArgumentException error) {
             throw new IllegalArgumentException("Invalid role selected");
         }
+
+        boolean isAdmin = role == User.Role.ADMIN;
+        String email = request.getEmail() == null ? null : request.getEmail().trim();
+        String password = request.getPassword() == null ? null : request.getPassword().trim();
+
+        if (isAdmin) {
+            if (email == null || email.isBlank()) {
+                throw new IllegalArgumentException("Email is required");
+            }
+            if (password == null || password.isBlank()) {
+                throw new IllegalArgumentException("Password is required");
+            }
+            if (userRepository.existsByEmail(email)) {
+                throw new IllegalArgumentException("Email already exists");
+            }
+        } else {
+            email = null;
+            password = null;
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(email);
+        user.setPassword(isAdmin ? passwordEncoder.encode(password) : null);
+        user.setRole(role);
         user.setSalary(request.getSalary());
 
         User savedUser = userRepository.save(user);

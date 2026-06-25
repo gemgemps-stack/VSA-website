@@ -7,6 +7,8 @@ const DataTable = ({
   onEdit,
   onDelete,
   onView,
+  canEdit,
+  canDelete,
   loading = false,
   currentPage = 1,
   totalPages = 1,
@@ -50,7 +52,7 @@ const DataTable = ({
                     Details
                   </button>
                 )}
-                {onEdit && (
+                {onEdit && (!canEdit || canEdit(row)) && (
                   <button
                     className="btn-edit"
                     onClick={() => onEdit(row)}
@@ -60,7 +62,7 @@ const DataTable = ({
                     Edit
                   </button>
                 )}
-                {onDelete && (
+                {onDelete && (!canDelete || canDelete(row)) && (
                   <button
                     className="btn-delete"
                     onClick={() => {

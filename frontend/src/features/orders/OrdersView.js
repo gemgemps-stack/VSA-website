@@ -8,6 +8,7 @@ import clientService from '../../services/clientService';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import teamService from '../../services/teamService';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
 const SHOP_ALIASES = {
@@ -141,7 +142,10 @@ const Orders = () => {
       setClients(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading clients:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load clients';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load clients');
       alert(`Failed to load clients: ${errorMsg}`);
     }
   }, []);
@@ -152,7 +156,10 @@ const Orders = () => {
       setInventoryItems(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading inventory:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load inventory';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load inventory');
       alert(`Failed to load inventory: ${errorMsg}`);
     }
   }, []);
@@ -163,7 +170,10 @@ const Orders = () => {
       setTeams(cleanArray(response.data));
     } catch (error) {
       console.error('Error loading teams:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load teams';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load teams');
       alert(`Failed to load teams: ${errorMsg}`);
     }
   }, []);
@@ -175,7 +185,10 @@ const Orders = () => {
       setOrders(response.data.content || []);
     } catch (error) {
       console.error('Error loading orders:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load orders';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load orders');
       alert(`Failed to load orders: ${errorMsg}`);
     } finally {
       setLoading(false);
@@ -215,8 +228,17 @@ const Orders = () => {
     }
   }, [editingOrder, formData.teamId, modalOpen, teams]);
 
-  const selectedClient = clients.find((client) => client?.id === formData.clientId);
-  const isVipClient = Boolean(selectedClient?.vip);
+      const selectedClient = clients.find((client) => client?.id === formData.clientId);
+      const isVipClient = Boolean(selectedClient?.vip);
+  useEffect(() => {
+    if (modalOpen && isVipClient && formData.downPayment !== '0') {
+      setFormData((prev) => ({
+        ...prev,
+        downPayment: '0',
+      }));
+    }
+  }, [formData.downPayment, isVipClient, modalOpen]);
+
   const filteredOrders = orders.filter((order) => {
     const normalizedStatus = (order.status || '').toUpperCase();
     const matchesStatus =
@@ -264,14 +286,7 @@ const Orders = () => {
     return itemText.includes(searchTerm);
   });
 
-  useEffect(() => {
-    if (modalOpen && isVipClient && formData.downPayment !== '0') {
-      setFormData((prev) => ({
-        ...prev,
-        downPayment: '0',
-      }));
-    }
-  }, [formData.downPayment, isVipClient, modalOpen]);
+
 
   useEffect(() => {
     setCurrentPage(1);
@@ -423,6 +438,11 @@ const Orders = () => {
   };
 
   const handleEdit = (order) => {
+    if (order.status === ORDER_STATUS.FULLY_PAID) {
+      alert('Fully Paid orders cannot be edited.');
+      return;
+    }
+
     const retailRecord = inventoryItems.find(
       (item) =>
         getInventoryLabel(item).toLowerCase() ===
@@ -448,7 +468,7 @@ const Orders = () => {
       modeOfPayment: order.modeOfPayment || 'Cash',
       notes: order.remarks || '',
     });
-    setClientSearch(clients.find((c) => c?.id === order.clientId)?.clientName || '');
+    setClientSearch(order.clientId ? (clients.find((c) => c?.id === order.clientId)?.clientName || '') : (order.clientName || ''));
     setTeamSearch(order.teamName || matchedTeam?.teamName || '');
     setRetailSearch(order.orderRetail || '');
     setClientSuggestionsOpen(false);
@@ -475,6 +495,7 @@ const Orders = () => {
 
   const buildOrderPayload = (order, statusOverride) => ({
     clientId: order.clientId,
+    clientName: order.clientName || null,
     teamName: order.teamName || null,
     orderRetail: order.orderRetail,
     quantity: Number(order.quantity),
@@ -603,6 +624,12 @@ const Orders = () => {
   };
 
   const handleDelete = async (id) => {
+    const order = orders.find((o) => o.id === id);
+    if (order && order.status === ORDER_STATUS.FULLY_PAID) {
+      alert('Fully Paid orders cannot be deleted.');
+      return;
+    }
+
     try {
       await orderService.deleteOrder(id);
       alert('Order deleted successfully');
@@ -619,17 +646,17 @@ const Orders = () => {
 
   const handleSubmit = async () => {
     try {
+      if (!clientSearch.trim()) {
+        alert('Please enter a client name.');
+        return;
+      }
+
       const clientRecord =
         clients.find((client) => client?.id === formData.clientId) ||
         clients.find(
           (client) =>
             String(client?.clientName ?? '').toLowerCase() === clientSearch.trim().toLowerCase()
         );
-
-      if (!clientRecord) {
-        alert('Please select a valid client from the search list.');
-        return;
-      }
 
       const retailRecord = inventoryItems.find(
         (item) =>
@@ -670,22 +697,23 @@ const Orders = () => {
       }
 
       const discount = Number(formData.discount || 0);
-      const downPayment = clientRecord.vip ? 0 : Number(formData.downPayment || 0);
+      const downPaymentAmount = clientRecord?.vip ? 0 : Number(formData.downPayment || 0);
       const discountedTotal = unitPrice * orderQuantity * (1 - discount / 100);
 
-      if (!clientRecord.vip && downPayment > discountedTotal) {
+      if (clientRecord && !clientRecord.vip && downPaymentAmount > discountedTotal) {
         alert(`Down payment cannot exceed the total discounted amount (${discountedTotal.toFixed(2)}).`);
         return;
       }
 
       const payload = {
-        clientId: clientRecord.id,
+        clientId: clientRecord?.id || null,
+        clientName: clientRecord?.clientName || clientSearch.trim(),
         orderRetail: getInventoryLabel(retailRecord),
         teamName: formData.teamName.trim() || null,
         quantity: orderQuantity,
         discount: Number.isFinite(discount) ? discount : 0,
         price: unitPrice,
-        downPayment: Number.isFinite(downPayment) ? downPayment : 0,
+        downPayment: Number.isFinite(downPaymentAmount) ? downPaymentAmount : 0,
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
         modeOfPayment: formData.modeOfPayment.trim(),
@@ -791,6 +819,8 @@ const Orders = () => {
             onView={handleView}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+            canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
             loading={loading}
             currentPage={currentPage}
             totalPages={totalPages}
@@ -816,10 +846,9 @@ const Orders = () => {
                       onChange={(e) => handleClientInputChange(e.target.value)}
                       onFocus={() => setClientSuggestionsOpen(true)}
                       onBlur={handleClientInputBlur}
-                      placeholder={clients.length === 0 ? 'No clients available' : 'Search client name'}
+                      placeholder="Enter or search client name"
                       autoComplete="off"
                       required
-                      disabled={clients.length === 0}
                     />
                     {clientSuggestionsOpen && filteredClients.length > 0 && (
                       <div className="client-search-results">
@@ -836,8 +865,11 @@ const Orders = () => {
                         ))}
                       </div>
                     )}
-                    {clientSuggestionsOpen && filteredClients.length === 0 && (
+                    {clientSuggestionsOpen && filteredClients.length === 0 && clients.length > 0 && (
                       <div className="client-search-results empty">No matching clients found</div>
+                    )}
+                    {clientSuggestionsOpen && clients.length === 0 && (
+                      <div className="client-search-results empty">No registered clients. You can enter a custom name.</div>
                     )}
                   </div>
                 </div>
@@ -1231,9 +1263,16 @@ const Orders = () => {
                     <>
                         <div className="form-group" style={{ marginBottom: 0 }}>
                           <label>Reference Number</label>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
                           <input
                             type="text"
+                            style={{
+                              flex: 1,
+                              ...(selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
+                              !isReferenceNumberEditing
+                                ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
+                                : {})
+                            }}
                             value={referenceNumber}
                             onChange={(e) => {
                               const value = e.target.value;
@@ -1247,12 +1286,7 @@ const Orders = () => {
                               selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
                               !isReferenceNumberEditing
                             }
-                            style={{
-                              ...(selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
-                              !isReferenceNumberEditing
-                                ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
-                                : {}),
-                            }}
+
                           />
                           {selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
                             !isReferenceNumberEditing && (

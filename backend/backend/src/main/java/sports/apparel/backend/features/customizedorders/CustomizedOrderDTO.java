@@ -8,7 +8,9 @@ import sports.apparel.backend.entity.CustomizedOrder;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -23,10 +25,21 @@ public class CustomizedOrderDTO {
     private String teamName;
     private String orderRetail;
     private Integer quantity;
+    private List<ItemDTO> items;
     private String freebie;
     private BigDecimal discount;
     private BigDecimal price;
     private BigDecimal downPayment;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ItemDTO {
+        private UUID id;
+        private String productName;
+        private BigDecimal unitPrice;
+        private Integer quantity;
+    }
     private String shop;
     private LocalDate orderDate;
     private String modeOfPayment;
@@ -38,12 +51,21 @@ public class CustomizedOrderDTO {
     public CustomizedOrderDTO(CustomizedOrder order) {
         this.id = order.getId();
         this.jobOrderNo = order.getJobOrderNo();
-        this.clientId = order.getClient().getId();
-        this.clientName = order.getClient().getClientName();
-        this.clientCode = order.getClient().getClientCode();
+        if (order.getClient() != null) {
+            this.clientId = order.getClient().getId();
+            this.clientName = order.getClient().getClientName();
+            this.clientCode = order.getClient().getClientCode();
+        } else {
+            this.clientId = null;
+            this.clientName = order.getClientName() != null ? order.getClientName() : "Walk-in Client";
+            this.clientCode = null;
+        }
         this.teamName = order.getTeamName();
         this.orderRetail = order.getOrderRetail();
         this.quantity = order.getQuantity();
+        this.items = order.getItems().stream()
+                .map(item -> new ItemDTO(item.getId(), item.getProductName(), item.getUnitPrice(), item.getQuantity()))
+                .collect(Collectors.toList());
         this.freebie = order.getFreebie();
         this.discount = order.getDiscount();
         this.price = order.getPrice();

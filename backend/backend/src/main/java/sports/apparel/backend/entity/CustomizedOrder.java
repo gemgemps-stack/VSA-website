@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -26,11 +28,17 @@ public class CustomizedOrder {
     private String jobOrderNo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
+    @JoinColumn(name = "client_id", nullable = true)
     private Client client;
+
+    @Column(length = 255)
+    private String clientName;
 
     @Column(length = 255, nullable = true)
     private String teamName;
+
+    @OneToMany(mappedBy = "customizedOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CustomizedOrderItem> items = new ArrayList<>();
 
     @Column(nullable = false, length = 255)
     private String orderRetail;

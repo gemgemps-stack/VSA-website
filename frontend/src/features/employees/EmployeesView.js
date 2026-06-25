@@ -5,6 +5,9 @@ import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
 import { expandPermissions } from '../../utils/permissions';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
+
+const TEAM_OPTIONS = ['Marketing', 'Production', 'Sewing'];
 
 const extractUsers = (payload) => {
   if (Array.isArray(payload)) {
@@ -21,6 +24,7 @@ const extractUsers = (payload) => {
 const Employees = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const [registerMode, setRegisterMode] = useState(null);
 
   const employeeFilters = [
     { key: 'ALL', label: 'All Employees' },
@@ -81,7 +85,10 @@ const Employees = () => {
       setTotalPages(Math.max(1, Math.ceil(totalElements / 10)));
     } catch (error) {
       console.error('Error loading employees:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load employees';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load employees');
       alert(`Failed to load employees: ${errorMsg}`);
     } finally {
       setLoading(false);
@@ -98,14 +105,20 @@ const Employees = () => {
     }
   }, [isAdmin, loadUsers]);
 
-  const openRegisterModal = () => {
-    setFormData(createInitialFormData());
+  const openRegisterModal = (mode) => {
+    setRegisterMode(mode);
+    const initialFormData = createInitialFormData();
+    if (mode === 'admin') {
+      initialFormData.role = 'ADMIN';
+    }
+    setFormData(initialFormData);
     setSelectedPermissions([]);
     setRegisterModalOpen(true);
   };
 
   const closeRegisterModal = () => {
     setRegisterModalOpen(false);
+    setRegisterMode(null);
     setFormData(createInitialFormData());
     setSelectedPermissions([]);
   };
@@ -141,15 +154,36 @@ const Employees = () => {
 
   const handleRegisterEmployee = async () => {
     try {
-      const payload = {
-        ...formData,
-        role: String(formData.role || '').trim().toUpperCase(),
-      };
+      const trimmedUsername = String(formData.username || '').trim();
+      const selectedTeam = String(formData.role || '').trim();
+      const isAdminRegistration = registerMode === 'admin';
 
-      if (!payload.role) {
-        alert("Please select Employee's Role / Team before saving.");
+      if (!trimmedUsername) {
+        alert('Please enter the employee name before saving.');
         return;
       }
+
+      if (!selectedTeam) {
+        alert('Please select a team before saving.');
+        return;
+      }
+
+      if (isAdminRegistration && !String(formData.email || '').trim()) {
+        alert('Please enter the email address before saving.');
+        return;
+      }
+
+      if (isAdminRegistration && !String(formData.password || '').trim()) {
+        alert('Please enter the password before saving.');
+        return;
+      }
+
+      const payload = {
+        username: trimmedUsername,
+        email: isAdminRegistration ? String(formData.email || '').trim() : null,
+        password: isAdminRegistration ? String(formData.password || '') : null,
+        role: selectedTeam.toUpperCase(),
+      };
 
       setFormLoading(true);
       const response = await userService.createUser(payload);
@@ -237,9 +271,14 @@ const Employees = () => {
         <div className="page-header">
           <h1>Employees</h1>
           {isAdmin && (
-            <button className="btn-primary" onClick={openRegisterModal} type="button">
-              + Register New Employee
-            </button>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button className="btn-primary" onClick={() => openRegisterModal('employee')} type="button">
+                + Register New Employee
+              </button>
+              <button className="btn-primary" onClick={() => openRegisterModal('admin')} type="button">
+                + Register New Admin
+              </button>
+            </div>
           )}
         </div>
 
@@ -286,12 +325,12 @@ const Employees = () => {
 
             <Modal
               isOpen={registerModalOpen}
-              title="Register New Employee"
+              title={registerMode === 'admin' ? 'Register New Admin' : 'Register New Employee'}
               onClose={closeRegisterModal}
               onSubmit={handleRegisterEmployee}
-              submitText="Register Employee"
+              submitText={registerMode === 'admin' ? 'Register Admin' : 'Register Employee'}
               loading={formLoading}
-              size="large"
+              size={registerMode === 'admin' ? 'large' : 'default'}
             >
               <div className="employee-modal-grid">
                 <div className="form-group">
@@ -305,65 +344,83 @@ const Employees = () => {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="Enter email address"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Password</label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Create a password"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Role / Team</label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    required
-                  >
-                    <option value="" disabled>
-                      Select Employee's Role / Team
-                    </option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="MARKETING">Marketing</option>
-                    <option value="PRODUCTION">Production</option>
-                    <option value="SEWING">Sewing</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="permission-section">
-                <div className="permission-section-header">
-                  <h3>Page Viewing Permissions</h3>
-                  <p>Dashboard is always available. Select from the current sidebar pages below.</p>
-                </div>
-
-                <div className="permission-checkbox-grid">
-                  {pagePermissions.map((permission) => (
-                    <label key={permission.key} className="permission-checkbox">
+                {registerMode === 'admin' ? (
+                  <>
+                    <div className="form-group">
+                      <label>Email</label>
                       <input
-                        type="checkbox"
-                        checked={selectedPermissions.includes(permission.key)}
-                        onChange={() => handlePermissionToggle(permission.key)}
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="Enter email address"
+                        required
                       />
-                      <span>{permission.label}</span>
-                    </label>
-                  ))}
-                </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Password</label>
+                      <input
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="Create a password"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Role</label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        required
+                      >
+                        <option value="ADMIN">Admin</option>
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <div className="form-group">
+                    <label>Team</label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select Team
+                      </option>
+                      {TEAM_OPTIONS.map((team) => (
+                        <option key={team} value={team}>
+                          {team}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
+
+              {registerMode === 'admin' && (
+                <div className="permission-section">
+                  <div className="permission-section-header">
+                    <h3>Page Viewing Permissions</h3>
+                    <p>Dashboard is always available. Select from the current sidebar pages below.</p>
+                  </div>
+
+                  <div className="permission-checkbox-grid">
+                    {pagePermissions.map((permission) => (
+                      <label key={permission.key} className="permission-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedPermissions.includes(permission.key)}
+                          onChange={() => handlePermissionToggle(permission.key)}
+                        />
+                        <span>{permission.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Modal>
 
             <Modal

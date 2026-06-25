@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
 import clientService from '../../services/clientService';
+import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const formatPhoneNumber = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -36,7 +37,10 @@ const Clients = () => {
       setTotalPages(Math.max(1, Math.ceil((response.data.totalElements || 0) / 10)));
     } catch (error) {
       console.error('Error loading clients:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load clients';
+      if (isAuthOrPermissionError(error)) {
+        return;
+      }
+      const errorMsg = getApiErrorMessage(error, 'Failed to load clients');
       alert(`Failed to load clients: ${errorMsg}`);
     } finally {
       setLoading(false);
