@@ -15,6 +15,7 @@ import sports.apparel.backend.features.orders.OrderRepository;
 
 import java.time.LocalDate;
 import java.math.BigDecimal;
+import sports.apparel.backend.entity.OrderItem;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,14 +36,17 @@ public class OrderService {
     private final ClientRepository clientRepository;
     private final InventoryRepository inventoryRepository;
     private final JobOrderNumberService jobOrderNumberService;
+    private final sports.apparel.backend.features.income.IncomeSourceService incomeSourceService;
 
     public OrderService(OrderRepository orderRepository, ClientRepository clientRepository,
                        InventoryRepository inventoryRepository,
-                       JobOrderNumberService jobOrderNumberService) {
+                       JobOrderNumberService jobOrderNumberService,
+                       sports.apparel.backend.features.income.IncomeSourceService incomeSourceService) {
         this.orderRepository = orderRepository;
         this.clientRepository = clientRepository;
         this.inventoryRepository = inventoryRepository;
         this.jobOrderNumberService = jobOrderNumberService;
+        this.incomeSourceService = incomeSourceService;
     }
 
     public OrderDTO createOrder(CreateOrderRequest request) {
@@ -59,11 +63,8 @@ public class OrderService {
         order.setClient(client);
         order.setClientName(request.getClientName());
         order.setTeamName(request.getTeamName());
-        order.setOrderRetail(request.getOrderRetail());
-        order.setQuantity(request.getQuantity());
         order.setFreebie(request.getFreebie());
         order.setDiscount(discount);
-        order.setPrice(request.getPrice());
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
@@ -73,12 +74,98 @@ public class OrderService {
         order.setStatus(resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL));
         order.setInventoryDeducted(false);
 
+        // Only deduct inventory if status is DOWN_PAYMENT_PENDING or further (meaning it's approved)
+        // or if it's already past approval in the request.
+        // User said: For Client Approval -> (Approved by Client?) -> Down Payment Pending
+        // So we deduct when it hits Down Payment Pending.
+
+        if (request.getItems() != null) {
+            List<OrderItem> items = request.getItems().stream().map(itemReq -> {
+                OrderItem item = new OrderItem();
+                item.setProductName(itemReq.getProductName());
+                item.setUnitPrice(itemReq.getUnitPrice());
+                item.setQuantity(itemReq.getQuantity());
+                item.setOrder(order);
+                return item;
+            }).collect(Collectors.toList());
+            order.setItems(items);
+        }
+
+        populateLegacySummaryFields(order);
+
         Order savedOrder = orderRepository.save(order);
-        if (!STATUS_CANCELLED.equalsIgnoreCase(savedOrder.getStatus())) {
+        
+        // Deduct inventory immediately upon creation for all statuses except CANCELLED
+        if (!STATUS_CANCELLED.equalsIgnoreCase(savedOrder.getStatus()) && !Boolean.TRUE.equals(savedOrder.getInventoryDeducted())) {
             deductInventoryForOrder(savedOrder);
         }
+
+        // Logic for financial reporting based on status
+        if (STATUS_FULLY_PAID.equalsIgnoreCase(savedOrder.getStatus())) {
+            recordIncomeForOrder(savedOrder);
+        }
+
         orderRepository.save(savedOrder);
         return new OrderDTO(savedOrder);
+    }
+
+    private boolean shouldDeductInventory(String status) {
+        return !STATUS_CANCELLED.equalsIgnoreCase(status) && !STATUS_NOT_APPROVED.equalsIgnoreCase(status);
+    }
+
+    private void recordIncomeForOrder(Order order) {
+        BigDecimal total = order.getPrice() != null ? order.getPrice() : BigDecimal.ZERO;
+        BigDecimal discountPercent = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+        BigDecimal afterDiscountTotal = total.multiply(BigDecimal.ONE.subtract(discountPercent.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)));
+
+        sports.apparel.backend.features.income.CreateIncomeSourceRequest incomeRequest = new sports.apparel.backend.features.income.CreateIncomeSourceRequest();
+        incomeRequest.setAmount(afterDiscountTotal);
+        incomeRequest.setIncomeDate(LocalDate.now());
+        incomeRequest.setJobOrderNo(order.getJobOrderNo());
+        incomeRequest.setPaymentMethod(order.getModeOfPayment());
+        incomeRequest.setShopType(order.getShop());
+        incomeRequest.setReferenceNumber(order.getReferenceNumber());
+        if (order.getClient() != null) {
+            incomeRequest.setClientId(order.getClient().getId());
+        }
+        
+        incomeSourceService.createIncomeSource(incomeRequest);
+    }
+
+    private void populateLegacySummaryFields(Order order) {
+        List<OrderItem> items = order.getItems();
+        if (items == null || items.isEmpty()) {
+            order.setOrderRetail("");
+            order.setQuantity(0);
+            order.setPrice(BigDecimal.ZERO);
+            return;
+        }
+
+        String orderRetail = items.stream()
+                .map(OrderItem::getProductName)
+                .filter(name -> name != null && !name.isBlank())
+                .collect(Collectors.joining(", "));
+        if (orderRetail.length() > 255) {
+            orderRetail = orderRetail.substring(0, 255);
+        }
+
+        int quantity = items.stream()
+                .map(OrderItem::getQuantity)
+                .filter(value -> value != null)
+                .mapToInt(Integer::intValue)
+                .sum();
+
+        BigDecimal price = items.stream()
+                .map(item -> {
+                    BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+                    Integer itemQuantity = item.getQuantity() != null ? item.getQuantity() : 0;
+                    return unitPrice.multiply(BigDecimal.valueOf(itemQuantity));
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        order.setOrderRetail(orderRetail.isBlank() ? "" : orderRetail);
+        order.setQuantity(quantity);
+        order.setPrice(price);
     }
 
     public OrderDTO getOrderById(UUID id) {
@@ -137,11 +224,8 @@ public class OrderService {
         order.setClient(client);
         order.setClientName(request.getClientName());
         order.setTeamName(request.getTeamName());
-        order.setOrderRetail(request.getOrderRetail());
-        order.setQuantity(request.getQuantity());
         order.setFreebie(request.getFreebie());
         order.setDiscount(discount);
-        order.setPrice(request.getPrice());
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
@@ -152,14 +236,36 @@ public class OrderService {
         if (request.getReferenceNumber() != null) {
             order.setReferenceNumber(request.getReferenceNumber());
         }
+        String oldStatus = order.getStatus();
         order.setStatus(resolveStatus(request.getStatus(), order.getStatus()));
+        String newStatus = order.getStatus();
 
-        if (Boolean.TRUE.equals(order.getInventoryDeducted())) {
+        if (request.getItems() != null) {
+            order.getItems().clear();
+            List<OrderItem> items = request.getItems().stream().map(itemReq -> {
+                OrderItem item = new OrderItem();
+                item.setProductName(itemReq.getProductName());
+                item.setUnitPrice(itemReq.getUnitPrice());
+                item.setQuantity(itemReq.getQuantity());
+                item.setOrder(order);
+                return item;
+            }).collect(Collectors.toList());
+            order.getItems().addAll(items);
+        }
+
+        populateLegacySummaryFields(order);
+
+        // Inventory logic: deduct if transitioning to an active state, restore if cancelled or not approved
+        if (shouldDeductInventory(newStatus) && !Boolean.TRUE.equals(order.getInventoryDeducted())) {
+            deductInventoryForOrder(order);
+        } else if ((STATUS_CANCELLED.equalsIgnoreCase(newStatus) || STATUS_NOT_APPROVED.equalsIgnoreCase(newStatus)) 
+                    && Boolean.TRUE.equals(order.getInventoryDeducted())) {
             restoreInventoryForOrder(order);
         }
 
-        if (!STATUS_CANCELLED.equalsIgnoreCase(order.getStatus())) {
-            deductInventoryForOrder(order);
+        // Financial logic: record income if transitioning to FULLY_PAID
+        if (STATUS_FULLY_PAID.equalsIgnoreCase(newStatus) && !STATUS_FULLY_PAID.equalsIgnoreCase(oldStatus)) {
+            recordIncomeForOrder(order);
         }
 
         Order updatedOrder = orderRepository.save(order);
@@ -174,41 +280,42 @@ public class OrderService {
     }
 
     private void deductInventoryForOrder(Order order) {
-        Inventory inventory = findInventoryByRetailLabel(order.getOrderRetail());
-        if (inventory == null) {
+        if (order.getItems() == null || order.getItems().isEmpty()) {
             order.setInventoryDeducted(false);
             return;
         }
 
-        int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
-        int orderedQuantity = order.getQuantity() != null ? order.getQuantity() : 0;
+        for (OrderItem item : order.getItems()) {
+            Inventory inventory = findInventoryByRetailLabel(item.getProductName());
+            if (inventory != null) {
+                int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
+                int orderedQuantity = item.getQuantity() != null ? item.getQuantity() : 0;
 
-        if (orderedQuantity <= 0) {
-            throw new IllegalArgumentException("Order quantity must be greater than zero");
+                if (orderedQuantity > 0 && currentStock >= orderedQuantity) {
+                    inventory.setQuantity(currentStock - orderedQuantity);
+                    inventoryRepository.save(inventory);
+                }
+            }
         }
-
-        if (currentStock < orderedQuantity) {
-            throw new IllegalArgumentException(
-                    "Insufficient inventory for " + order.getOrderRetail() + ". Available: " + currentStock);
-        }
-
-        inventory.setQuantity(currentStock - orderedQuantity);
-        inventoryRepository.save(inventory);
         order.setInventoryDeducted(true);
     }
 
     private void restoreInventoryForOrder(Order order) {
-        Inventory inventory = findInventoryByRetailLabel(order.getOrderRetail());
-        if (inventory == null) {
+        if (order.getItems() == null || order.getItems().isEmpty()) {
             order.setInventoryDeducted(false);
             return;
         }
 
-        int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
-        int orderedQuantity = order.getQuantity() != null ? order.getQuantity() : 0;
+        for (OrderItem item : order.getItems()) {
+            Inventory inventory = findInventoryByRetailLabel(item.getProductName());
+            if (inventory != null) {
+                int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
+                int orderedQuantity = item.getQuantity() != null ? item.getQuantity() : 0;
 
-        inventory.setQuantity(currentStock + orderedQuantity);
-        inventoryRepository.save(inventory);
+                inventory.setQuantity(currentStock + orderedQuantity);
+                inventoryRepository.save(inventory);
+            }
+        }
         order.setInventoryDeducted(false);
     }
 
@@ -225,12 +332,13 @@ public class OrderService {
 
     private String buildInventoryLabel(Inventory inventory) {
         String itemType = inventory.getItemType() != null ? inventory.getItemType() : "Inventory Item";
+        String shopSuffix = (inventory.getShop() != null && !inventory.getShop().isBlank()) ? " (" + inventory.getShop() + ")" : "";
 
         if ("Jersey".equalsIgnoreCase(itemType) && inventory.getJerseyType() != null && !inventory.getJerseyType().isBlank()) {
-            return String.format("%s - %s - %s", itemType, inventory.getJerseyType(), inventory.getName());
+            return String.format("%s - %s - %s%s", itemType, inventory.getJerseyType(), inventory.getName(), shopSuffix);
         }
 
-        return String.format("%s - %s", itemType, inventory.getName());
+        return String.format("%s - %s%s", itemType, inventory.getName(), shopSuffix);
     }
 
     public void deleteOrder(UUID id) {

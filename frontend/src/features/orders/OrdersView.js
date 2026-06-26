@@ -8,12 +8,9 @@ import clientService from '../../services/clientService';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import teamService from '../../services/teamService';
-import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
+import { getApiErrorMessage } from '../../utils/apiErrors';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
-const SHOP_ALIASES = {
-  Shopppee: 'Shoppee',
-};
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
 const ORDER_STATUS = {
   FOR_CLIENT_APPROVAL: 'FOR_CLIENT_APPROVAL',
@@ -32,13 +29,26 @@ const ORDER_FILTERS = [
   { key: ORDER_STATUS.DOWN_PAYMENT_PENDING, label: 'Down Payment Pending' },
   { key: ORDER_STATUS.IN_PRODUCTION, label: 'To Be Packaged' },
   { key: ORDER_STATUS.NOT_YET_FULLY_PAID, label: 'Not Yet Fully Paid' },
-  { key: ORDER_STATUS.FULLY_PAID, label: 'Fully Paid / Completed' },
+  { key: ORDER_STATUS.FULLY_PAID, label: 'Fully Paid' },
   { key: ORDER_STATUS.CANCELLED, label: 'Cancelled Orders' },
 ];
 
 const INITIAL_PAGE_SIZE = 100;
 
 const cleanArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
+const getStatusColor = (status) => {
+  const colors = {
+    [ORDER_STATUS.FOR_CLIENT_APPROVAL]: '#2196F3',
+    [ORDER_STATUS.NOT_APPROVED]: '#F44336',
+    [ORDER_STATUS.DOWN_PAYMENT_PENDING]: '#FF9800',
+    [ORDER_STATUS.IN_PRODUCTION]: '#9C27B0',
+    [ORDER_STATUS.NOT_YET_FULLY_PAID]: '#FF5722',
+    [ORDER_STATUS.FULLY_PAID]: '#4CAF50',
+    [ORDER_STATUS.CANCELLED]: '#757575',
+  };
+  return colors[status] || '#757575';
+};
 
 const getStatusLabel = (status) => {
   const labels = {
@@ -49,61 +59,44 @@ const getStatusLabel = (status) => {
     [ORDER_STATUS.NOT_YET_FULLY_PAID]: 'Not Yet Fully Paid',
     [ORDER_STATUS.FULLY_PAID]: 'Fully Paid',
     [ORDER_STATUS.CANCELLED]: 'Cancelled',
+    [ORDER_STATUS.NOT_APPROVED]: 'Not Approved',
   };
-
   return labels[status] || status || 'For Client Approval';
 };
 
 const getInventoryLabel = (item) => {
   const typeLabel = item.itemType || 'Inventory Item';
-
+  const shopSuffix = item.shop ? ` (${item.shop})` : '';
   if (typeLabel.toLowerCase() === 'jersey' && item.jerseyType) {
-    return `${typeLabel} - ${item.jerseyType} - ${item.name}`;
+    return `${typeLabel} - ${item.jerseyType} - ${item.name}${shopSuffix}`;
   }
-
-  return `${typeLabel} - ${item.name}`;
-};
-
-const getRetailDetails = (orderRetail) => {
-  const parts = (orderRetail || '').split(' - ').map((part) => part.trim()).filter(Boolean);
-  const [itemType = '', jerseyType = '', itemName = ''] = parts;
-
-  return {
-    itemType: itemType || '-',
-    jerseyType: itemType.toLowerCase() === 'jersey' ? (jerseyType || '-') : '-',
-    itemName: itemName || '',
-  };
+  return `${typeLabel} - ${item.name}${shopSuffix}`;
 };
 
 const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
 
-const normalizeShopOption = (shop) => SHOP_ALIASES[shop] || shop || '';
-
 const getOrderFinancials = (order) => {
-  const quantity = Number(order?.quantity) || 0;
-  const unitPrice = Number(order?.price) || 0;
-  const discountPercent = Number(order?.discount) || 0;
-  const downPayment = Number(order?.downPayment) || 0;
-  const total = unitPrice * quantity;
+  if (!order) return { total: 0, afterDiscountTotal: 0, remainingAfterDownPayment: 0 };
+  
+  const total = (order.items || []).reduce((sum, item) => {
+    return sum + (Number(item.unitPrice || 0) * Number(item.quantity || 0));
+  }, 0);
+  
+  const discountPercent = Number(order.discount) || 0;
+  const downPayment = Number(order.downPayment) || 0;
   const afterDiscountTotal = total * (1 - discountPercent / 100);
   const remainingAfterDownPayment = afterDiscountTotal - downPayment;
 
-  return {
-    total,
-    afterDiscountTotal,
-    remainingAfterDownPayment,
-  };
+  return { total, afterDiscountTotal, remainingAfterDownPayment };
 };
 
 const createInitialFormData = () => ({
-  clientId: '',
+  clientId: null,
   teamId: '',
   teamName: '',
-  orderRetail: '',
-  quantity: '',
+  items: [{ productName: '', unitPrice: '', quantity: '' }],
   freebie: '',
   discount: '0',
-  price: '',
   downPayment: '0',
   shop: '',
   orderDate: new Date().toISOString().split('T')[0],
@@ -116,13 +109,6 @@ const Orders = () => {
   const [clients, setClients] = useState([]);
   const [inventoryItems, setInventoryItems] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
-  const [clientSearch, setClientSearch] = useState('');
-  const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
-  const [teamSearch, setTeamSearch] = useState('');
-  const [teamSuggestionsOpen, setTeamSuggestionsOpen] = useState(false);
-  const [retailSearch, setRetailSearch] = useState('');
-  const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -131,36 +117,32 @@ const Orders = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
-  const [isReferenceNumberEditing, setIsReferenceNumberEditing] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchQuery, setSearchQuery] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
+  const [teamSearch, setTeamSearch] = useState('');
+  const [teamSuggestionsOpen, setTeamSuggestionsOpen] = useState(false);
+  const [retailSearchIndex, setRetailSearchIndex] = useState(null);
+  const [retailSearchText, setRetailSearchText] = useState('');
+  const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
 
   const loadClients = useCallback(async () => {
     try {
-      const response = await clientService.getAllClients(0, INITIAL_PAGE_SIZE);
+      const response = await clientService.getAllClients(0, 1000);
       setClients(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading clients:', error);
-      if (isAuthOrPermissionError(error)) {
-        return;
-      }
-      const errorMsg = getApiErrorMessage(error, 'Failed to load clients');
-      alert(`Failed to load clients: ${errorMsg}`);
     }
   }, []);
 
   const loadInventory = useCallback(async () => {
     try {
-      const response = await inventoryService.getAllInventory(0, INITIAL_PAGE_SIZE);
+      const response = await inventoryService.getAllInventory(0, 1000);
       setInventoryItems(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading inventory:', error);
-      if (isAuthOrPermissionError(error)) {
-        return;
-      }
-      const errorMsg = getApiErrorMessage(error, 'Failed to load inventory');
-      alert(`Failed to load inventory: ${errorMsg}`);
     }
   }, []);
 
@@ -170,11 +152,6 @@ const Orders = () => {
       setTeams(cleanArray(response.data));
     } catch (error) {
       console.error('Error loading teams:', error);
-      if (isAuthOrPermissionError(error)) {
-        return;
-      }
-      const errorMsg = getApiErrorMessage(error, 'Failed to load teams');
-      alert(`Failed to load teams: ${errorMsg}`);
     }
   }, []);
 
@@ -185,11 +162,6 @@ const Orders = () => {
       setOrders(response.data.content || []);
     } catch (error) {
       console.error('Error loading orders:', error);
-      if (isAuthOrPermissionError(error)) {
-        return;
-      }
-      const errorMsg = getApiErrorMessage(error, 'Failed to load orders');
-      alert(`Failed to load orders: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -197,52 +169,22 @@ const Orders = () => {
 
   useEffect(() => {
     loadClients();
-  }, [loadClients]);
-
-  useEffect(() => {
     loadInventory();
-  }, [loadInventory]);
-
-  useEffect(() => {
     loadTeams();
-  }, [loadTeams]);
-
-  useEffect(() => {
     loadOrders();
-  }, [loadOrders]);
+  }, [loadClients, loadInventory, loadTeams, loadOrders]);
 
-  useEffect(() => {
-    if (!modalOpen || !editingOrder || teams.length === 0) {
-      return;
-    }
+  const isVipClient = Boolean(clients.find((client) => client?.id === formData.clientId)?.vip);
 
-    const matchedTeam = teams.find(
-      (team) => (team.teamName || '').toLowerCase() === (editingOrder.teamName || '').toLowerCase()
-    );
-
-    if (matchedTeam && formData.teamId !== matchedTeam.id) {
-      setFormData((prev) => ({
-        ...prev,
-        teamId: matchedTeam.id,
-      }));
-    }
-  }, [editingOrder, formData.teamId, modalOpen, teams]);
-
-      const selectedClient = clients.find((client) => client?.id === formData.clientId);
-      const isVipClient = Boolean(selectedClient?.vip);
   useEffect(() => {
     if (modalOpen && isVipClient && formData.downPayment !== '0') {
-      setFormData((prev) => ({
-        ...prev,
-        downPayment: '0',
-      }));
+      setFormData((prev) => ({ ...prev, downPayment: '0' }));
     }
-  }, [formData.downPayment, isVipClient, modalOpen]);
+  }, [isVipClient, modalOpen, formData.downPayment]);
 
   const filteredOrders = orders.filter((order) => {
     const normalizedStatus = (order.status || '').toUpperCase();
-    const matchesStatus =
-      statusFilter === 'ALL'
+    const matchesStatus = statusFilter === 'ALL'
         ? normalizedStatus !== ORDER_STATUS.FULLY_PAID && normalizedStatus !== ORDER_STATUS.CANCELLED
         : normalizedStatus === statusFilter;
 
@@ -254,187 +196,140 @@ const Orders = () => {
       getStatusLabel(order.status),
       order.shop,
       order.modeOfPayment,
-      order.freebie,
       order.orderDate,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+    ].filter(Boolean).join(' ').toLowerCase();
 
-    const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
-
-    return matchesStatus && matchesSearch;
+    return matchesStatus && haystack.includes(searchQuery.trim().toLowerCase());
   });
+
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);
-  
-  const filteredClients = clients
-    .filter(Boolean)
-    .filter((client) =>
-      String(client.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
-    );
 
-  const filteredTeams = teams
-    .filter(Boolean)
-    .filter((team) =>
-      String(team.teamName ?? '').toLowerCase().includes(teamSearch.trim().toLowerCase())
-    );
-  
+  const filteredClients = clients.filter((client) =>
+    String(client.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
+  );
+
+  const filteredTeams = teams.filter((team) =>
+    String(team.teamName ?? '').toLowerCase().includes(teamSearch.trim().toLowerCase())
+  );
+
   const filteredInventory = inventoryItems.filter((item) => {
-    const searchTerm = retailSearch.trim().toLowerCase();
-    const itemText = getInventoryLabel(item).toLowerCase();
-    return itemText.includes(searchTerm);
+    const label = getInventoryLabel(item);
+    
+    // Check if already selected
+    const isAlreadySelected = formData.items.some((orderItem, idx) => 
+      idx !== retailSearchIndex && orderItem.productName === label
+    );
+    
+    // Check if same shop (if a shop is already set by a previous selection)
+    const isSameShop = !formData.shop || item.shop === formData.shop;
+    
+    return !isAlreadySelected && isSameShop && label.toLowerCase().includes(retailSearchText.trim().toLowerCase());
   });
 
-
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const handleClientSelect = (clientId) => {
-    const client = clients.find((item) => item?.id === clientId);
-    setFormData((prev) => ({
-      ...prev,
-      clientId,
-      downPayment: client?.vip ? '0' : prev.downPayment || '0',
-    }));
-    setClientSearch(client?.clientName || '');
+  const handleClientSelect = (client) => {
+    setFormData((prev) => ({ ...prev, clientId: client.id, downPayment: client.vip ? '0' : prev.downPayment }));
+    setClientSearch(client.clientName || '');
     setClientSuggestionsOpen(false);
   };
 
-  const handleClientInputChange = (value) => {
-    setClientSearch(value);
-    setClientSuggestionsOpen(true);
-    setFormData((prev) => ({
-      ...prev,
-      clientId: '',
-      downPayment: prev.downPayment,
-    }));
-  };
-
-  const handleClientInputBlur = () => {
-    window.setTimeout(() => setClientSuggestionsOpen(false), 150);
-  };
-
-  const handleTeamSelect = (teamId) => {
-    const selectedTeam = teams.find((team) => team?.id === teamId);
+  const handleTeamSelect = (team) => {
     const fallbackDate = new Date().toISOString().split('T')[0];
-
     setFormData((prev) => ({
       ...prev,
-      teamId,
-      teamName: selectedTeam?.teamName || '',
-      quantity: selectedTeam?.quantity != null ? String(selectedTeam.quantity) : '',
-      orderDate: selectedTeam?.transitDate || fallbackDate,
+      teamId: team.id,
+      teamName: team.teamName || '',
+      orderDate: team.transitDate || fallbackDate,
     }));
-    setTeamSearch(selectedTeam?.teamName || '');
+    setTeamSearch(team.teamName || '');
     setTeamSuggestionsOpen(false);
   };
 
-  const handleTeamInputChange = (value) => {
-    setTeamSearch(value);
-    setTeamSuggestionsOpen(true);
+  const handleAddItem = () => {
     setFormData((prev) => ({
       ...prev,
-      teamId: '',
-      teamName: value,
-      quantity: prev.quantity,
+      items: [...prev.items, { productName: '', unitPrice: '', quantity: '' }],
     }));
   };
 
-  const handleTeamInputBlur = () => {
-    window.setTimeout(() => setTeamSuggestionsOpen(false), 150);
-  };
-
-  const handleRetailSelect = (item) => {
-    const retailValue = getInventoryLabel(item);
-    setSelectedInventoryItem(item);
+  const handleRemoveItem = (index) => {
+    if (formData.items.length <= 1) return;
     setFormData((prev) => ({
       ...prev,
-      orderRetail: retailValue,
-      price: String(item.price || ''),
-      quantity: prev.teamId ? prev.quantity : '',
-      shop: normalizeShopOption(item.shop),
-    }));
-    setRetailSearch(retailValue);
-    setRetailSuggestionsOpen(false);
-  };
-
-  const handleRetailInputChange = (value) => {
-    setRetailSearch(value);
-    setRetailSuggestionsOpen(true);
-    setFormData((prev) => ({
-      ...prev,
-      orderRetail: value,
+      items: prev.items.filter((_, i) => i !== index),
     }));
   };
 
-  const handleRetailInputBlur = () => {
-    window.setTimeout(() => setRetailSuggestionsOpen(false), 150);
-  };
+  const handleItemChange = (index, field, value) => {
+    setFormData((prev) => {
+      const newItems = [...prev.items];
+      let finalValue = value;
 
-  const handleQuantityChange = (e) => {
-    const value = e.target.value;
-    if (value === '') {
-      setFormData({ ...formData, quantity: value });
-      return;
-    }
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && selectedInventoryItem) {
-      if (numValue > selectedInventoryItem.quantity) {
-        // Set to max available
-        setFormData({ ...formData, quantity: String(selectedInventoryItem.quantity) });
-      } else if (numValue >= 0) {
-        setFormData({ ...formData, quantity: value });
+      if (field === 'quantity') {
+        const item = newItems[index];
+        const inventoryItem = inventoryItems.find(i => getInventoryLabel(i) === item.productName);
+        if (inventoryItem) {
+          const maxQty = inventoryItem.quantity || 0;
+          const numValue = parseInt(value, 10);
+          if (!isNaN(numValue) && numValue > maxQty) {
+            finalValue = String(maxQty);
+          } else if (isNaN(numValue) && value !== '') {
+             finalValue = '0';
+          }
+        }
       }
-    } else if (!isNaN(numValue) && numValue >= 0) {
-      setFormData({ ...formData, quantity: value });
-    }
+
+      newItems[index] = { ...newItems[index], [field]: finalValue };
+      return { ...prev, items: newItems };
+    });
+  };
+
+  const handleRetailSelect = (index, item) => {
+    const label = getInventoryLabel(item);
+    setFormData((prev) => {
+      const newItems = [...prev.items];
+      newItems[index] = {
+        ...newItems[index],
+        productName: label,
+        unitPrice: String(item.price || ''),
+      };
+      return { ...prev, items: newItems, shop: prev.shop || item.shop };
+    });
+    setRetailSuggestionsOpen(false);
+    setRetailSearchIndex(null);
+  };
+
+  const calculateSubtotal = () => {
+    return formData.items.reduce((sum, item) => {
+      const price = Number.parseFloat(item.unitPrice || 0);
+      const qty = Number.parseInt(item.quantity || 0, 10);
+      return sum + (price * qty);
+    }, 0);
   };
 
   const getDiscountedTotal = () => {
-    const basePrice = Number.parseFloat(formData.price || 0);
-    const quantity = Number.parseInt(formData.quantity || 0, 10);
+    const subtotal = calculateSubtotal();
     const discountPercent = Number.parseFloat(formData.discount || 0);
-
-    if (!Number.isFinite(basePrice) || !Number.isFinite(quantity)) {
-      return 0;
-    }
-
-    const originalTotal = basePrice * quantity;
-    return originalTotal * (1 - discountPercent / 100);
+    return subtotal * (1 - discountPercent / 100);
   };
 
   const handleDownPaymentChange = (e) => {
     const value = e.target.value;
-
     if (value === '') {
       setFormData({ ...formData, downPayment: value });
       return;
     }
-
     const numValue = Number.parseFloat(value);
     const maxDownPayment = getDiscountedTotal();
+    if (!Number.isFinite(numValue) || numValue < 0) return;
+    setFormData({ ...formData, downPayment: String(Math.min(numValue, maxDownPayment)) });
+  };
 
-    if (!Number.isFinite(numValue) || numValue < 0) {
-      return;
-    }
-
-    setFormData({
-      ...formData,
-      downPayment: String(Math.min(numValue, maxDownPayment)),
-    });
+  const handleView = (order) => {
+    setSelectedOrder(order);
+    setReferenceNumber(order.referenceNumber || '');
+    setRemarks(order.remarks || '');
+    setDetailsOpen(true);
   };
 
   const handleEdit = (order) => {
@@ -442,185 +337,30 @@ const Orders = () => {
       alert('Fully Paid orders cannot be edited.');
       return;
     }
-
-    const retailRecord = inventoryItems.find(
-      (item) =>
-        getInventoryLabel(item).toLowerCase() ===
-        (order.orderRetail || '').toLowerCase()
-    );
-    const matchedTeam = teams.find(
-      (team) => (team.teamName || '').toLowerCase() === (order.teamName || '').toLowerCase()
-    );
-    setSelectedInventoryItem(retailRecord || null);
     setEditingOrder(order);
     setFormData({
-      clientId: order.clientId || '',
-      teamId: matchedTeam?.id || '',
+      clientId: order.clientId || null,
+      teamId: '',
       teamName: order.teamName || '',
-      orderRetail: order.orderRetail || '',
-      quantity: order.quantity != null ? String(order.quantity) : '',
+      items: (order.items || []).map(item => ({
+        productName: item.productName || '',
+        unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
+        quantity: item.quantity != null ? String(item.quantity) : '',
+      })),
       freebie: order.freebie || '',
       discount: order.discount != null ? String(order.discount) : '0',
-      price: order.price != null ? String(order.price) : '',
       downPayment: order.downPayment != null ? String(order.downPayment) : '0',
-      shop: normalizeShopOption(order.shop || retailRecord?.shop),
+      shop: order.shop || '',
       orderDate: order.orderDate || new Date().toISOString().split('T')[0],
       modeOfPayment: order.modeOfPayment || 'Cash',
       notes: order.remarks || '',
     });
-    setClientSearch(order.clientId ? (clients.find((c) => c?.id === order.clientId)?.clientName || '') : (order.clientName || ''));
-    setTeamSearch(order.teamName || matchedTeam?.teamName || '');
-    setRetailSearch(order.orderRetail || '');
-    setClientSuggestionsOpen(false);
-    setTeamSuggestionsOpen(false);
-    setRetailSuggestionsOpen(false);
+    if (!order.items || order.items.length === 0) {
+      setFormData(prev => ({ ...prev, items: [{ productName: order.orderRetail || '', unitPrice: String(order.price || ''), quantity: String(order.quantity || '') }] }));
+    }
+    setClientSearch(order.clientName || '');
+    setTeamSearch(order.teamName || '');
     setModalOpen(true);
-  };
-
-  const handleView = (order) => {
-    setSelectedOrder(order);
-    setReferenceNumber(order.referenceNumber || '');
-    setIsReferenceNumberEditing(false);
-    setRemarks(order.remarks || '');
-    setDetailsOpen(true);
-  };
-
-  const closeDetails = () => {
-    setDetailsOpen(false);
-    setSelectedOrder(null);
-    setReferenceNumber('');
-    setIsReferenceNumberEditing(false);
-    setRemarks('');
-  };
-
-  const buildOrderPayload = (order, statusOverride) => ({
-    clientId: order.clientId,
-    clientName: order.clientName || null,
-    teamName: order.teamName || null,
-    orderRetail: order.orderRetail,
-    quantity: Number(order.quantity),
-    freebie: order.freebie || null,
-    discount: Number(order.discount || 0),
-    price: Number(order.price),
-    downPayment: Number(order.downPayment || 0),
-    shop: order.shop,
-    orderDate: order.orderDate,
-    modeOfPayment: order.modeOfPayment,
-    remarks: order.remarks || '',
-    referenceNumber: referenceNumber.trim() || null,
-    status: statusOverride || order.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
-  });
-
-  const updateSelectedOrderStatus = async (newStatus) => {
-    if (!selectedOrder) {
-      return;
-    }
-
-    try {
-      const payload = buildOrderPayload(selectedOrder, newStatus);
-      const response = await orderService.updateOrder(selectedOrder.id, payload);
-      const updatedOrder = response.data;
-
-      setSelectedOrder((prev) => ({
-        ...prev,
-        ...(updatedOrder || {}),
-        status: newStatus,
-      }));
-
-      loadOrders();
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      const apiMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.response?.data?.detail ||
-        error.message ||
-        'Unknown error';
-      alert(`Failed to update order status: ${apiMessage}`);
-    }
-  };
-
-  const handleFullPaymentYes = async () => {
-    const trimmedReference = referenceNumber.trim();
-
-    if (!trimmedReference) {
-      alert('Please enter a reference number first.');
-      return;
-    }
-
-    if (!selectedOrder) {
-      return;
-    }
-
-    try {
-      const amount = ((Number(selectedOrder.price) || 0) * (Number(selectedOrder.quantity) || 0)) *
-        (1 - (Number(selectedOrder.discount) || 0) / 100);
-
-      await incomeService.createIncomeSource({
-        shopType: selectedOrder.shop,
-        paymentMethod: selectedOrder.modeOfPayment,
-        incomeDate: new Date().toISOString().split('T')[0],
-        referenceNumber: trimmedReference,
-        clientId: selectedOrder.clientId,
-        clientCode: selectedOrder.clientCode,
-        jobOrderNo: selectedOrder.jobOrderNo,
-        amount,
-      });
-
-      await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
-    } catch (error) {
-      console.error('Error saving income source:', error);
-      const apiMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.response?.data?.detail ||
-        error.message ||
-        'Unknown error';
-      alert(`Failed to save income source: ${apiMessage}`);
-    }
-  };
-
-  const handleRemarksBlur = async () => {
-    if (!selectedOrder) {
-      return;
-    }
-
-    const isRemarksEnabled =
-      selectedOrder.status === ORDER_STATUS.IN_PRODUCTION ||
-      selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID;
-
-    if (!isRemarksEnabled) {
-      return;
-    }
-
-    try {
-      await updateSelectedOrderStatus(selectedOrder.status);
-    } catch (error) {
-      // updateSelectedOrderStatus already shows the error message
-    }
-  };
-
-  const handleSaveReferenceNumber = async () => {
-    if (!selectedOrder) {
-      return;
-    }
-
-    await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
-    setIsReferenceNumberEditing(false);
-  };
-
-  const handleCancelReferenceNumberEdit = () => {
-    setReferenceNumber(selectedOrder?.referenceNumber || '');
-    setIsReferenceNumberEditing(false);
-  };
-
-  const handleCancelSelectedOrder = async () => {
-    const confirmed = window.confirm('Cancel this order and return the quantity to inventory?');
-    if (!confirmed) {
-      return;
-    }
-
-    await updateSelectedOrderStatus(ORDER_STATUS.CANCELLED);
   };
 
   const handleDelete = async (id) => {
@@ -629,97 +369,41 @@ const Orders = () => {
       alert('Fully Paid orders cannot be deleted.');
       return;
     }
-
+    if (!window.confirm('Are you sure you want to delete this order?')) return;
     try {
       await orderService.deleteOrder(id);
       alert('Order deleted successfully');
       loadOrders();
     } catch (error) {
-      console.error('Error deleting order:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          error.message || 
-                          'Failed to delete order';
-      alert(`Failed to delete order: ${errorMessage}`);
+      alert(`Failed to delete order: ${getApiErrorMessage(error)}`);
     }
   };
 
   const handleSubmit = async () => {
     try {
-      if (!clientSearch.trim()) {
-        alert('Please enter a client name.');
-        return;
-      }
-
-      const clientRecord =
-        clients.find((client) => client?.id === formData.clientId) ||
-        clients.find(
-          (client) =>
-            String(client?.clientName ?? '').toLowerCase() === clientSearch.trim().toLowerCase()
-        );
-
-      const retailRecord = inventoryItems.find(
-        (item) =>
-          getInventoryLabel(item).toLowerCase() ===
-          retailSearch.trim().toLowerCase()
-      );
-
-      if (!retailRecord) {
-        alert('Please select a valid inventory item from the search list.');
-        return;
-      }
-
-      if (!formData.shop) {
-        alert('Please select a shop.');
-        return;
-      }
-
-      if (!formData.modeOfPayment) {
-        alert('Please select a mode of payment.');
-        return;
-      }
-
-      const orderQuantity = Number(formData.quantity);
-      if (!Number.isFinite(orderQuantity) || orderQuantity < 1) {
-        alert('Please enter a valid quantity.');
-        return;
-      }
-
-      if (orderQuantity > retailRecord.quantity) {
-        alert(`Quantity cannot exceed available inventory (${retailRecord.quantity})`);
-        return;
-      }
-
-      const unitPrice = Number(formData.price || retailRecord.price || 0);
-      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
-        alert('Please enter a valid price.');
-        return;
-      }
-
-      const discount = Number(formData.discount || 0);
-      const downPaymentAmount = clientRecord?.vip ? 0 : Number(formData.downPayment || 0);
-      const discountedTotal = unitPrice * orderQuantity * (1 - discount / 100);
-
-      if (clientRecord && !clientRecord.vip && downPaymentAmount > discountedTotal) {
-        alert(`Down payment cannot exceed the total discounted amount (${discountedTotal.toFixed(2)}).`);
-        return;
-      }
+      if (!clientSearch.trim()) { alert('Please enter a client name.'); return; }
+      const invalidItem = formData.items.find(item => !item.productName.trim() || !item.unitPrice || !item.quantity);
+      if (invalidItem) { alert('Please fill in all product details.'); return; }
+      if (!formData.shop) { alert('Please select a shop.'); return; }
+      if (!formData.modeOfPayment) { alert('Please select a mode of payment.'); return; }
 
       const payload = {
-        clientId: clientRecord?.id || null,
-        clientName: clientRecord?.clientName || clientSearch.trim(),
-        orderRetail: getInventoryLabel(retailRecord),
+        clientId: formData.clientId || null,
+        clientName: clientSearch.trim(),
         teamName: formData.teamName.trim() || null,
-        quantity: orderQuantity,
-        discount: Number.isFinite(discount) ? discount : 0,
-        price: unitPrice,
-        downPayment: Number.isFinite(downPaymentAmount) ? downPaymentAmount : 0,
+        items: formData.items.map(item => ({
+          productName: item.productName.trim(),
+          unitPrice: Number(item.unitPrice),
+          quantity: Number(item.quantity),
+        })),
+        discount: Number(formData.discount || 0),
+        downPayment: Number(formData.downPayment || 0),
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
         modeOfPayment: formData.modeOfPayment.trim(),
         remarks: formData.notes.trim() || null,
         freebie: formData.freebie.trim() || null,
-        status: editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
+        status: (editingOrder?.status === ORDER_STATUS.NOT_APPROVED) ? ORDER_STATUS.FOR_CLIENT_APPROVAL : (editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL),
       };
 
       if (editingOrder) {
@@ -729,83 +413,108 @@ const Orders = () => {
         await orderService.createOrder(payload);
         alert('Order created successfully');
       }
-
       setModalOpen(false);
-      setEditingOrder(null);
-      setSelectedInventoryItem(null);
-      setFormData(createInitialFormData());
-      setClientSearch('');
-      setClientSuggestionsOpen(false);
-      setRetailSearch('');
-      setRetailSuggestionsOpen(false);
       loadOrders();
     } catch (error) {
-      console.error('Error saving order:', error);
-      const apiMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.response?.data?.detail ||
-        error.message ||
-        'Unknown error';
-      alert(`Failed to save order: ${apiMessage}`);
+      alert(`Failed to save order: ${getApiErrorMessage(error)}`);
     }
   };
 
-  const columns = [
-    { key: 'jobOrderNo', label: 'Job Order No' },
-    { key: 'clientName', label: 'Client Name' },
-    { key: 'teamName', label: 'Team Name' },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (value) => (
-        <span className="order-status-badge" data-status={value}>
-          {getStatusLabel(value)}
-        </span>
-      ),
-    },
-    { key: 'orderDate', label: 'Date' },
-  ];
+  const closeDetails = () => {
+    setDetailsOpen(false);
+    setSelectedOrder(null);
+  };
 
-  const openNewOrderModal = () => {
-    setEditingOrder(null);
-    setSelectedInventoryItem(null);
-    setFormData(createInitialFormData());
-    setClientSearch('');
-    setClientSuggestionsOpen(false);
-    setTeamSearch('');
-    setTeamSuggestionsOpen(false);
-    setRetailSearch('');
-    setRetailSuggestionsOpen(false);
-    setModalOpen(true);
+  const updateSelectedOrderStatus = async (newStatus) => {
+    if (!selectedOrder) return;
+    try {
+      const payload = {
+        ...selectedOrder,
+        status: newStatus,
+        remarks: remarks,
+        referenceNumber: referenceNumber,
+      };
+      await orderService.updateOrder(selectedOrder.id, payload);
+      setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+      loadOrders();
+    } catch (error) {
+      alert(`Failed to update status: ${getApiErrorMessage(error)}`);
+    }
+  };
+
+  const handleFullPaymentYes = async () => {
+    if (!referenceNumber.trim()) { alert('Please enter a reference number.'); return; }
+    await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+  };
+
+  const handleNotYetFullyPaid = async () => {
+    await updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID);
+  };
+
+  const styles = {
+    pageContainer: { padding: '20px' },
+    pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+    searchBar: { marginBottom: '20px' },
+    filterBar: { display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
+    modalContent: { display: 'flex', flexDirection: 'column', gap: '20px' },
+    formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
+    formGridWide: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
+    formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
+    label: { fontWeight: '600', color: '#333', fontSize: '0.9rem' },
+    input: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', width: '100%', boxSizing: 'border-box' },
+    textarea: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', minHeight: '80px', resize: 'vertical' },
+    autocompleteContainer: { position: 'relative', width: '100%' },
+    suggestionsList: { position: 'absolute', top: '100%', left: '0', right: '0', backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '0 0 6px 6px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: '1000', maxHeight: '200px', overflowY: 'auto' },
+    suggestionItem: { padding: '10px', cursor: 'pointer', borderBottom: '1px solid #eee' },
+    button: { padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', transition: 'background-color 0.2s' },
+    buttonPrimary: { backgroundColor: '#007bff', color: 'white' },
+    buttonSecondary: { backgroundColor: '#6c757d', color: 'white' },
+    buttonDanger: { backgroundColor: '#dc3545', color: 'white' },
+    totalSection: { padding: '15px 20px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginTop: '10px', borderLeft: '4px solid #007bff' },
+    totalRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.95rem', color: '#444' },
+    financialsSection: { marginTop: '20px', padding: '20px', backgroundColor: '#e9ecef', borderRadius: '8px' },
+    financialsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' },
+    financialLabel: { display: 'block', fontSize: '0.8rem', color: '#666', marginBottom: '4px' },
+    detailsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' },
+    detailRow: { display: 'flex', flexDirection: 'column', gap: '4px' },
+    productRow: { display: 'grid', gridTemplateColumns: '57% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
+    removeBtn: { backgroundColor: '#ff5252', color: 'white', border: 'none', borderRadius: '4px', width: '100%', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    addBtn: { backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' }
   };
 
   return (
     <PermissionGuard permission="INVENTORY_ORDERS">
       <DashboardLayout>
-        <div className="page-container">
-        <div className="page-header">
-          <h1>Inventory Orders</h1>
-          <button className="btn-primary" onClick={openNewOrderModal}>
-            + New Order
-          </button>
-        </div>
+        <div style={styles.pageContainer}>
+          <div style={styles.pageHeader}>
+            <h1 style={{ margin: 0, fontSize: '1.8rem', color: '#1a1a1a' }}>Inventory Orders</h1>
+            <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => { setEditingOrder(null); setFormData(createInitialFormData()); setClientSearch(''); setTeamSearch(''); setModalOpen(true); }}>
+              + New Order
+            </button>
+          </div>
 
-        <div className="order-search-bar">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔎 Search orders by job no, client, item, status, or shop"
-          />
-        </div>
+          <div style={styles.searchBar}>
+            <input
+              type="text"
+              style={{ ...styles.input, width: '100%' }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔎 Search orders by job no, client, team, or status..."
+            />
+          </div>
 
-        <div className="orders-filter-bar">
-          {ORDER_FILTERS.map((filter) => (
-            <button
-              key={filter.key}
-                type="button"
-                className={`order-filter-btn ${statusFilter === filter.key ? 'active' : ''}`}
+          <div style={styles.filterBar}>
+            {ORDER_FILTERS.map((filter) => (
+              <button
+                key={filter.key}
+                style={{
+                  ...styles.button,
+                  backgroundColor: statusFilter === filter.key ? '#007bff' : '#f8f9fa',
+                  color: statusFilter === filter.key ? 'white' : '#333',
+                  border: '1px solid #ddd',
+                  padding: '6px 12px',
+                  fontSize: '0.85rem'
+                }}
                 onClick={() => setStatusFilter(filter.key)}
               >
                 {filter.label}
@@ -814,7 +523,28 @@ const Orders = () => {
           </div>
 
           <DataTable
-            columns={columns}
+            columns={[
+              { key: 'jobOrderNo', label: 'Job Order No' },
+              { key: 'clientName', label: 'Client Name' },
+              { key: 'teamName', label: 'Team Name' },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (value) => (
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    backgroundColor: getStatusColor(value),
+                    color: 'white'
+                  }}>
+                    {getStatusLabel(value)}
+                  </span>
+                ),
+              },
+              { key: 'orderDate', label: 'Date' },
+            ]}
             data={paginatedOrders}
             onView={handleView}
             onEdit={handleEdit}
@@ -829,560 +559,338 @@ const Orders = () => {
 
           <Modal
             isOpen={modalOpen}
-            title={editingOrder ? 'Edit Order' : 'New Order'}
+            title={editingOrder ? 'Edit Inventory Order' : 'Add Inventory Order'}
             onClose={() => setModalOpen(false)}
             onSubmit={handleSubmit}
-            submitText={editingOrder ? 'Update' : 'Create'}
+            submitText={editingOrder ? 'Update Order' : 'Create Order'}
             size="large"
           >
-            <form className="order-form-grid">
-              <div className="order-modal-row order-modal-row-3">
-                <div className="form-group">
-                  <label>Client Name *</label>
-                  <div className="client-search-wrapper">
+            <div style={styles.modalContent}>
+              <div style={styles.formGridWide}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Client Name *</label>
+                  <div style={styles.autocompleteContainer}>
                     <input
                       type="text"
+                      style={styles.input}
                       value={clientSearch}
-                      onChange={(e) => handleClientInputChange(e.target.value)}
+                      onChange={(e) => { setClientSearch(e.target.value); setClientSuggestionsOpen(true); setFormData(p => ({ ...p, clientId: null })); }}
                       onFocus={() => setClientSuggestionsOpen(true)}
-                      onBlur={handleClientInputBlur}
-                      placeholder="Enter or search client name"
+                      onBlur={() => setTimeout(() => setClientSuggestionsOpen(false), 200)}
+                      placeholder="Enter client name"
                       autoComplete="off"
-                      required
                     />
                     {clientSuggestionsOpen && filteredClients.length > 0 && (
-                      <div className="client-search-results">
-                        {filteredClients.map((client) => (
-                          <button
-                            type="button"
-                            key={client.id}
-                            className="client-search-item"
-                            onClick={() => handleClientSelect(client.id)}
-                          >
-                            <span>{client.clientName}</span>
-                            {client.vipClient && <span className="vip-badge">VIP</span>}
-                          </button>
+                      <div style={styles.suggestionsList}>
+                        {filteredClients.map(c => (
+                          <div key={c.id} style={styles.suggestionItem} onMouseDown={() => handleClientSelect(c)}>
+                            {c.clientName} {c.vip && <span style={{ fontSize: '0.7em', color: '#d4af37' }}>(VIP)</span>}
+                          </div>
                         ))}
                       </div>
                     )}
-                    {clientSuggestionsOpen && filteredClients.length === 0 && clients.length > 0 && (
-                      <div className="client-search-results empty">No matching clients found</div>
-                    )}
-                    {clientSuggestionsOpen && clients.length === 0 && (
-                      <div className="client-search-results empty">No registered clients. You can enter a custom name.</div>
-                    )}
                   </div>
+                  <small style={{ color: '#666', fontSize: '0.75rem' }}>Type any client name. This does not need to match a saved client.</small>
                 </div>
 
-                <div className="form-group">
-                  <label>Team</label>
-                  <div className="client-search-wrapper">
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Team (Optional)</label>
+                  <div style={styles.autocompleteContainer}>
                     <input
                       type="text"
+                      style={styles.input}
                       value={teamSearch}
-                      onChange={(e) => handleTeamInputChange(e.target.value)}
+                      onChange={(e) => { setTeamSearch(e.target.value); setTeamSuggestionsOpen(true); setFormData(p => ({ ...p, teamName: e.target.value })); }}
                       onFocus={() => setTeamSuggestionsOpen(true)}
-                      onBlur={handleTeamInputBlur}
-                      placeholder={teams.length === 0 ? 'No teams available' : 'Search team'}
+                      onBlur={() => setTimeout(() => setTeamSuggestionsOpen(false), 200)}
+                      placeholder="Search team..."
                       autoComplete="off"
-                      disabled={teams.length === 0}
                     />
                     {teamSuggestionsOpen && filteredTeams.length > 0 && (
-                      <div className="client-search-results">
-                        {filteredTeams.map((team) => (
-                          <button
-                            type="button"
-                            key={team.id}
-                            className="client-search-item"
-                            onClick={() => handleTeamSelect(team.id)}
-                          >
-                            <span>{team.teamName}</span>
-                          </button>
+                      <div style={styles.suggestionsList}>
+                        {filteredTeams.map(t => (
+                          <div key={t.id} style={styles.suggestionItem} onMouseDown={() => handleTeamSelect(t)}>
+                            {t.teamName}
+                          </div>
                         ))}
                       </div>
-                    )}
-                    {teamSuggestionsOpen && filteredTeams.length === 0 && (
-                      <div className="client-search-results empty">No matching teams found</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Item *</label>
-                  <div className="order-retail-search-wrapper">
-                    <input
-                      type="text"
-                      value={retailSearch}
-                      onChange={(e) => handleRetailInputChange(e.target.value)}
-                      onFocus={() => setRetailSuggestionsOpen(true)}
-                      onBlur={handleRetailInputBlur}
-                      placeholder={inventoryItems.length === 0 ? 'No inventory available' : 'Search item'}
-                      autoComplete="off"
-                      required
-                      disabled={inventoryItems.length === 0}
-                    />
-                    {retailSuggestionsOpen && filteredInventory.length > 0 && (
-                      <div className="order-retail-results">
-                        {filteredInventory.map((item) => (
-                          <button
-                            type="button"
-                            key={item.id}
-                            className="order-retail-item"
-                            onClick={() => handleRetailSelect(item)}
-                          >
-                            <span>{getInventoryLabel(item)}</span>
-                            <span className="order-retail-meta">
-                              Qty {item.quantity}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {retailSuggestionsOpen && filteredInventory.length === 0 && (
-                      <div className="order-retail-results empty">No matching inventory found</div>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="order-modal-row order-modal-row-4">
-                <div className="form-group">
-                  <label>Price *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.price}
-                    readOnly
-                    disabled={!selectedInventoryItem}
-                    placeholder={selectedInventoryItem ? `Unit: ${selectedInventoryItem.price}` : 'Select item first'}
-                    required
-                  />
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {formData.items.map((item, index) => (
+                  <div key={index} style={styles.productRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>{index === 0 ? 'Product Name *' : ''}</label>
+                      <div style={styles.autocompleteContainer}>
+                        <input
+                          type="text"
+                          style={styles.input}
+                          value={item.productName}
+                          onChange={(e) => {
+                            handleItemChange(index, 'productName', e.target.value);
+                            setRetailSearchText(e.target.value);
+                            setRetailSearchIndex(index);
+                            setRetailSuggestionsOpen(true);
+                          }}
+                          onFocus={() => { setRetailSearchText(item.productName); setRetailSearchIndex(index); setRetailSuggestionsOpen(true); }}
+                          onBlur={() => setTimeout(() => setRetailSuggestionsOpen(false), 200)}
+                          placeholder="Enter product name..."
+                        />
+                        {retailSuggestionsOpen && retailSearchIndex === index && filteredInventory.length > 0 && (
+                          <div style={styles.suggestionsList}>
+                            {filteredInventory.map(i => (
+                              <div key={i.id} style={styles.suggestionItem} onMouseDown={() => handleRetailSelect(index, i)}>
+                                {getInventoryLabel(i)} (Stock: {i.quantity})
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>
+                      <input
+                        type="number"
+                        style={{ ...styles.input, backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                        value={item.unitPrice}
+                        readOnly
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>{index === 0 ? 'Quantity *' : ''}</label>
+                      <input
+                        type="number"
+                        style={styles.input}
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                        max={(() => {
+                          const inv = inventoryItems.find(i => getInventoryLabel(i) === item.productName);
+                          return inv ? inv.quantity : undefined;
+                        })()}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>{index === 0 ? 'Total' : ''}</label>
+                      <div style={{ ...styles.input, backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        {formatMoney(Number(item.unitPrice || 0) * Number(item.quantity || 0))}
+                      </div>
+                    </div>
+                    {formData.items.length > 1 && (
+                      <button style={styles.removeBtn} onClick={() => handleRemoveItem(index)}>✕</button>
+                    )}
+                  </div>
+                ))}
+                <button style={styles.addBtn} onClick={handleAddItem}>+ Add Another Product</button>
+              </div>
 
-                <div className="form-group">
-                  <label>Quantity *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max={selectedInventoryItem?.quantity || undefined}
-                    value={formData.quantity}
-                    onChange={handleQuantityChange}
-                    placeholder={selectedInventoryItem ? `Max: ${selectedInventoryItem.quantity}` : 'Select item first'}
-                    disabled={!selectedInventoryItem}
-                    required
-                  />
-                  {selectedInventoryItem && (
-                    <small className="form-help-text">Available: {selectedInventoryItem.quantity}</small>
-                  )}
+              <div style={{ ...styles.formGrid, gridTemplateColumns: '0.5fr 1fr 1fr 1.5fr' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Discount %</label>
+                  <input type="number" style={styles.input} value={formData.discount} onChange={(e) => setFormData(p => ({ ...p, discount: e.target.value }))} placeholder="0" />
                 </div>
-
-                <div className="form-group">
-                  <label>Discount (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={formData.discount}
-                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                    placeholder="Enter discount percentage"
-                  />
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Down Payment</label>
+                  <input type="number" style={styles.input} value={formData.downPayment} onChange={handleDownPaymentChange} disabled={isVipClient} placeholder="0" />
                 </div>
-
-                <div className="form-group">
-                  <label>Freebie(s)</label>
-                  <input
-                    type="text"
-                    value={formData.freebie}
-                    placeholder="Enter freebie if any"
-                    onChange={(e) => setFormData({ ...formData, freebie: e.target.value })}
-                  />
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Total Price</label>
+                  <div style={{ ...styles.input, backgroundColor: '#f5f5f5' }}>{formatMoney(calculateSubtotal())}</div>
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Freebie</label>
+                  <input type="text" style={styles.input} value={formData.freebie} onChange={(e) => setFormData(p => ({ ...p, freebie: e.target.value }))} placeholder="e.g., T-shirt, Cap" />
                 </div>
               </div>
 
-              <div className="order-modal-row order-modal-row-4">
-                <div className="form-group">
-                  <label>Down Payment</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    max={getDiscountedTotal() > 0 ? getDiscountedTotal() : undefined}
-                    value={formData.downPayment}
-                    onChange={handleDownPaymentChange}
-                    disabled={isVipClient}
-                    placeholder={
-                      selectedInventoryItem && formData.quantity && formData.price
-                        ? `Max: ${getDiscountedTotal().toFixed(2)}`
-                        : 'Enter down payment'
-                    }
-                  />
-                  {isVipClient && (
-                    <small className="form-help-text">Auto-set to 0 for VIP clients.</small>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Total Price</label>
+              <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Shop *</label>
                   <input
                     type="text"
-                    value={
-                      selectedInventoryItem && formData.quantity
-                        ? formatMoney(getDiscountedTotal())
-                        : '-'
-                    }
-                    readOnly
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Shop *</label>
-                  <select
+                    style={{ ...styles.input, backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                     value={formData.shop}
-                    onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
-                    disabled={Boolean(selectedInventoryItem)}
-                    required
-                  >
-                    <option value="">Select shop</option>
-                    {SHOP_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedInventoryItem && (
-                    <small className="form-help-text">Auto-filled from the selected inventory item.</small>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Mode of Payment *</label>
-                  <select
-                    value={formData.modeOfPayment}
-                    onChange={(e) => setFormData({ ...formData, modeOfPayment: e.target.value })}
-                    required
-                  >
-                    <option value="">Select mode of payment</option>
-                    {PAYMENT_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="order-modal-row order-modal-row-single">
-                <div className="form-group">
-                  <label>Date *</label>
-                  <input
-                    type="date"
-                    value={formData.orderDate}
-                    onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                    required
-                  />
-                  <small className="form-help-text">
-                    {formData.teamId
-                      ? 'Auto-filled from the selected team transit date. You can still adjust it if needed.'
-                      : 'Select a team to auto-fill this date from its transit date.'}
-                  </small>
-                </div>
-              </div>
-
-              <div className="order-modal-row order-modal-row-single">
-                <div className="form-group">
-                  <label>Notes</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Add notes for this order"
-                    rows={4}
+                    readOnly
+                    placeholder="Select a product first"
                   />
                 </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Mode of Payment *</label>
+                  <select style={styles.input} value={formData.modeOfPayment} onChange={(e) => setFormData(p => ({ ...p, modeOfPayment: e.target.value }))}>
+                    <option value="">Select Payment</option>
+                    {PAYMENT_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Order Date *</label>
+                  <input type="date" style={styles.input} value={formData.orderDate} onChange={(e) => setFormData(p => ({ ...p, orderDate: e.target.value }))} />
+                </div>
               </div>
-            </form>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Notes</label>
+                <textarea style={styles.textarea} value={formData.notes} onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Additional notes..." />
+              </div>
+
+              <div style={styles.totalSection}>
+                <div style={styles.totalRow}>
+                  <span>Total Amount:</span>
+                  <span style={{ fontWeight: '600' }}>{formatMoney(calculateSubtotal())}</span>
+                </div>
+                <div style={styles.totalRow}>
+                  <span>After Discount:</span>
+                  <span style={{ fontWeight: '600' }}>{formatMoney(getDiscountedTotal())}</span>
+                </div>
+                <div style={styles.totalRow}>
+                  <span>After Down Payment:</span>
+                  <span style={{ fontWeight: '600' }}>{formatMoney(getDiscountedTotal() - Number(formData.downPayment || 0))}</span>
+                </div>
+                <div style={{ ...styles.totalRow, marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #ddd' }}>
+                  <span style={{ fontWeight: 'bold', color: '#333' }}>Total Remaining:</span>
+                  <span style={{ fontWeight: 'bold', color: '#007bff', fontSize: '1.1rem' }}>{formatMoney(getDiscountedTotal() - Number(formData.downPayment || 0))}</span>
+                </div>
+              </div>
+            </div>
           </Modal>
 
           <Modal
             isOpen={detailsOpen}
-            title="Order Details"
+            title={selectedOrder ? `Order Details - ${selectedOrder.jobOrderNo}` : 'Order Details'}
             onClose={closeDetails}
-            cancelText="Close"
             size="xlarge"
           >
             {selectedOrder && (
-              <div className="order-details-panel">
-                {(() => {
-                  const retailDetails = getRetailDetails(selectedOrder.orderRetail);
-                  const financials = getOrderFinancials(selectedOrder);
+              <div style={styles.modalContent}>
+                <div style={styles.detailsGrid}>
+                  <div style={styles.detailRow}><label style={styles.label}>Client Name:</label><span>{selectedOrder.clientName}</span></div>
+                  <div style={styles.detailRow}><label style={styles.label}>Team Name:</label><span>{selectedOrder.teamName || '-'}</span></div>
+                  <div style={styles.detailRow}><label style={styles.label}>Shop:</label><span>{selectedOrder.shop}</span></div>
+                  <div style={styles.detailRow}><label style={styles.label}>Payment Mode:</label><span>{selectedOrder.modeOfPayment}</span></div>
+                  <div style={styles.detailRow}><label style={styles.label}>Order Date:</label><span>{selectedOrder.orderDate}</span></div>
+                  <div style={styles.detailRow}>
+                    <label style={styles.label}>Status:</label>
+                    <span style={{ color: getStatusColor(selectedOrder.status), fontWeight: 'bold' }}>{getStatusLabel(selectedOrder.status)}</span>
+                  </div>
+                  <div style={styles.detailRow}>
+                    <label style={styles.label}>Discount:</label>
+                    <span>{selectedOrder.discount || 0}%</span>
+                  </div>
+                </div>
 
-                  return (
-                    <>
-                      <div className="order-details-topbar">
-                        <div className="order-details-topbar-title">
-                          <span>Job Order Number</span>
-                          <strong>{selectedOrder.jobOrderNo}</strong>
-                        </div>
-                        <div className="order-details-topbar-status">
-                          <span>Status</span>
-                          <strong className="order-status-badge" data-status={selectedOrder.status}>
-                            {getStatusLabel(selectedOrder.status)}
-                          </strong>
-                        </div>
-                        <div className="order-details-topbar-date">
-                          <span>Order Date</span>
-                          <strong>{selectedOrder.orderDate || '-'}</strong>
-                        </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={styles.label}>Products:</label>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                        <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Unit Price</th>
+                        <th style={{ padding: '10px' }}>Quantity</th>
+                        <th style={{ padding: '10px' }}>Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedOrder.items || [{ productName: selectedOrder.orderRetail, unitPrice: selectedOrder.price, quantity: selectedOrder.quantity }]).map((item, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '10px' }}>{item.productName}</td>
+                          <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice)}</td>
+                          <td style={{ padding: '10px' }}>{item.quantity}</td>
+                          <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice * item.quantity)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={styles.financialsSection}>
+                  <h3 style={{ margin: '0 0 15px 0' }}>Financial Summary</h3>
+                  {(() => {
+                    const financials = getOrderFinancials(selectedOrder);
+                    return (
+                      <div style={styles.financialsGrid}>
+                        <div><span style={styles.financialLabel}>Total Amount:</span><span>{formatMoney(financials.total)}</span></div>
+                        <div><span style={styles.financialLabel}>After Discount:</span><span>{formatMoney(financials.afterDiscountTotal)}</span></div>
+                        <div><span style={styles.financialLabel}>Down Payment:</span><span>{formatMoney(selectedOrder.downPayment)}</span></div>
+                        <div><span style={styles.financialLabel}>Total Remaining:</span><strong style={{ color: '#d9534f' }}>{formatMoney(financials.remainingAfterDownPayment)}</strong></div>
                       </div>
+                    );
+                  })()}
+                </div>
 
-                      <div className="order-details-grid order-details-grid-two">
-                        <div>
-                          <span>Client</span>
-                          <strong>{selectedOrder.clientName}</strong>
-                        </div>
-                        <div>
-                          <span>Team Name</span>
-                          <strong>{selectedOrder.teamName || '-'}</strong>
-                        </div>
-                      </div>
-
-                      <div className="order-details-grid order-details-grid-three">
-                        <div>
-                          <span>Item Type</span>
-                          <strong>{retailDetails.itemType}</strong>
-                        </div>
-                        <div>
-                          <span>Jersey Type</span>
-                          <strong>{retailDetails.jerseyType}</strong>
-                        </div>
-                        <div>
-                          <span>Unit Price</span>
-                          <strong>{formatMoney(selectedOrder.price)}</strong>
-                        </div>
-                      </div>
-
-                      <div className="order-details-grid order-details-grid-three">
-                        <div>
-                          <span>Quantity</span>
-                          <strong>{selectedOrder.quantity ?? '-'}</strong>
-                        </div>
-                        <div>
-                          <span>Discount</span>
-                          <strong>{Number(selectedOrder.discount || 0).toFixed(2)}%</strong>
-                        </div>
-                        <div>
-                          <span>Down Payment</span>
-                          <strong>{formatMoney(selectedOrder.downPayment)}</strong>
-                        </div>
-                      </div>
-
-                      <div className="order-details-grid order-details-grid-three">
-                        <div>
-                          <span>Total Amount</span>
-                          <strong>{formatMoney(financials.total)}</strong>
-                        </div>
-                        <div>
-                          <span>Total amount After Discount</span>
-                          <strong>{formatMoney(financials.afterDiscountTotal)}</strong>
-                        </div>
-                        <div>
-                          <span>Total Remaining After Down Payment</span>
-                          <strong>{formatMoney(financials.remainingAfterDownPayment)}</strong>
-                        </div>
-                      </div>
-
-                      <div className="order-details-grid order-details-grid-three">
-                        <div>
-                          <span>Shop</span>
-                          <strong>{selectedOrder.shop}</strong>
-                        </div>
-                        <div>
-                          <span>Mode of Payment</span>
-                          <strong>{selectedOrder.modeOfPayment}</strong>
-                        </div>
-                        <div>
-                          <span>Freebie</span>
-                          <strong>{selectedOrder.freebie || '-'}</strong>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-
-                {(selectedOrder.status === ORDER_STATUS.FOR_CLIENT_APPROVAL ||
-                  selectedOrder.status === ORDER_STATUS.NOT_APPROVED ||
-                  !selectedOrder.status) && (
-                  <div className="order-status-actions">
-                    <p className="order-status-prompt">For client approval</p>
-                    <div className="order-status-buttons">
-                      <button
-                        type="button"
-                        className="status-btn status-btn-secondary"
-                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_APPROVED)}
-                      >
-                        Not Approved
-                      </button>
-                      <button
-                        type="button"
-                        className="status-btn status-btn-primary"
-                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.DOWN_PAYMENT_PENDING)}
-                      >
-                        Approved
-                      </button>
-                    </div>
+                {selectedOrder.status === ORDER_STATUS.FOR_CLIENT_APPROVAL && (
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                    <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}>Order Cancelled</button>
+                    <button style={{ ...styles.button, ...styles.buttonSecondary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_APPROVED)}>Not Approved</button>
+                    <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.DOWN_PAYMENT_PENDING)}>Approved by Client?</button>
                   </div>
                 )}
 
                 {selectedOrder.status === ORDER_STATUS.DOWN_PAYMENT_PENDING && (
-                  <div className="order-status-actions">
-                    <p className="order-status-prompt">Deposit paid?</p>
-                    <div className="order-status-buttons">
-                      <button
-                        type="button"
-                        className="status-btn status-btn-secondary"
-                        onClick={() => alert('No changes made.')}
-                      >
-                        No
-                      </button>
-                      <button
-                        type="button"
-                        className="status-btn status-btn-primary"
-                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION)}
-                      >
-                        Yes
-                      </button>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                    <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}>Order Cancelled</button>
+                    <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION)}>Down Payment Paid</button>
+                  </div>
+                )}
+
+                {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION || selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
+                  <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px' }}>
+                    <h4 style={{ margin: '0 0 10px 0' }}>Process Final Payment</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <input
+                        type="text"
+                        style={styles.input}
+                        placeholder="Enter Reference Number"
+                        value={referenceNumber}
+                        onChange={(e) => setReferenceNumber(e.target.value)}
+                      />
+                      <textarea
+                        style={styles.textarea}
+                        placeholder="Enter Remarks"
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                      />
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button style={{ ...styles.button, ...styles.buttonPrimary, flex: 1 }} onClick={handleFullPaymentYes}>Fully Paid</button>
+                        <button style={{ ...styles.button, ...styles.buttonSecondary, flex: 1 }} onClick={handleNotYetFullyPaid}>Not Yet Fully Paid</button>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION ||
-                  selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID ||
-                  selectedOrder.status === ORDER_STATUS.FULLY_PAID) && (
-                  <div className="order-status-actions">
-                    <>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label>Reference Number</label>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
+                {selectedOrder.status === ORDER_STATUS.FULLY_PAID && (
+                  <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f8f9fa' }}>
+                    <h4 style={{ margin: '0 0 10px 0' }}>Order Payment Information</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Reference Number</label>
+                        <div style={{ display: 'flex', gap: '10px' }}>
                           <input
                             type="text"
-                            style={{
-                              flex: 1,
-                              ...(selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
-                              !isReferenceNumberEditing
-                                ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
-                                : {})
-                            }}
+                            style={{ ...styles.input, flex: 1 }}
                             value={referenceNumber}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setReferenceNumber(value);
-                              setSelectedOrder((prev) =>
-                                prev ? { ...prev, referenceNumber: value } : prev
-                              );
-                            }}
-                            placeholder="Enter reference number"
-                            readOnly={
-                              selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
-                              !isReferenceNumberEditing
-                            }
-
+                            onChange={(e) => setReferenceNumber(e.target.value)}
                           />
-                          {selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
-                            !isReferenceNumberEditing && (
-                              <button
-                                type="button"
-                                className="status-btn status-btn-secondary"
-                                onClick={() => setIsReferenceNumberEditing(true)}
-                              >
-                                Edit
-                              </button>
-                            )}
-                          {selectedOrder.status === ORDER_STATUS.FULLY_PAID &&
-                            isReferenceNumberEditing && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="status-btn status-btn-primary"
-                                  onClick={handleSaveReferenceNumber}
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  type="button"
-                                  className="status-btn status-btn-secondary"
-                                  onClick={handleCancelReferenceNumberEdit}
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            )}
+                          <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID)}>Save</button>
                         </div>
-                        </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label>Remarks</label>
-                        <textarea
-                          value={remarks}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setRemarks(value);
-                              setSelectedOrder((prev) =>
-                                prev ? { ...prev, remarks: value } : prev
-                              );
-                            }}
-                            onBlur={handleRemarksBlur}
-                            placeholder="Enter remarks or comments"
-                            rows={3}
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Remarks</label>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <textarea
+                            style={{ ...styles.textarea, flex: 1 }}
+                            value={remarks}
+                            onChange={(e) => setRemarks(e.target.value)}
                           />
+                          <button style={{ ...styles.button, ...styles.buttonPrimary, alignSelf: 'flex-end' }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID)}>Save</button>
                         </div>
-                    </>
-
-                    {selectedOrder.status !== ORDER_STATUS.FULLY_PAID && (
-                      <>
-                        <p className="order-status-prompt">Full Payment Complete?</p>
-                        <div className="order-status-buttons">
-                          <button
-                            type="button"
-                            className="status-btn status-btn-secondary"
-                            onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
-                          >
-                            No
-                          </button>
-                          <button
-                            type="button"
-                            className="status-btn status-btn-primary"
-                            onClick={handleFullPaymentYes}
-                          >
-                            Yes
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {selectedOrder.status === ORDER_STATUS.FULLY_PAID && (
-                  <div className="order-status-actions success">
-                    <p className="order-status-prompt">This order is fully paid / completed.</p>
-                  </div>
-                )}
-
-                {selectedOrder.status !== ORDER_STATUS.CANCELLED &&
-                  selectedOrder.status !== ORDER_STATUS.FULLY_PAID && (
-                  <div className="order-status-actions">
-                    <button
-                      type="button"
-                      className="status-btn status-btn-secondary"
-                      onClick={handleCancelSelectedOrder}
-                    >
-                      Order Cancelled
-                    </button>
-                  </div>
-                )}
-
-                {selectedOrder.status === ORDER_STATUS.CANCELLED && (
-                  <div className="order-status-actions success">
-                    <p className="order-status-prompt">This order is cancelled.</p>
+                      </div>
+                      <p style={{ margin: '10px 0 0 0', color: '#28a745', fontWeight: 'bold', fontStyle: 'italic' }}>
+                        This order is fully paid / completed.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

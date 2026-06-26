@@ -28,6 +28,8 @@ public class CreateCustomizedOrderRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ItemRequest {
+        private UUID id;
+
         @NotBlank(message = "Product name is required")
         private String productName;
 

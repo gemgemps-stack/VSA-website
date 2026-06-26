@@ -1474,32 +1474,46 @@
 /* Attendance Styles */
 .attendance-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
 }
 
 .attendance-summary-card {
-  padding: 18px 20px;
+  padding: 14px 12px;
   background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
   border: 1px solid #dfe7e3;
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-align: center;
 }
 
 .attendance-summary-card span {
   display: block;
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #6e645a;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .attendance-summary-card strong {
-  font-size: 28px;
+  font-size: 24px;
   color: #016667;
+}
+
+.attendance-summary-card.highlight {
+  background: linear-gradient(180deg, #016667 0%, #014d4e 100%);
+  border-color: #014d4e;
+}
+
+.attendance-summary-card.highlight span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.attendance-summary-card.highlight strong {
+  color: #ffffff;
 }
 
 .attendance-controls {
@@ -1818,8 +1832,11 @@
   justify-content: flex-start;
 }
 
-@media (max-width: 1200px) {
-  .attendance-summary-grid,
+@media (max-width: 1400px) {
+  .attendance-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .attendance-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1847,4 +1864,53 @@
   .attendance-day {
     min-height: 96px;
   }
+}
+
+/* Overtime Status Styles */
+.legend-overtime {
+  background: #e67e22;
+}
+
+.tag-overtime {
+  background: rgba(230, 126, 34, 0.15);
+  color: #d35400;
+}
+
+.attendance-day.has-overtime {
+  border-color: rgba(230, 126, 34, 0.5);
+}
+
+/* Polished Total Hours Button */
+.total-hours-btn {
+  background: linear-gradient(135deg, #016667 0%, #014d4e 100%);
+  color: white;
+  font-weight: 600;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(1, 102, 103, 0.2);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.total-hours-btn:hover {
+  background: linear-gradient(135deg, #014d4e 0%, #013334 100%);
+  box-shadow: 0 6px 20px rgba(1, 102, 103, 0.35);
+  transform: translateY(-2px);
+}
+
+.total-hours-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(1, 102, 103, 0.2);
+}
+
+.total-hours-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }

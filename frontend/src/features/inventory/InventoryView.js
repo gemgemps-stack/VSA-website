@@ -291,18 +291,6 @@ const Inventory = () => {
             />
             <input
               type="text"
-              value={searchFilters.quantity}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, quantity: e.target.value }))}
-              placeholder="Search quantity"
-            />
-            <input
-              type="text"
-              value={searchFilters.price}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, price: e.target.value }))}
-              placeholder="Search price"
-            />
-            <input
-              type="text"
               value={searchFilters.shop}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, shop: e.target.value }))}
               placeholder="Search shop"

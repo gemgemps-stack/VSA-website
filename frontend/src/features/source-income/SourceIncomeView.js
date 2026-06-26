@@ -65,52 +65,6 @@ const SourceIncome = () => {
     setIncomeEntries(response.data.content || []);
   }, []);
 
-  const fetchOrderReferenceNumber = useCallback(async (jobOrderNo) => {
-    if (!jobOrderNo) {
-      return 'N/A';
-    }
-
-    // Check if already cached
-    const cachedReference = orderReferenceCacheRef.current[jobOrderNo];
-    if (cachedReference) {
-      return cachedReference;
-    }
-
-    try {
-      // Try to fetch from orders first
-      const orderResponse = await orderService.getOrderByJobOrderNo(jobOrderNo);
-      const referenceNumber = orderResponse.data?.referenceNumber || 'N/A';
-      setOrderReferenceCache((prev) => ({
-        ...prev,
-        [jobOrderNo]: referenceNumber,
-      }));
-      return referenceNumber;
-    } catch (orderError) {
-      try {
-        // If not found in orders, try customized orders
-        const customOrderResponse = await customizedOrderService.getOrderByJobOrderNo(jobOrderNo);
-        const referenceNumber = customOrderResponse.data?.referenceNumber || 'N/A';
-        setOrderReferenceCache((prev) => ({
-          ...prev,
-          [jobOrderNo]: referenceNumber,
-        }));
-        return referenceNumber;
-      } catch (customOrderError) {
-        // If not found in either, cache 'N/A'
-        setOrderReferenceCache((prev) => ({
-          ...prev,
-          [jobOrderNo]: 'N/A',
-        }));
-        console.error(`Could not fetch reference number for job order ${jobOrderNo}:`, customOrderError);
-        return 'N/A';
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    orderReferenceCacheRef.current = orderReferenceCache;
-  }, [orderReferenceCache]);
-
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -130,15 +84,6 @@ const SourceIncome = () => {
 
     loadData();
   }, [loadPaymentMethods, loadIncomeEntries]);
-
-  useEffect(() => {
-    // Fetch reference numbers for all income entries
-    incomeEntries.forEach((entry) => {
-      if (entry.jobOrderNo) {
-        fetchOrderReferenceNumber(entry.jobOrderNo);
-      }
-    });
-  }, [incomeEntries, fetchOrderReferenceNumber]);
 
   const getIncomeAmount = (entry) => Number.parseFloat(entry.amount) || 0;
 
@@ -272,7 +217,7 @@ const SourceIncome = () => {
                     <div>
                       <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Reference Number:</span>
                       <strong className="transaction-reference-number">
-                        {orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
+                        {entry.referenceNumber || 'N/A'}
                       </strong>
                     </div>
                     <span className="transaction-client-id">

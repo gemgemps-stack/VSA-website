@@ -13,6 +13,7 @@ const STATUS_OPTIONS = [
   { key: 'ABSENT', label: 'Absent', tone: 'absent' },
   { key: 'HALF_DAY', label: 'Half Day', tone: 'half-day' },
   { key: 'LEAVE', label: 'Leave', tone: 'leave' },
+  { key: 'OVERTIME', label: 'Overtime', tone: 'overtime' },
 ];
 
 const MONTH_LABELS = [
@@ -93,6 +94,7 @@ const AttendanceView = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [employeeSuggestionsOpen, setEmployeeSuggestionsOpen] = useState(false);
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
 
   const loadUsers = useCallback(async () => {
     const response = await userService.getAllUsers(0, 1000);
@@ -172,19 +174,37 @@ const AttendanceView = () => {
     }
   }, [currentPage, totalPages]);
 
+  const calculateHours = (timeIn, timeOut) => {
+    if (!timeIn || !timeOut) return 0;
+    const [h1, m1] = timeIn.split(':').map(Number);
+    const [h2, m2] = timeOut.split(':').map(Number);
+    const start = h1 * 60 + m1;
+    const end = h2 * 60 + m2;
+    if (end <= start) return 0;
+    return (end - start) / 60;
+  };
+
   const summary = useMemo(() => {
-    return attendanceRecords.reduce(
+    return filteredRecords.reduce(
       (acc, record) => {
         const status = (record.status || '').toUpperCase();
         acc.total += 1;
         if (status === 'PRESENT') acc.present += 1;
         if (status === 'LATE') acc.late += 1;
         if (status === 'ABSENT') acc.absent += 1;
+        if (status === 'HALF_DAY') acc.halfDay += 1;
+        if (status === 'LEAVE') acc.leave += 1;
+        if (status === 'OVERTIME') acc.overtime += 1;
+        
+        if (record.timeIn && record.timeOut) {
+          acc.totalHours += calculateHours(record.timeIn, record.timeOut);
+        }
+        
         return acc;
       },
-      { total: 0, present: 0, late: 0, absent: 0 }
+      { total: 0, present: 0, late: 0, absent: 0, halfDay: 0, leave: 0, overtime: 0, totalHours: 0 }
     );
-  }, [attendanceRecords]);
+  }, [filteredRecords]);
 
   const recordsByDate = useMemo(() => {
     return attendanceRecords.reduce((acc, record) => {
@@ -195,6 +215,40 @@ const AttendanceView = () => {
       acc[key].push(record);
       return acc;
     }, {});
+  }, [attendanceRecords]);
+
+  const monthlySummary = useMemo(() => {
+    const summaryMap = {};
+    
+    attendanceRecords.forEach((record) => {
+      const username = record.username || 'Unknown';
+      if (!summaryMap[username]) {
+        summaryMap[username] = {
+          username,
+          present: 0,
+          late: 0,
+          absent: 0,
+          halfDay: 0,
+          leave: 0,
+          overtime: 0,
+          totalHours: 0,
+        };
+      }
+      
+      const status = (record.status || '').toUpperCase();
+      if (status === 'PRESENT') summaryMap[username].present += 1;
+      else if (status === 'LATE') summaryMap[username].late += 1;
+      else if (status === 'ABSENT') summaryMap[username].absent += 1;
+      else if (status === 'HALF_DAY') summaryMap[username].halfDay += 1;
+      else if (status === 'LEAVE') summaryMap[username].leave += 1;
+      else if (status === 'OVERTIME') summaryMap[username].overtime += 1;
+      
+      if (record.timeIn && record.timeOut) {
+        summaryMap[username].totalHours += calculateHours(record.timeIn, record.timeOut);
+      }
+    });
+    
+    return Object.values(summaryMap).sort((a, b) => b.totalHours - a.totalHours);
   }, [attendanceRecords]);
 
   const buildCalendarCells = () => {
@@ -221,6 +275,7 @@ const AttendanceView = () => {
     if (statuses.includes('LATE')) return 'late';
     if (statuses.includes('LEAVE')) return 'leave';
     if (statuses.includes('HALF_DAY')) return 'half-day';
+    if (statuses.includes('OVERTIME')) return 'overtime';
     if (statuses.includes('PRESENT')) return 'present';
     return '';
   };
@@ -364,9 +419,14 @@ const AttendanceView = () => {
       <div className="page-container">
         <div className="page-header">
           <h1>Attendance Tracker</h1>
-          <button className="btn-primary" type="button" onClick={() => openCreateModal()}>
-            + Add Attendance
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-secondary total-hours-btn" type="button" onClick={() => setSummaryModalOpen(true)}>
+              📊 See Employees' Total Hours
+            </button>
+            <button className="btn-primary" type="button" onClick={() => openCreateModal()}>
+              + Add Attendance
+            </button>
+          </div>
         </div>
 
         <div className="attendance-summary-grid">
@@ -385,6 +445,18 @@ const AttendanceView = () => {
           <div className="attendance-summary-card">
             <span>Absent</span>
             <strong>{summary.absent}</strong>
+          </div>
+          <div className="attendance-summary-card">
+            <span>Half Day</span>
+            <strong>{summary.halfDay}</strong>
+          </div>
+          <div className="attendance-summary-card">
+            <span>Leave</span>
+            <strong>{summary.leave}</strong>
+          </div>
+          <div className="attendance-summary-card">
+            <span>Overtime</span>
+            <strong>{summary.overtime}</strong>
           </div>
         </div>
 
@@ -496,7 +568,7 @@ const AttendanceView = () => {
             <h2 style={{ margin: 0 }}>Attendance Records</h2>
           </div>
 
-          <div className="attendance-record-filters">
+          <div className="attendance-record-filters" style={{ gridTemplateColumns: employeeNameQuery.trim() ? '1fr 1fr auto' : '1fr 1fr' }}>
             <div className="attendance-control attendance-record-search">
               <label>Employee Name</label>
               <input
@@ -516,6 +588,24 @@ const AttendanceView = () => {
                 placeholder="Search status"
               />
             </div>
+
+            {employeeNameQuery.trim() && (
+              <div className="attendance-control">
+                <label>Total Hours</label>
+                <div style={{ 
+                  padding: '12px 20px', 
+                  backgroundColor: '#016667', 
+                  color: 'white', 
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '45px'
+                }}>
+                  {summary.totalHours.toFixed(2)} hrs
+                </div>
+              </div>
+            )}
           </div>
 
           <DataTable
@@ -688,6 +778,54 @@ const AttendanceView = () => {
               </div>
             </div>
           )}
+        </Modal>
+
+        <Modal
+          isOpen={summaryModalOpen}
+          title={`Employee Monthly Summary - ${MONTH_LABELS[selectedMonth - 1]} ${selectedYear}`}
+          onClose={() => setSummaryModalOpen(false)}
+          cancelText="Close"
+          size="large"
+          zIndex={1400}
+        >
+          <div style={{ padding: '10px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                  <th style={{ padding: '12px' }}>Employee</th>
+                  <th style={{ padding: '12px' }}>Total Hours</th>
+                  <th style={{ padding: '12px' }}>Present</th>
+                  <th style={{ padding: '12px' }}>Late</th>
+                  <th style={{ padding: '12px' }}>Absent</th>
+                  <th style={{ padding: '12px' }}>Half Day</th>
+                  <th style={{ padding: '12px' }}>Leave</th>
+                  <th style={{ padding: '12px' }}>Overtime</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlySummary.length > 0 ? (
+                  monthlySummary.map((item, index) => (
+                    <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{item.username}</td>
+                      <td style={{ padding: '12px', color: '#016667', fontWeight: 'bold' }}>{item.totalHours.toFixed(2)} hrs</td>
+                      <td style={{ padding: '12px' }}>{item.present}</td>
+                      <td style={{ padding: '12px' }}>{item.late}</td>
+                      <td style={{ padding: '12px' }}>{item.absent}</td>
+                      <td style={{ padding: '12px' }}>{item.halfDay}</td>
+                      <td style={{ padding: '12px' }}>{item.leave}</td>
+                      <td style={{ padding: '12px', color: '#e67e22', fontWeight: 'bold' }}>{item.overtime}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                      No attendance records found for this month.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Modal>
 
         <Modal

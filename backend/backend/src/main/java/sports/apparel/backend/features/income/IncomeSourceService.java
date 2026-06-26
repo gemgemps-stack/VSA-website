@@ -33,6 +33,7 @@ public class IncomeSourceService {
         incomeSource.setIncomeDate(request.getIncomeDate());
         incomeSource.setJobOrderNo(request.getJobOrderNo());
         incomeSource.setAmount(request.getAmount());
+        incomeSource.setReferenceNumber(request.getReferenceNumber());
 
         // Set client relationship
         if (request.getClientId() != null) {
@@ -84,6 +85,7 @@ public class IncomeSourceService {
         incomeSource.setIncomeDate(request.getIncomeDate());
         incomeSource.setJobOrderNo(request.getJobOrderNo());
         incomeSource.setAmount(request.getAmount());
+        incomeSource.setReferenceNumber(request.getReferenceNumber());
 
         // Update client relationship
         if (request.getClientId() != null) {

@@ -152,16 +152,37 @@ public class CustomizedOrderService {
         order.setStatus(resolveStatus(request.getStatus(), order.getStatus()));
 
         if (request.getItems() != null) {
-            order.getItems().clear();
-            List<CustomizedOrderItem> items = request.getItems().stream().map(itemReq -> {
-                CustomizedOrderItem item = new CustomizedOrderItem();
-                item.setProductName(itemReq.getProductName());
-                item.setUnitPrice(itemReq.getUnitPrice());
-                item.setQuantity(itemReq.getQuantity());
-                item.setCustomizedOrder(order);
-                return item;
-            }).collect(Collectors.toList());
-            order.getItems().addAll(items);
+            List<CustomizedOrderItem> existingItems = order.getItems();
+            List<UUID> requestItemIds = request.getItems().stream()
+                    .map(CreateCustomizedOrderRequest.ItemRequest::getId)
+                    .filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            // Remove items not in the request
+            existingItems.removeIf(item -> !requestItemIds.contains(item.getId()));
+
+            // Update or Add items
+            for (CreateCustomizedOrderRequest.ItemRequest itemReq : request.getItems()) {
+                if (itemReq.getId() != null) {
+                    // Update existing item
+                    existingItems.stream()
+                            .filter(item -> item.getId().equals(itemReq.getId()))
+                            .findFirst()
+                            .ifPresent(item -> {
+                                item.setProductName(itemReq.getProductName());
+                                item.setUnitPrice(itemReq.getUnitPrice());
+                                item.setQuantity(itemReq.getQuantity());
+                            });
+                } else {
+                    // Add new item
+                    CustomizedOrderItem newItem = new CustomizedOrderItem();
+                    newItem.setProductName(itemReq.getProductName());
+                    newItem.setUnitPrice(itemReq.getUnitPrice());
+                    newItem.setQuantity(itemReq.getQuantity());
+                    newItem.setCustomizedOrder(order);
+                    existingItems.add(newItem);
+                }
+            }
         }
 
         populateLegacySummaryFields(order);

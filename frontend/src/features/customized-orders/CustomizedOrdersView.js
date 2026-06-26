@@ -335,6 +335,7 @@ const CustomizedOrders = () => {
       teamId: '',
       teamName: order?.teamName || '',
       items: (order?.items || []).map(item => ({
+        id: item.id,
         productName: item.productName || '',
         unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
         quantity: item.quantity != null ? String(item.quantity) : '',
@@ -411,6 +412,7 @@ const CustomizedOrders = () => {
         clientName: clientSearch.trim(),
         teamName: formData.teamName.trim() || null,
         items: formData.items.map(item => ({
+          id: item.id,
           productName: item.productName.trim(),
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
@@ -468,6 +470,7 @@ const CustomizedOrders = () => {
     clientName: order.clientName || null,
     teamName: order.teamName || null,
     items: (order.items || []).map(item => ({
+      id: item.id,
       productName: item.productName,
       unitPrice: Number(item.unitPrice),
       quantity: Number(item.quantity),
@@ -525,8 +528,9 @@ const CustomizedOrders = () => {
     }
 
     try {
-      const amount = ((Number(selectedOrder.price) || 0) * (Number(selectedOrder.quantity) || 0)) *
-        (1 - (Number(selectedOrder.discount) || 0) / 100);
+      const subtotal = (Number(selectedOrder.price) || 0);
+      const discountAmount = subtotal * (Number(selectedOrder.discount || 0) / 100);
+      const amount = subtotal - discountAmount;
 
       await incomeService.createIncomeSource({
         shopType: selectedOrder.shop,
@@ -788,60 +792,70 @@ const CustomizedOrders = () => {
                     </div>
                   </div>
 
-                  {/* Dynamic Product Items */}
-                  {formData.items.map((item, index) => (
-                    <div key={index} style={{ ...styles.formGrid, gridTemplateColumns: '1fr 0.6fr 0.4fr auto', alignItems: 'end', marginBottom: '10px' }}>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>{index === 0 ? 'Product Name *' : ''}</label>
-                        <input
-                          type="text"
-                          placeholder="Enter product name..."
-                          value={item.productName}
-                          onChange={(e) => handleItemChange(index, 'productName', e.target.value)}
-                          style={styles.input}
-                        />
-                      </div>
-
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>
-                        <input
-                          type="number"
-                          value={item.unitPrice}
-                          onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
-                          placeholder="0.00"
-                          step="0.01"
-                          style={styles.input}
-                        />
-                      </div>
-
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>{index === 0 ? 'Quantity *' : ''}</label>
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          placeholder="0"
-                          style={styles.input}
-                        />
-                      </div>
-
-                      {formData.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(index)}
-                          style={{
-                            ...styles.button,
-                            backgroundColor: '#ff5252',
-                            color: 'white',
-                            padding: '8px 12px',
-                            marginBottom: '15px',
-                          }}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
+	                  {/* Dynamic Product Items */}
+	                  {formData.items.map((item, index) => (
+	                    <div key={index} style={{ ...styles.formGrid, gridTemplateColumns: '57% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
+	                      <div style={styles.formGroup}>
+	                        <label style={styles.label}>{index === 0 ? 'Product Name *' : ''}</label>
+	                        <input
+	                          type="text"
+	                          placeholder="Enter product name..."
+	                          value={item.productName}
+	                          onChange={(e) => handleItemChange(index, 'productName', e.target.value)}
+	                          style={styles.input}
+	                        />
+	                      </div>
+	
+	                      <div style={styles.formGroup}>
+	                        <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>
+	                        <input
+	                          type="number"
+	                          value={item.unitPrice}
+	                          onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
+	                          placeholder="0.00"
+	                          step="0.01"
+	                          style={styles.input}
+	                        />
+	                      </div>
+	
+	                      <div style={styles.formGroup}>
+	                        <label style={styles.label}>{index === 0 ? 'Qty *' : ''}</label>
+	                        <input
+	                          type="number"
+	                          value={item.quantity}
+	                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+	                          placeholder="0"
+	                          style={styles.input}
+	                        />
+	                      </div>
+	
+	                      <div style={styles.formGroup}>
+	                        <label style={styles.label}>{index === 0 ? 'Total' : ''}</label>
+	                        <div style={{ ...styles.input, backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center' }}>
+	                          {formatMoney((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0))}
+	                        </div>
+	                      </div>
+	
+	                      <div style={styles.formGroup}>
+	                        {formData.items.length > 1 ? (
+	                          <button
+	                            type="button"
+	                            onClick={() => handleRemoveItem(index)}
+	                            style={{
+	                              ...styles.button,
+	                              backgroundColor: '#ff5252',
+	                              color: 'white',
+	                              padding: '8px 0',
+	                              width: '100%',
+	                              marginBottom: '5px',
+	                            }}
+	                          >
+	                            ✕
+	                          </button>
+	                        ) : <div style={{ marginBottom: '5px', height: '38px' }}></div>}
+	                      </div>
+	                    </div>
+	                  ))}
 
                   <div style={{ marginBottom: '20px' }}>
                     <button
@@ -974,8 +988,12 @@ const CustomizedOrders = () => {
                         <span>{formatMoney(getDiscountedTotal())}</span>
                       </div>
                       <div style={styles.totalRow}>
-                        <span>Remaining:</span>
+                        <span>After Down Payment:</span>
                         <span>{formatMoney(getDiscountedTotal() - (Number(formData.downPayment) || 0))}</span>
+                      </div>
+                      <div style={{ ...styles.totalRow, marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #ddd' }}>
+                        <span style={{ fontWeight: 'bold', color: '#333' }}>Total Remaining:</span>
+                        <span style={{ fontWeight: 'bold', color: '#007bff', fontSize: '1.1rem' }}>{formatMoney(getDiscountedTotal() - (Number(formData.downPayment) || 0))}</span>
                       </div>
                     </div>
                   )}
@@ -1068,7 +1086,7 @@ const CustomizedOrders = () => {
                           <span>{formatMoney(selectedOrder.downPayment)}</span>
                         </div>
                         <div>
-                          <span style={styles.financialLabel}>Remaining:</span>
+                          <span style={styles.financialLabel}>Total Remaining:</span>
                           <span>{formatMoney(financials.remainingAfterDownPayment)}</span>
                         </div>
                       </div>
@@ -1204,7 +1222,7 @@ const CustomizedOrders = () => {
                           ...styles.buttonPrimary,
                         }}
                       >
-                        Yes
+                        Deposit Paid  
                       </button>
                     </div>
                   </div>
@@ -1224,7 +1242,7 @@ const CustomizedOrders = () => {
                               ...styles.buttonSecondary,
                             }}
                           >
-                            No
+                            Not Yet Fully Paid
                           </button>
                           <button
                             onClick={handleFullPaymentYes}
@@ -1233,7 +1251,7 @@ const CustomizedOrders = () => {
                               ...styles.buttonPrimary,
                             }}
                           >
-                            Yes
+                            Fully Paid
                           </button>
                         </div>
                       </>

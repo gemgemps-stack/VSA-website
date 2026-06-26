@@ -23,6 +23,7 @@ public class IncomeSourceDTO {
     private String clientCode;
     private String jobOrderNo;
     private BigDecimal amount;
+    private String referenceNumber;
     private LocalDateTime createdAt;
 
     public IncomeSourceDTO(IncomeSource incomeSource) {
@@ -34,6 +35,7 @@ public class IncomeSourceDTO {
         this.clientCode = incomeSource.getClient() != null ? incomeSource.getClient().getClientCode() : incomeSource.getClientCode();
         this.jobOrderNo = incomeSource.getJobOrderNo();
         this.amount = incomeSource.getAmount();
+        this.referenceNumber = incomeSource.getReferenceNumber();
         this.createdAt = incomeSource.getCreatedAt();
     }
 }

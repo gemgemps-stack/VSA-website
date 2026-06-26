@@ -52,6 +52,9 @@ public class IncomeSource {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
+    @Column(name = "reference_number", length = 100)
+    private String referenceNumber;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

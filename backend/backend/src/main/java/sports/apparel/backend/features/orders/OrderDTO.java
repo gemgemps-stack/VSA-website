@@ -7,8 +7,11 @@ import sports.apparel.backend.entity.Order;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import sports.apparel.backend.entity.OrderItem;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -21,11 +24,29 @@ public class OrderDTO {
     private String clientName;
     private String clientCode;
     private String teamName;
+    private List<ItemDTO> items;
     private String orderRetail;
     private Integer quantity;
     private String freebie;
     private BigDecimal discount;
     private BigDecimal price;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ItemDTO {
+        private UUID id;
+        private String productName;
+        private BigDecimal unitPrice;
+        private Integer quantity;
+
+        public ItemDTO(OrderItem item) {
+            this.id = item.getId();
+            this.productName = item.getProductName();
+            this.unitPrice = item.getUnitPrice();
+            this.quantity = item.getQuantity();
+        }
+    }
     private BigDecimal downPayment;
     private String shop;
     private LocalDate orderDate;
@@ -49,6 +70,11 @@ public class OrderDTO {
             this.clientCode = null;
         }
         this.teamName = order.getTeamName();
+        if (order.getItems() != null) {
+            this.items = order.getItems().stream()
+                    .map(ItemDTO::new)
+                    .collect(Collectors.toList());
+        }
         this.orderRetail = order.getOrderRetail();
         this.quantity = order.getQuantity();
         this.freebie = order.getFreebie();
