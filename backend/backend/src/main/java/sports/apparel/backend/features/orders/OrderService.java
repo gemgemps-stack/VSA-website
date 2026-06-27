@@ -4,17 +4,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sports.apparel.backend.features.orders.CreateOrderRequest;
-import sports.apparel.backend.features.orders.OrderDTO;
 import sports.apparel.backend.entity.Client;
 import sports.apparel.backend.entity.Inventory;
 import sports.apparel.backend.entity.Order;
 import sports.apparel.backend.features.clients.ClientRepository;
 import sports.apparel.backend.features.inventory.InventoryRepository;
-import sports.apparel.backend.features.orders.OrderRepository;
 
 import java.time.LocalDate;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import sports.apparel.backend.entity.OrderItem;
 import java.util.List;
 import java.util.UUID;
@@ -94,15 +92,16 @@ public class OrderService {
         populateLegacySummaryFields(order);
 
         Order savedOrder = orderRepository.save(order);
-        
+
         // Deduct inventory immediately upon creation for all statuses except CANCELLED
         if (!STATUS_CANCELLED.equalsIgnoreCase(savedOrder.getStatus()) && !Boolean.TRUE.equals(savedOrder.getInventoryDeducted())) {
             deductInventoryForOrder(savedOrder);
         }
 
-        // Logic for financial reporting based on status
-        if (STATUS_FULLY_PAID.equalsIgnoreCase(savedOrder.getStatus())) {
-            recordIncomeForOrder(savedOrder);
+        // Record any money already collected on the order so Finance reflects it immediately.
+        BigDecimal paymentAmount = determineInitialPaymentAmount(savedOrder, request.getDownPayment());
+        if (paymentAmount.compareTo(BigDecimal.ZERO) > 0) {
+            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), null);
         }
 
         orderRepository.save(savedOrder);
@@ -113,22 +112,54 @@ public class OrderService {
         return !STATUS_CANCELLED.equalsIgnoreCase(status) && !STATUS_NOT_APPROVED.equalsIgnoreCase(status);
     }
 
-    private void recordIncomeForOrder(Order order) {
+    private BigDecimal calculateTotalDue(Order order) {
         BigDecimal total = order.getPrice() != null ? order.getPrice() : BigDecimal.ZERO;
         BigDecimal discountPercent = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
-        BigDecimal afterDiscountTotal = total.multiply(BigDecimal.ONE.subtract(discountPercent.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)));
+        return total.multiply(BigDecimal.ONE.subtract(discountPercent.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)));
+    }
+
+    private BigDecimal getRecordedPayments(Order order) {
+        return incomeSourceService.getTotalIncomeByJobOrderNo(order.getJobOrderNo());
+    }
+
+    private BigDecimal calculateRemainingBalance(Order order) {
+        BigDecimal remaining = calculateTotalDue(order).subtract(getRecordedPayments(order));
+        return remaining.compareTo(BigDecimal.ZERO) > 0 ? remaining : BigDecimal.ZERO;
+    }
+
+    private BigDecimal determineInitialPaymentAmount(Order order, BigDecimal requestedDownPayment) {
+        BigDecimal totalDue = calculateTotalDue(order);
+        if (totalDue.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        if (STATUS_FULLY_PAID.equalsIgnoreCase(order.getStatus())) {
+            return totalDue;
+        }
+
+        BigDecimal downPayment = requestedDownPayment != null ? requestedDownPayment : BigDecimal.ZERO;
+        return downPayment.min(totalDue);
+    }
+
+    private void recordIncomeForOrder(Order order, BigDecimal amount, String referenceNumber, String checkNumber) {
+        BigDecimal paymentAmount = amount != null ? amount : BigDecimal.ZERO;
+        if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
 
         sports.apparel.backend.features.income.CreateIncomeSourceRequest incomeRequest = new sports.apparel.backend.features.income.CreateIncomeSourceRequest();
-        incomeRequest.setAmount(afterDiscountTotal);
+        incomeRequest.setAmount(paymentAmount);
         incomeRequest.setIncomeDate(LocalDate.now());
         incomeRequest.setJobOrderNo(order.getJobOrderNo());
         incomeRequest.setPaymentMethod(order.getModeOfPayment());
         incomeRequest.setShopType(order.getShop());
-        incomeRequest.setReferenceNumber(order.getReferenceNumber());
+        incomeRequest.setReferenceNumber(referenceNumber != null && !referenceNumber.isBlank() ? referenceNumber : order.getReferenceNumber());
+        incomeRequest.setCheckNumber(checkNumber);
+        incomeRequest.setClientName(order.getClientName());
         if (order.getClient() != null) {
             incomeRequest.setClientId(order.getClient().getId());
         }
-        
+
         incomeSourceService.createIncomeSource(incomeRequest);
     }
 
@@ -263,9 +294,43 @@ public class OrderService {
             restoreInventoryForOrder(order);
         }
 
-        // Financial logic: record income if transitioning to FULLY_PAID
+        // Financial logic: when fully paid, record only the remaining unpaid balance.
         if (STATUS_FULLY_PAID.equalsIgnoreCase(newStatus) && !STATUS_FULLY_PAID.equalsIgnoreCase(oldStatus)) {
-            recordIncomeForOrder(order);
+            BigDecimal remainingBalance = calculateRemainingBalance(order);
+            if (remainingBalance.compareTo(BigDecimal.ZERO) > 0) {
+                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), null);
+            }
+        }
+
+        Order updatedOrder = orderRepository.save(order);
+        return new OrderDTO(updatedOrder);
+    }
+
+    public OrderDTO applyPaymentUpdate(UUID id, sports.apparel.backend.features.income.PaymentUpdateRequest request) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        BigDecimal remainingBalance = calculateRemainingBalance(order);
+        BigDecimal amount = request.getAmount() != null ? request.getAmount() : BigDecimal.ZERO;
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than zero");
+        }
+
+        if (remainingBalance.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("This order is already fully paid");
+        }
+
+        if (amount.compareTo(remainingBalance) > 0) {
+            throw new IllegalArgumentException("Payment update cannot exceed the remaining balance");
+        }
+
+        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber());
+        order.setRemarks(request.getRemarks() != null ? request.getRemarks() : order.getRemarks());
+        if (amount.compareTo(remainingBalance) >= 0) {
+            order.setStatus(STATUS_FULLY_PAID);
+        } else {
+            order.setStatus(STATUS_NOT_YET_FULLY_PAID);
         }
 
         Order updatedOrder = orderRepository.save(order);

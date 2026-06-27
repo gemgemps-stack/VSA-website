@@ -7,9 +7,12 @@ import org.springframework.transaction.annotation.Transactional;
 import sports.apparel.backend.entity.Client;
 import sports.apparel.backend.entity.CustomizedOrder;
 import sports.apparel.backend.features.clients.ClientRepository;
+import sports.apparel.backend.features.income.IncomeSourceService;
+import sports.apparel.backend.features.income.PaymentUpdateRequest;
 
 import sports.apparel.backend.entity.CustomizedOrderItem;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -30,13 +33,16 @@ public class CustomizedOrderService {
     private final CustomizedOrderRepository customizedOrderRepository;
     private final ClientRepository clientRepository;
     private final CustomizedJobOrderNumberService jobOrderNumberService;
+    private final IncomeSourceService incomeSourceService;
 
     public CustomizedOrderService(CustomizedOrderRepository customizedOrderRepository,
                                   ClientRepository clientRepository,
-                                  CustomizedJobOrderNumberService jobOrderNumberService) {
+                                  CustomizedJobOrderNumberService jobOrderNumberService,
+                                  IncomeSourceService incomeSourceService) {
         this.customizedOrderRepository = customizedOrderRepository;
         this.clientRepository = clientRepository;
         this.jobOrderNumberService = jobOrderNumberService;
+        this.incomeSourceService = incomeSourceService;
     }
 
     public CustomizedOrderDTO createOrder(CreateCustomizedOrderRequest request) {
@@ -78,6 +84,12 @@ public class CustomizedOrderService {
         populateLegacySummaryFields(order);
 
         CustomizedOrder savedOrder = customizedOrderRepository.save(order);
+
+        BigDecimal paymentAmount = determineInitialPaymentAmount(savedOrder, request.getDownPayment());
+        if (paymentAmount.compareTo(BigDecimal.ZERO) > 0) {
+            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), null);
+        }
+
         return new CustomizedOrderDTO(savedOrder);
     }
 
@@ -149,7 +161,9 @@ public class CustomizedOrderService {
         if (request.getReferenceNumber() != null) {
             order.setReferenceNumber(request.getReferenceNumber());
         }
+        String oldStatus = order.getStatus();
         order.setStatus(resolveStatus(request.getStatus(), order.getStatus()));
+        String newStatus = order.getStatus();
 
         if (request.getItems() != null) {
             List<CustomizedOrderItem> existingItems = order.getItems();
@@ -186,6 +200,95 @@ public class CustomizedOrderService {
         }
 
         populateLegacySummaryFields(order);
+
+        if (STATUS_FULLY_PAID.equalsIgnoreCase(newStatus) && !STATUS_FULLY_PAID.equalsIgnoreCase(oldStatus)) {
+            BigDecimal remainingBalance = calculateRemainingBalance(order);
+            if (remainingBalance.compareTo(BigDecimal.ZERO) > 0) {
+                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), null);
+            }
+        }
+
+        CustomizedOrder updatedOrder = customizedOrderRepository.save(order);
+        return new CustomizedOrderDTO(updatedOrder);
+    }
+
+    private BigDecimal calculateTotalDue(CustomizedOrder order) {
+        BigDecimal total = order.getPrice() != null ? order.getPrice() : BigDecimal.ZERO;
+        BigDecimal discountPercent = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+        return total.multiply(BigDecimal.ONE.subtract(discountPercent.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)));
+    }
+
+    private BigDecimal getRecordedPayments(CustomizedOrder order) {
+        return incomeSourceService.getTotalIncomeByJobOrderNo(order.getJobOrderNo());
+    }
+
+    private BigDecimal calculateRemainingBalance(CustomizedOrder order) {
+        BigDecimal remaining = calculateTotalDue(order).subtract(getRecordedPayments(order));
+        return remaining.compareTo(BigDecimal.ZERO) > 0 ? remaining : BigDecimal.ZERO;
+    }
+
+    private BigDecimal determineInitialPaymentAmount(CustomizedOrder order, BigDecimal requestedDownPayment) {
+        BigDecimal totalDue = calculateTotalDue(order);
+        if (totalDue.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        if (STATUS_FULLY_PAID.equalsIgnoreCase(order.getStatus())) {
+            return totalDue;
+        }
+
+        BigDecimal downPayment = requestedDownPayment != null ? requestedDownPayment : BigDecimal.ZERO;
+        return downPayment.min(totalDue);
+    }
+
+    private void recordIncomeForOrder(CustomizedOrder order, BigDecimal amount, String referenceNumber, String checkNumber) {
+        BigDecimal paymentAmount = amount != null ? amount : BigDecimal.ZERO;
+        if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        sports.apparel.backend.features.income.CreateIncomeSourceRequest incomeRequest = new sports.apparel.backend.features.income.CreateIncomeSourceRequest();
+        incomeRequest.setAmount(paymentAmount);
+        incomeRequest.setIncomeDate(LocalDate.now());
+        incomeRequest.setJobOrderNo(order.getJobOrderNo());
+        incomeRequest.setPaymentMethod(order.getModeOfPayment());
+        incomeRequest.setShopType(order.getShop());
+        incomeRequest.setReferenceNumber(referenceNumber != null && !referenceNumber.isBlank() ? referenceNumber : order.getReferenceNumber());
+        incomeRequest.setCheckNumber(checkNumber);
+        incomeRequest.setClientName(order.getClientName());
+        if (order.getClient() != null) {
+            incomeRequest.setClientId(order.getClient().getId());
+        }
+
+        incomeSourceService.createIncomeSource(incomeRequest);
+    }
+
+    public CustomizedOrderDTO applyPaymentUpdate(UUID id, PaymentUpdateRequest request) {
+        CustomizedOrder order = customizedOrderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        BigDecimal remainingBalance = calculateRemainingBalance(order);
+        BigDecimal amount = request.getAmount() != null ? request.getAmount() : BigDecimal.ZERO;
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than zero");
+        }
+
+        if (remainingBalance.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("This order is already fully paid");
+        }
+
+        if (amount.compareTo(remainingBalance) > 0) {
+            throw new IllegalArgumentException("Payment update cannot exceed the remaining balance");
+        }
+
+        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber());
+        order.setRemarks(request.getRemarks() != null ? request.getRemarks() : order.getRemarks());
+        if (amount.compareTo(remainingBalance) >= 0) {
+            order.setStatus(STATUS_FULLY_PAID);
+        } else {
+            order.setStatus(STATUS_NOT_YET_FULLY_PAID);
+        }
 
         CustomizedOrder updatedOrder = customizedOrderRepository.save(order);
         return new CustomizedOrderDTO(updatedOrder);

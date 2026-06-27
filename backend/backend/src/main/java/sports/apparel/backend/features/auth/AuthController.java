@@ -10,15 +10,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import sports.apparel.backend.features.auth.LoginRequest;
-import sports.apparel.backend.features.auth.LoginResponse;
 import sports.apparel.backend.security.JwtAuthenticationFilter;
 
 import java.time.Duration;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "http://localhost:8080"}, allowCredentials = "true")
+@CrossOrigin(
+        originPatterns = {"http://localhost:*", "http://127.0.0.1:*"},
+        allowCredentials = "true"
+)
 public class AuthController {
 
     private static final String COOKIE_PATH = "/";

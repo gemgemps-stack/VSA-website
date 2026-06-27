@@ -6,7 +6,6 @@ import sports.apparel.backend.entity.IncomeSource;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -14,4 +13,6 @@ public interface IncomeSourceRepository extends JpaRepository<IncomeSource, UUID
     List<IncomeSource> findByIncomeDate(LocalDate incomeDate);
 
     List<IncomeSource> findByIncomeDateBetween(LocalDate startDate, LocalDate endDate);
+
+    List<IncomeSource> findByJobOrderNo(String jobOrderNo);
 }

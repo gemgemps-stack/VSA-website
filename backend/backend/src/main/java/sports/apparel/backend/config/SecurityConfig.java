@@ -89,13 +89,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // Parse comma-separated origins from environment variable
-        var allowedOrigins = Arrays.stream(corsOrigins.split(","))
-            .map(String::trim)
-            .collect(Collectors.toList());
-        
-        configuration.setAllowedOrigins(allowedOrigins);
+
+        // Allow configured origins plus any local development port so the frontend can
+        // connect even when the backend falls back from 8080 to another local port.
+        var allowedOriginPatterns = Arrays.stream(corsOrigins.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+        allowedOriginPatterns.add("http://localhost:*");
+        allowedOriginPatterns.add("http://127.0.0.1:*");
+
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
         configuration.setAllowCredentials(true);

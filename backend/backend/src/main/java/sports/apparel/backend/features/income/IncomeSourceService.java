@@ -8,6 +8,7 @@ import sports.apparel.backend.entity.Client;
 import sports.apparel.backend.entity.IncomeSource;
 import sports.apparel.backend.features.clients.ClientRepository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +35,7 @@ public class IncomeSourceService {
         incomeSource.setJobOrderNo(request.getJobOrderNo());
         incomeSource.setAmount(request.getAmount());
         incomeSource.setReferenceNumber(request.getReferenceNumber());
+        incomeSource.setCheckNumber(request.getCheckNumber());
 
         // Set client relationship
         if (request.getClientId() != null) {
@@ -49,8 +51,25 @@ public class IncomeSourceService {
             incomeSource.setClientCode(request.getClientCode());
         }
 
+        // Preserve client name for walk-ins and registered clients
+        if (incomeSource.getClient() != null) {
+            incomeSource.setClientName(incomeSource.getClient().getClientName());
+        } else {
+            incomeSource.setClientName(request.getClientName());
+        }
+
         IncomeSource savedIncomeSource = incomeSourceRepository.save(incomeSource);
         return new IncomeSourceDTO(savedIncomeSource);
+    }
+
+    public BigDecimal getTotalIncomeByJobOrderNo(String jobOrderNo) {
+        if (jobOrderNo == null || jobOrderNo.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+
+        return incomeSourceRepository.findByJobOrderNo(jobOrderNo).stream()
+                .map(income -> income.getAmount() != null ? income.getAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public IncomeSourceDTO getIncomeSourceById(UUID id) {
@@ -86,6 +105,7 @@ public class IncomeSourceService {
         incomeSource.setJobOrderNo(request.getJobOrderNo());
         incomeSource.setAmount(request.getAmount());
         incomeSource.setReferenceNumber(request.getReferenceNumber());
+        incomeSource.setCheckNumber(request.getCheckNumber());
 
         // Update client relationship
         if (request.getClientId() != null) {
@@ -103,6 +123,13 @@ public class IncomeSourceService {
             incomeSource.setClientCode(request.getClientCode());
         } else {
             incomeSource.setClientCode(null);
+        }
+
+        // Preserve client name for walk-ins and registered clients
+        if (incomeSource.getClient() != null) {
+            incomeSource.setClientName(incomeSource.getClient().getClientName());
+        } else {
+            incomeSource.setClientName(request.getClientName());
         }
 
         IncomeSource updatedIncomeSource = incomeSourceRepository.save(incomeSource);

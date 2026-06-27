@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
+import { useLocation } from 'react-router-dom';
 import inventoryService from '../../services/inventoryService';
 import clientService from '../../services/clientService';
 import incomeService from '../../services/incomeService';
@@ -10,7 +11,6 @@ import orderService from '../../services/orderService';
 import teamService from '../../services/teamService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 
-const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
 const ORDER_STATUS = {
   FOR_CLIENT_APPROVAL: 'FOR_CLIENT_APPROVAL',
@@ -118,6 +118,9 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [paymentUpdateAmount, setPaymentUpdateAmount] = useState('');
+  const [paymentCheckNumber, setPaymentCheckNumber] = useState('');
+  const [incomeEntries, setIncomeEntries] = useState([]);
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchQuery, setSearchQuery] = useState('');
   const [clientSearch, setClientSearch] = useState('');
@@ -127,6 +130,8 @@ const Orders = () => {
   const [retailSearchIndex, setRetailSearchIndex] = useState(null);
   const [retailSearchText, setRetailSearchText] = useState('');
   const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
+  const location = useLocation();
+  const openedCreditJobOrderRef = useRef(null);
 
   const loadClients = useCallback(async () => {
     try {
@@ -167,12 +172,50 @@ const Orders = () => {
     }
   }, []);
 
+  const loadIncomeEntries = useCallback(async () => {
+    try {
+      const response = await incomeService.getAllIncomeSources(0, 1000);
+      setIncomeEntries(response.data.content || []);
+    } catch (error) {
+      console.error('Error loading income entries:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadClients();
     loadInventory();
     loadTeams();
     loadOrders();
-  }, [loadClients, loadInventory, loadTeams, loadOrders]);
+    loadIncomeEntries();
+  }, [loadClients, loadInventory, loadTeams, loadOrders, loadIncomeEntries]);
+
+  const getRecordedPaidAmount = useCallback((jobOrderNo, fallbackDownPayment = 0) => {
+    const recordedAmount = incomeEntries
+      .filter((entry) => entry.jobOrderNo === jobOrderNo)
+      .reduce((total, entry) => total + (Number(entry.amount) || 0), 0);
+
+    return recordedAmount > 0 ? recordedAmount : Number(fallbackDownPayment) || 0;
+  }, [incomeEntries]);
+
+  const getRemainingBalance = useCallback((order) => {
+    if (!order) return 0;
+    const financials = getOrderFinancials(order);
+    const paidAmount = getRecordedPaidAmount(order.jobOrderNo, order.downPayment);
+    return Math.max(0, financials.afterDiscountTotal - paidAmount);
+  }, [getRecordedPaidAmount]);
+
+  const getOrderPaymentHistory = useCallback((order) => {
+    if (!order?.jobOrderNo) return [];
+
+    return incomeEntries
+      .filter((entry) => entry.jobOrderNo === order.jobOrderNo)
+      .slice()
+      .sort((a, b) => new Date(a.createdAt || a.incomeDate || 0) - new Date(b.createdAt || b.incomeDate || 0))
+      .map((entry, index) => ({
+        ...entry,
+        entryType: index === 0 ? 'Initial Payment' : 'Payment Update',
+      }));
+  }, [incomeEntries]);
 
   const isVipClient = Boolean(clients.find((client) => client?.id === formData.clientId)?.vip);
 
@@ -329,8 +372,28 @@ const Orders = () => {
     setSelectedOrder(order);
     setReferenceNumber(order.referenceNumber || '');
     setRemarks(order.remarks || '');
+    setPaymentUpdateAmount('');
+    setPaymentCheckNumber('');
     setDetailsOpen(true);
   };
+
+  useEffect(() => {
+    const targetJobOrderNo = location.state?.jobOrderNo;
+    if (!targetJobOrderNo || openedCreditJobOrderRef.current === targetJobOrderNo) {
+      return;
+    }
+
+    const targetOrder = orders.find((order) => order.jobOrderNo === targetJobOrderNo);
+    if (targetOrder) {
+      openedCreditJobOrderRef.current = targetJobOrderNo;
+      setSelectedOrder(targetOrder);
+      setReferenceNumber(targetOrder.referenceNumber || '');
+      setRemarks(targetOrder.remarks || '');
+      setPaymentUpdateAmount('');
+      setPaymentCheckNumber('');
+      setDetailsOpen(true);
+    }
+  }, [location.state, orders]);
 
   const handleEdit = (order) => {
     if (order.status === ORDER_STATUS.FULLY_PAID) {
@@ -423,6 +486,8 @@ const Orders = () => {
   const closeDetails = () => {
     setDetailsOpen(false);
     setSelectedOrder(null);
+    setPaymentUpdateAmount('');
+    setPaymentCheckNumber('');
   };
 
   const updateSelectedOrderStatus = async (newStatus) => {
@@ -443,12 +508,53 @@ const Orders = () => {
   };
 
   const handleFullPaymentYes = async () => {
-    if (!referenceNumber.trim()) { alert('Please enter a reference number.'); return; }
-    await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+    if (!selectedOrder) return;
+    const remainingBalance = getRemainingBalance(selectedOrder);
+    if (remainingBalance <= 0) {
+      await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+      return;
+    }
+
+    try {
+      await orderService.applyPaymentUpdate(selectedOrder.id, {
+        amount: remainingBalance,
+        referenceNumber: referenceNumber.trim() || null,
+        remarks: remarks.trim() || null,
+      });
+      loadOrders();
+      loadIncomeEntries();
+    } catch (error) {
+      alert(`Failed to record payment: ${getApiErrorMessage(error)}`);
+    }
   };
 
   const handleNotYetFullyPaid = async () => {
     await updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID);
+  };
+
+  const handlePaymentUpdate = async () => {
+    if (!selectedOrder) return;
+
+    const amount = Number(paymentUpdateAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('Please enter a valid payment update amount.');
+      return;
+    }
+
+    try {
+      await orderService.applyPaymentUpdate(selectedOrder.id, {
+        amount,
+        checkNumber: paymentCheckNumber.trim() || null,
+        referenceNumber: referenceNumber.trim() || null,
+        remarks: remarks.trim() || null,
+      });
+      setPaymentUpdateAmount('');
+      setPaymentCheckNumber('');
+      loadOrders();
+      loadIncomeEntries();
+    } catch (error) {
+      alert(`Failed to save payment update: ${getApiErrorMessage(error)}`);
+    }
   };
 
   const styles = {
@@ -489,7 +595,7 @@ const Orders = () => {
           <div style={styles.pageHeader}>
             <h1 style={{ margin: 0, fontSize: '1.8rem', color: '#1a1a1a' }}>Inventory Orders</h1>
             <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => { setEditingOrder(null); setFormData(createInitialFormData()); setClientSearch(''); setTeamSearch(''); setModalOpen(true); }}>
-              + New Order
+              + New Inventory Order
             </button>
           </div>
 
@@ -809,13 +915,55 @@ const Orders = () => {
                   <h3 style={{ margin: '0 0 15px 0' }}>Financial Summary</h3>
                   {(() => {
                     const financials = getOrderFinancials(selectedOrder);
+                    const paidAmount = getRecordedPaidAmount(selectedOrder.jobOrderNo, selectedOrder.downPayment);
+                    const remainingBalance = getRemainingBalance(selectedOrder);
                     return (
-                      <div style={styles.financialsGrid}>
-                        <div><span style={styles.financialLabel}>Total Amount:</span><span>{formatMoney(financials.total)}</span></div>
-                        <div><span style={styles.financialLabel}>After Discount:</span><span>{formatMoney(financials.afterDiscountTotal)}</span></div>
-                        <div><span style={styles.financialLabel}>Down Payment:</span><span>{formatMoney(selectedOrder.downPayment)}</span></div>
-                        <div><span style={styles.financialLabel}>Total Remaining:</span><strong style={{ color: '#d9534f' }}>{formatMoney(financials.remainingAfterDownPayment)}</strong></div>
-                      </div>
+                      <>
+                        <div style={styles.financialsGrid}>
+                          <div><span style={styles.financialLabel}>Total Amount:</span><span>{formatMoney(financials.total)}</span></div>
+                          <div><span style={styles.financialLabel}>After Discount:</span><span>{formatMoney(financials.afterDiscountTotal)}</span></div>
+                          <div><span style={styles.financialLabel}>Total Paid:</span><span>{formatMoney(paidAmount)}</span></div>
+                          <div><span style={styles.financialLabel}>Remaining Balance:</span><strong style={{ color: '#d9534f' }}>{formatMoney(remainingBalance)}</strong></div>
+                        </div>
+                        <div style={{ marginTop: '18px' }}>
+                          <h4 style={{ margin: '0 0 10px 0' }}>Payment History</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {getOrderPaymentHistory(selectedOrder).length > 0 ? (
+                              getOrderPaymentHistory(selectedOrder).map((payment) => (
+                                <div
+                                  key={payment.id}
+                                  style={{
+                                    padding: '12px 14px',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    background: '#fff',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    gap: '12px',
+                                    alignItems: 'flex-start',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <strong>{payment.entryType}</strong>
+                                    <span style={styles.financialLabel}>
+                                      {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : payment.incomeDate || 'No date'}
+                                    </span>
+                                    <span style={styles.financialLabel}>
+                                      Reference: {payment.referenceNumber || 'N/A'}
+                                    </span>
+                                    <span style={styles.financialLabel}>
+                                      Check No.: {payment.checkNumber || 'N/A'}
+                                    </span>
+                                  </div>
+                                  <strong>{formatMoney(payment.amount)}</strong>
+                                </div>
+                              ))
+                            ) : (
+                              <p style={{ margin: 0, color: '#6b7280' }}>No payment history recorded yet.</p>
+                            )}
+                          </div>
+                        </div>
+                      </>
                     );
                   })()}
                 </div>
@@ -837,8 +985,22 @@ const Orders = () => {
 
                 {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION || selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
                   <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px' }}>
-                    <h4 style={{ margin: '0 0 10px 0' }}>Process Final Payment</h4>
+                    <h4 style={{ margin: '0 0 10px 0' }}>Payment Update</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <input
+                        type="number"
+                        style={styles.input}
+                        placeholder="Input payment update"
+                        value={paymentUpdateAmount}
+                        onChange={(e) => setPaymentUpdateAmount(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        style={styles.input}
+                        placeholder="Check number (optional)"
+                        value={paymentCheckNumber}
+                        onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                      />
                       <input
                         type="text"
                         style={styles.input}
@@ -853,7 +1015,8 @@ const Orders = () => {
                         onChange={(e) => setRemarks(e.target.value)}
                       />
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        <button style={{ ...styles.button, ...styles.buttonPrimary, flex: 1 }} onClick={handleFullPaymentYes}>Fully Paid</button>
+                        <button style={{ ...styles.button, ...styles.buttonPrimary, flex: 1 }} onClick={handlePaymentUpdate}>Save Payment Update</button>
+                        <button style={{ ...styles.button, ...styles.buttonSecondary, flex: 1 }} onClick={handleFullPaymentYes}>Mark Fully Paid</button>
                         <button style={{ ...styles.button, ...styles.buttonSecondary, flex: 1 }} onClick={handleNotYetFullyPaid}>Not Yet Fully Paid</button>
                       </div>
                     </div>

@@ -2,7 +2,6 @@ package sports.apparel.backend.features.dashboard;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sports.apparel.backend.features.dashboard.DashboardStatsDTO;
 import sports.apparel.backend.features.clients.ClientRepository;
 import sports.apparel.backend.features.inventory.InventoryRepository;
 import sports.apparel.backend.features.orders.OrderRepository;

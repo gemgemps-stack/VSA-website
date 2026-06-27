@@ -1,7 +1,6 @@
 package sports.apparel.backend.features.orders;
 
 import org.springframework.stereotype.Service;
-import sports.apparel.backend.features.orders.OrderRepository;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;

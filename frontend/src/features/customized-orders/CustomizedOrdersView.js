@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
+import { useLocation } from 'react-router-dom';
 import incomeService from '../../services/incomeService';
 import customizedOrderService from '../../services/customizedOrderService';
 import teamService from '../../services/teamService';
@@ -105,6 +106,9 @@ const CustomizedOrders = () => {
   const [editingOrder, setEditingOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [isReferenceNumberEditing, setIsReferenceNumberEditing] = useState(false);
+  const [paymentUpdateAmount, setPaymentUpdateAmount] = useState('');
+  const [paymentCheckNumber, setPaymentCheckNumber] = useState('');
+  const [incomeEntries, setIncomeEntries] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [manufacturingNotes, setManufacturingNotes] = useState('');
@@ -113,6 +117,8 @@ const CustomizedOrders = () => {
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
   const [teamSearch, setTeamSearch] = useState('');
   const [teamSuggestionsOpen, setTeamSuggestionsOpen] = useState(false);
+  const location = useLocation();
+  const openedCreditJobOrderRef = useRef(null);
 
   const loadTeams = useCallback(async () => {
     try {
@@ -151,14 +157,71 @@ const CustomizedOrders = () => {
     }
   }, []);
 
+  const loadIncomeEntries = useCallback(async () => {
+    try {
+      const response = await incomeService.getAllIncomeSources(0, 1000);
+      setIncomeEntries(response.data.content || []);
+    } catch (error) {
+      console.error('Error loading income entries:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadTeams();
     loadClients();
-  }, [loadTeams, loadClients]);
+    loadIncomeEntries();
+  }, [loadTeams, loadClients, loadIncomeEntries]);
 
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    const targetJobOrderNo = location.state?.jobOrderNo;
+    if (!targetJobOrderNo || openedCreditJobOrderRef.current === targetJobOrderNo) {
+      return;
+    }
+
+    const targetOrder = orders.find((order) => order.jobOrderNo === targetJobOrderNo);
+    if (targetOrder) {
+      openedCreditJobOrderRef.current = targetJobOrderNo;
+      setSelectedOrder(targetOrder);
+      setManufacturingNotes(targetOrder.remarks || '');
+      setReferenceNumber(targetOrder.referenceNumber || '');
+      setIsReferenceNumberEditing(false);
+      setPaymentUpdateAmount('');
+      setPaymentCheckNumber('');
+      setDetailsOpen(true);
+    }
+  }, [location.state, orders]);
+
+  const getRecordedPaidAmount = useCallback((jobOrderNo, fallbackDownPayment = 0) => {
+    const recordedAmount = incomeEntries
+      .filter((entry) => entry.jobOrderNo === jobOrderNo)
+      .reduce((total, entry) => total + (Number(entry.amount) || 0), 0);
+
+    return recordedAmount > 0 ? recordedAmount : Number(fallbackDownPayment) || 0;
+  }, [incomeEntries]);
+
+  const getRemainingBalance = useCallback((order) => {
+    if (!order) return 0;
+    const financials = getOrderFinancials(order);
+    const paidAmount = getRecordedPaidAmount(order.jobOrderNo, order.downPayment);
+    return Math.max(0, financials.afterDiscountTotal - paidAmount);
+  }, [getRecordedPaidAmount]);
+
+  const getOrderPaymentHistory = useCallback((order) => {
+    if (!order?.jobOrderNo) return [];
+
+    return incomeEntries
+      .filter((entry) => entry.jobOrderNo === order.jobOrderNo)
+      .slice()
+      .sort((a, b) => new Date(a.createdAt || a.incomeDate || 0) - new Date(b.createdAt || b.incomeDate || 0))
+      .map((entry, index) => ({
+        ...entry,
+        entryType: index === 0 ? 'Initial Payment' : 'Payment Update',
+      }));
+  }, [incomeEntries]);
 
   const filteredOrders = orders.filter((order) => {
     const matchesStatus =
@@ -454,6 +517,8 @@ const CustomizedOrders = () => {
     setManufacturingNotes(order.remarks || '');
     setReferenceNumber(order.referenceNumber || '');
     setIsReferenceNumberEditing(false);
+    setPaymentUpdateAmount('');
+    setPaymentCheckNumber('');
     setDetailsOpen(true);
   };
 
@@ -463,6 +528,8 @@ const CustomizedOrders = () => {
     setManufacturingNotes('');
     setReferenceNumber('');
     setIsReferenceNumberEditing(false);
+    setPaymentUpdateAmount('');
+    setPaymentCheckNumber('');
   };
 
   const buildOrderPayload = (order, statusOverride) => ({
@@ -516,43 +583,69 @@ const CustomizedOrders = () => {
   };
 
   const handleFullPaymentYes = async () => {
-    const trimmedReference = referenceNumber.trim();
-
-    if (!trimmedReference) {
-      alert('Please enter a reference number first.');
-      return;
-    }
-
     if (!selectedOrder) {
       return;
     }
 
     try {
-      const subtotal = (Number(selectedOrder.price) || 0);
-      const discountAmount = subtotal * (Number(selectedOrder.discount || 0) / 100);
-      const amount = subtotal - discountAmount;
+      const remainingBalance = getRemainingBalance(selectedOrder);
 
-      await incomeService.createIncomeSource({
-        shopType: selectedOrder.shop,
-        paymentMethod: selectedOrder.modeOfPayment,
-        incomeDate: new Date().toISOString().split('T')[0],
-        referenceNumber: trimmedReference,
-        clientId: selectedOrder.clientId,
-        clientCode: selectedOrder.clientCode,
-        jobOrderNo: selectedOrder.jobOrderNo,
-        amount,
+      if (remainingBalance <= 0) {
+        await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+        return;
+      }
+
+      await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
+        amount: remainingBalance,
+        referenceNumber: referenceNumber.trim() || null,
+        remarks: manufacturingNotes.trim() || null,
       });
 
-      await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+      loadOrders();
+      loadIncomeEntries();
     } catch (error) {
-      console.error('Error saving income source:', error);
+      console.error('Error saving payment update:', error);
       const apiMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.response?.data?.detail ||
         error.message ||
         'Unknown error';
-      alert(`Failed to save income source: ${apiMessage}`);
+      alert(`Failed to save payment update: ${apiMessage}`);
+    }
+  };
+
+  const handlePaymentUpdate = async () => {
+    if (!selectedOrder) {
+      return;
+    }
+
+    const amount = Number(paymentUpdateAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('Please enter a valid payment update amount.');
+      return;
+    }
+
+    try {
+      await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
+        amount,
+        checkNumber: paymentCheckNumber.trim() || null,
+        referenceNumber: referenceNumber.trim() || null,
+        remarks: manufacturingNotes.trim() || null,
+      });
+      setPaymentUpdateAmount('');
+      setPaymentCheckNumber('');
+      loadOrders();
+      loadIncomeEntries();
+    } catch (error) {
+      console.error('Error saving payment update:', error);
+      const apiMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.response?.data?.detail ||
+        error.message ||
+        'Unknown error';
+      alert(`Failed to save payment update: ${apiMessage}`);
     }
   };
 
@@ -631,10 +724,10 @@ const CustomizedOrders = () => {
           <div style={styles.header}>
             <div style={styles.headerTitle}>
               <h1 style={styles.title}>🏭 Customized Orders</h1>
-              <p style={styles.subtitle}>Orders ready for manufacturing</p>
+              <p style={styles.subtitle}>Orders to be manufactured</p>
             </div>
             <button onClick={handleOpenAddModal} style={styles.addButton}>
-              + Add Customized Order
+              + New Customized Order
             </button>
           </div>
 
@@ -1071,25 +1164,67 @@ const CustomizedOrders = () => {
                   <h3>Financial Summary</h3>
                   {selectedOrder && (() => {
                     const financials = getOrderFinancials(selectedOrder);
+                    const paidAmount = getRecordedPaidAmount(selectedOrder.jobOrderNo, selectedOrder.downPayment);
+                    const remainingBalance = getRemainingBalance(selectedOrder);
                     return (
-                      <div style={styles.financialsGrid}>
-                        <div>
-                          <span style={styles.financialLabel}>Total Amount:</span>
-                          <span>{formatMoney(financials.total)}</span>
+                      <>
+                        <div style={styles.financialsGrid}>
+                          <div>
+                            <span style={styles.financialLabel}>Total Amount:</span>
+                            <span>{formatMoney(financials.total)}</span>
+                          </div>
+                          <div>
+                            <span style={styles.financialLabel}>After Discount:</span>
+                            <span>{formatMoney(financials.afterDiscountTotal)}</span>
+                          </div>
+                          <div>
+                            <span style={styles.financialLabel}>Total Paid:</span>
+                            <span>{formatMoney(paidAmount)}</span>
+                          </div>
+                          <div>
+                            <span style={styles.financialLabel}>Remaining Balance:</span>
+                            <span>{formatMoney(remainingBalance)}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span style={styles.financialLabel}>After Discount:</span>
-                          <span>{formatMoney(financials.afterDiscountTotal)}</span>
+                        <div style={{ marginTop: '18px' }}>
+                          <h4 style={{ margin: '0 0 10px 0' }}>Payment History</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {getOrderPaymentHistory(selectedOrder).length > 0 ? (
+                              getOrderPaymentHistory(selectedOrder).map((payment) => (
+                                <div
+                                  key={payment.id}
+                                  style={{
+                                    padding: '12px 14px',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    background: '#fff',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    gap: '12px',
+                                    alignItems: 'flex-start',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <strong>{payment.entryType}</strong>
+                                    <span style={styles.financialLabel}>
+                                      {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : payment.incomeDate || 'No date'}
+                                    </span>
+                                    <span style={styles.financialLabel}>
+                                      Reference: {payment.referenceNumber || 'N/A'}
+                                    </span>
+                                    <span style={styles.financialLabel}>
+                                      Check No.: {payment.checkNumber || 'N/A'}
+                                    </span>
+                                  </div>
+                                  <strong>{formatMoney(payment.amount)}</strong>
+                                </div>
+                              ))
+                            ) : (
+                              <p style={{ margin: 0, color: '#6b7280' }}>No payment history recorded yet.</p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <span style={styles.financialLabel}>Down Payment:</span>
-                          <span>{formatMoney(selectedOrder.downPayment)}</span>
-                        </div>
-                        <div>
-                          <span style={styles.financialLabel}>Total Remaining:</span>
-                          <span>{formatMoney(financials.remainingAfterDownPayment)}</span>
-                        </div>
-                      </div>
+                      </>
                     );
                   })()}
                 </div>
@@ -1098,6 +1233,50 @@ const CustomizedOrders = () => {
                   selectedOrder?.status === ORDER_STATUS.NOT_YET_FULLY_PAID ||
                   selectedOrder?.status === ORDER_STATUS.FULLY_PAID) && (
                   <>
+                    {(selectedOrder?.status === ORDER_STATUS.IN_PRODUCTION ||
+                      selectedOrder?.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
+                      <div style={styles.statusActions}>
+                        <p style={styles.statusPrompt}>Payment Update</p>
+                        <div style={styles.formGroup}>
+                          <input
+                            type="number"
+                            value={paymentUpdateAmount}
+                            onChange={(e) => setPaymentUpdateAmount(e.target.value)}
+                            placeholder="Input payment update"
+                            style={styles.input}
+                          />
+                        </div>
+                        <div style={styles.formGroup}>
+                          <input
+                            type="text"
+                            value={paymentCheckNumber}
+                            onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                            placeholder="Check number (optional)"
+                            style={styles.input}
+                          />
+                        </div>
+                        <div style={styles.modalActions}>
+                          <button
+                            onClick={handlePaymentUpdate}
+                            style={{
+                              ...styles.button,
+                              ...styles.buttonPrimary,
+                            }}
+                          >
+                            Save Payment Update
+                          </button>
+                          <button
+                            onClick={handleFullPaymentYes}
+                            style={{
+                              ...styles.button,
+                              ...styles.buttonSecondary,
+                            }}
+                          >
+                            Mark Fully Paid
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Reference Number</label>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

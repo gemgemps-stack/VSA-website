@@ -29,6 +29,8 @@ public class CreateIncomeSourceRequest {
 
     private String clientCode;
 
+    private String clientName;
+
     private String jobOrderNo;
 
     @NotNull(message = "Amount is required")
@@ -36,4 +38,6 @@ public class CreateIncomeSourceRequest {
     private BigDecimal amount;
 
     private String referenceNumber;
+
+    private String checkNumber;
 }

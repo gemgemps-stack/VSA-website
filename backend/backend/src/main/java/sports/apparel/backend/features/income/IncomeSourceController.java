@@ -8,8 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import sports.apparel.backend.features.income.CreateIncomeSourceRequest;
-import sports.apparel.backend.features.income.IncomeSourceDTO;
 
 import java.time.LocalDate;
 import java.util.List;

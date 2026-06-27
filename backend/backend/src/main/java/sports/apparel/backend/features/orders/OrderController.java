@@ -8,8 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import sports.apparel.backend.features.orders.CreateOrderRequest;
-import sports.apparel.backend.features.orders.OrderDTO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -34,35 +32,35 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'SOURCE_OF_INCOME')")
     public ResponseEntity<OrderDTO> getOrderById(@PathVariable UUID id) {
         OrderDTO orderDTO = orderService.getOrderById(id);
         return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping("/job-order-no/{jobOrderNo}")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'SOURCE_OF_INCOME')")
     public ResponseEntity<OrderDTO> getOrderByJobOrderNo(@PathVariable String jobOrderNo) {
         OrderDTO orderDTO = orderService.getOrderByJobOrderNo(jobOrderNo);
         return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'SOURCE_OF_INCOME')")
     public ResponseEntity<Page<OrderDTO>> getAllOrders(Pageable pageable) {
         Page<OrderDTO> orders = orderService.getAllOrders(pageable);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/client/{clientId}")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'SOURCE_OF_INCOME')")
     public ResponseEntity<List<OrderDTO>> getOrdersByClientId(@PathVariable UUID clientId) {
         List<OrderDTO> orders = orderService.getOrdersByClientId(clientId);
         return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/date-range")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'SOURCE_OF_INCOME')")
     public ResponseEntity<List<OrderDTO>> getOrdersByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
@@ -71,7 +69,7 @@ public class OrderController {
     }
 
     @GetMapping("/year-month")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'SOURCE_OF_INCOME')")
     public ResponseEntity<List<OrderDTO>> getOrdersByYearAndMonth(
             @RequestParam int year,
             @RequestParam int month) {
@@ -80,7 +78,7 @@ public class OrderController {
     }
 
     @GetMapping("/status")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'SOURCE_OF_INCOME')")
     public ResponseEntity<List<OrderDTO>> getOrdersByStatus(@RequestParam String status) {
         List<OrderDTO> orders = orderService.getOrdersByStatus(status);
         return ResponseEntity.ok(orders);
@@ -90,6 +88,13 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
     public ResponseEntity<OrderDTO> updateOrder(@PathVariable UUID id, @Valid @RequestBody CreateOrderRequest request) {
         OrderDTO orderDTO = orderService.updateOrder(id, request);
+        return ResponseEntity.ok(orderDTO);
+    }
+
+    @PostMapping("/{id}/payment-update")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS')")
+    public ResponseEntity<OrderDTO> applyPaymentUpdate(@PathVariable UUID id, @Valid @RequestBody sports.apparel.backend.features.income.PaymentUpdateRequest request) {
+        OrderDTO orderDTO = orderService.applyPaymentUpdate(id, request);
         return ResponseEntity.ok(orderDTO);
     }
 

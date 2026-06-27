@@ -50,6 +50,7 @@ public class JwtProvider {
         return createToken(claims, userDetails.getUsername());
     }
 
+    @SuppressWarnings("deprecation")
     private String createToken(Map<String, Object> claims, String subject) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);

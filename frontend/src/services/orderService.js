@@ -25,6 +25,8 @@ const orderService = {
 
   updateOrder: (id, orderData) => api.put(`/api/orders/${id}`, orderData),
 
+  applyPaymentUpdate: (id, paymentData) => api.post(`/api/orders/${id}/payment-update`, paymentData),
+
   deleteOrder: (id) => api.delete(`/api/orders/${id}`),
 };
 

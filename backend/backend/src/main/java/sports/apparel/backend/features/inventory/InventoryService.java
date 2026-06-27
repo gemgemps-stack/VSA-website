@@ -4,10 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sports.apparel.backend.features.inventory.CreateInventoryRequest;
-import sports.apparel.backend.features.inventory.InventoryDTO;
 import sports.apparel.backend.entity.Inventory;
-import sports.apparel.backend.features.inventory.InventoryRepository;
 
 import java.util.List;
 import java.util.UUID;

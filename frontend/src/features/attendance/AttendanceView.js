@@ -11,8 +11,12 @@ const STATUS_OPTIONS = [
   { key: 'PRESENT', label: 'Present', tone: 'present' },
   { key: 'LATE', label: 'Late', tone: 'late' },
   { key: 'ABSENT', label: 'Absent', tone: 'absent' },
-  { key: 'HALF_DAY', label: 'Half Day', tone: 'half-day' },
   { key: 'LEAVE', label: 'Leave', tone: 'leave' },
+];
+
+const DAY_TYPE_OPTIONS = [
+  { key: 'HALF_DAY', label: 'Half Day', tone: 'half-day' },
+  { key: 'FULL_DAY', label: 'Full Day', tone: 'full-day' },
   { key: 'OVERTIME', label: 'Overtime', tone: 'overtime' },
 ];
 
@@ -181,7 +185,29 @@ const AttendanceView = () => {
     const start = h1 * 60 + m1;
     const end = h2 * 60 + m2;
     if (end <= start) return 0;
-    return (end - start) / 60;
+    
+    let totalMinutes = end - start;
+    
+    // Subtract lunch break (12:00 PM - 1:00 PM = 720 to 780 minutes)
+    const lunchStart = 12 * 60; // 12:00 PM in minutes
+    const lunchEnd = 13 * 60;   // 1:00 PM in minutes
+    
+    // Check if the work period overlaps with lunch break
+    if (start < lunchEnd && end > lunchStart) {
+      // Calculate the overlap
+      const overlapStart = Math.max(start, lunchStart);
+      const overlapEnd = Math.min(end, lunchEnd);
+      const lunchDuration = overlapEnd - overlapStart;
+      totalMinutes -= lunchDuration;
+    }
+    
+    return totalMinutes / 60;
+  };
+
+const calculateDayType = (hours) => {
+    if (hours <= 5) return 'HALF_DAY';
+    if (hours <= 8) return 'FULL_DAY';
+    return 'OVERTIME';
   };
 
   const summary = useMemo(() => {
@@ -192,17 +218,22 @@ const AttendanceView = () => {
         if (status === 'PRESENT') acc.present += 1;
         if (status === 'LATE') acc.late += 1;
         if (status === 'ABSENT') acc.absent += 1;
-        if (status === 'HALF_DAY') acc.halfDay += 1;
         if (status === 'LEAVE') acc.leave += 1;
-        if (status === 'OVERTIME') acc.overtime += 1;
         
+        let hours = 0;
         if (record.timeIn && record.timeOut) {
-          acc.totalHours += calculateHours(record.timeIn, record.timeOut);
+          hours = calculateHours(record.timeIn, record.timeOut);
+          acc.totalHours += hours;
         }
+        
+        const dayType = calculateDayType(hours);
+        if (dayType === 'HALF_DAY') acc.halfDay += 1;
+        if (dayType === 'FULL_DAY') acc.fullDay += 1;
+        if (dayType === 'OVERTIME') acc.overtime += 1;
         
         return acc;
       },
-      { total: 0, present: 0, late: 0, absent: 0, halfDay: 0, leave: 0, overtime: 0, totalHours: 0 }
+      { total: 0, present: 0, late: 0, absent: 0, leave: 0, halfDay: 0, fullDay: 0, overtime: 0, totalHours: 0 }
     );
   }, [filteredRecords]);
 
@@ -228,8 +259,9 @@ const AttendanceView = () => {
           present: 0,
           late: 0,
           absent: 0,
-          halfDay: 0,
           leave: 0,
+          halfDay: 0,
+          fullDay: 0,
           overtime: 0,
           totalHours: 0,
         };
@@ -239,13 +271,18 @@ const AttendanceView = () => {
       if (status === 'PRESENT') summaryMap[username].present += 1;
       else if (status === 'LATE') summaryMap[username].late += 1;
       else if (status === 'ABSENT') summaryMap[username].absent += 1;
-      else if (status === 'HALF_DAY') summaryMap[username].halfDay += 1;
       else if (status === 'LEAVE') summaryMap[username].leave += 1;
-      else if (status === 'OVERTIME') summaryMap[username].overtime += 1;
       
+      let hours = 0;
       if (record.timeIn && record.timeOut) {
-        summaryMap[username].totalHours += calculateHours(record.timeIn, record.timeOut);
+        hours = calculateHours(record.timeIn, record.timeOut);
+        summaryMap[username].totalHours += hours;
       }
+      
+      const dayType = calculateDayType(hours);
+      if (dayType === 'HALF_DAY') summaryMap[username].halfDay += 1;
+      else if (dayType === 'FULL_DAY') summaryMap[username].fullDay += 1;
+      else if (dayType === 'OVERTIME') summaryMap[username].overtime += 1;
     });
     
     return Object.values(summaryMap).sort((a, b) => b.totalHours - a.totalHours);
@@ -274,8 +311,6 @@ const AttendanceView = () => {
     if (statuses.includes('ABSENT')) return 'absent';
     if (statuses.includes('LATE')) return 'late';
     if (statuses.includes('LEAVE')) return 'leave';
-    if (statuses.includes('HALF_DAY')) return 'half-day';
-    if (statuses.includes('OVERTIME')) return 'overtime';
     if (statuses.includes('PRESENT')) return 'present';
     return '';
   };
@@ -389,6 +424,14 @@ const AttendanceView = () => {
     }
   };
 
+  const getDayTypeLabel = (record) => {
+    if (!record.timeIn || !record.timeOut) return '-';
+    const hours = calculateHours(record.timeIn, record.timeOut);
+    const dayType = calculateDayType(hours);
+    const option = DAY_TYPE_OPTIONS.find((opt) => opt.key === dayType);
+    return option ? option.label : '-';
+  };
+
   const columns = [
     { key: 'username', label: 'Employee' },
     {
@@ -410,6 +453,11 @@ const AttendanceView = () => {
       key: 'status',
       label: 'Status',
       render: (value) => value || '-',
+    },
+    {
+      key: 'dayType',
+      label: 'Day Type',
+      render: (_, record) => getDayTypeLabel(record),
     },
   ];
 
@@ -447,12 +495,16 @@ const AttendanceView = () => {
             <strong>{summary.absent}</strong>
           </div>
           <div className="attendance-summary-card">
+            <span>Leave</span>
+            <strong>{summary.leave}</strong>
+          </div>
+          <div className="attendance-summary-card">
             <span>Half Day</span>
             <strong>{summary.halfDay}</strong>
           </div>
           <div className="attendance-summary-card">
-            <span>Leave</span>
-            <strong>{summary.leave}</strong>
+            <span>Full Day</span>
+            <strong>{summary.fullDay}</strong>
           </div>
           <div className="attendance-summary-card">
             <span>Overtime</span>
@@ -698,18 +750,44 @@ const AttendanceView = () => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              >
-                {STATUS_OPTIONS.map((status) => (
-                  <option key={status.key} value={status.key}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
+            <div className="form-group-2-col">
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status.key} value={status.key}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Day Type (Auto)</label>
+                <div style={{
+                  padding: '12px 14px',
+                  backgroundColor: '#f7faf9',
+                  border: '1px solid #dfe7e3',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  color: '#6e645a',
+                  fontWeight: '500',
+                  cursor: 'not-allowed',
+                }}
+                >
+                  {(() => {
+                    if (!formData.timeIn || !formData.timeOut) return '-';
+                    const hours = calculateHours(formData.timeIn, formData.timeOut);
+                    const dayType = calculateDayType(hours);
+                    const option = DAY_TYPE_OPTIONS.find((opt) => opt.key === dayType);
+                    return option ? option.label : '-';
+                  })()}
+                </div>
+              </div>
             </div>
 
             <div className="form-group">
@@ -797,8 +875,9 @@ const AttendanceView = () => {
                   <th style={{ padding: '12px' }}>Present</th>
                   <th style={{ padding: '12px' }}>Late</th>
                   <th style={{ padding: '12px' }}>Absent</th>
-                  <th style={{ padding: '12px' }}>Half Day</th>
                   <th style={{ padding: '12px' }}>Leave</th>
+                  <th style={{ padding: '12px' }}>Half Day</th>
+                  <th style={{ padding: '12px' }}>Full Day</th>
                   <th style={{ padding: '12px' }}>Overtime</th>
                 </tr>
               </thead>
@@ -811,14 +890,15 @@ const AttendanceView = () => {
                       <td style={{ padding: '12px' }}>{item.present}</td>
                       <td style={{ padding: '12px' }}>{item.late}</td>
                       <td style={{ padding: '12px' }}>{item.absent}</td>
-                      <td style={{ padding: '12px' }}>{item.halfDay}</td>
                       <td style={{ padding: '12px' }}>{item.leave}</td>
+                      <td style={{ padding: '12px' }}>{item.halfDay}</td>
+                      <td style={{ padding: '12px' }}>{item.fullDay}</td>
                       <td style={{ padding: '12px', color: '#e67e22', fontWeight: 'bold' }}>{item.overtime}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan="9" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
                       No attendance records found for this month.
                     </td>
                   </tr>

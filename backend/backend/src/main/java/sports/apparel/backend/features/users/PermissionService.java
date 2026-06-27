@@ -2,11 +2,8 @@ package sports.apparel.backend.features.users;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sports.apparel.backend.features.users.PermissionDTO;
 import sports.apparel.backend.entity.Permission;
 import sports.apparel.backend.entity.User;
-import sports.apparel.backend.features.users.PermissionRepository;
-import sports.apparel.backend.features.users.UserRepository;
 
 import java.util.List;
 import java.util.UUID;

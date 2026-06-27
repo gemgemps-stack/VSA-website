@@ -46,6 +46,9 @@ public class IncomeSource {
     @Column(name = "client_code", length = 20)
     private String clientCode;
 
+    @Column(name = "client_name", length = 100)
+    private String clientName;
+
     @Column(name = "job_order_no", length = 50)
     private String jobOrderNo;
 
@@ -54,6 +57,9 @@ public class IncomeSource {
 
     @Column(name = "reference_number", length = 100)
     private String referenceNumber;
+
+    @Column(name = "check_number", length = 100)
+    private String checkNumber;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
