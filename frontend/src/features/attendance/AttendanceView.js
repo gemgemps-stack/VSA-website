@@ -264,6 +264,7 @@ const calculateDayType = (hours) => {
           fullDay: 0,
           overtime: 0,
           totalHours: 0,
+          overtimeHours: 0,
         };
       }
       
@@ -277,6 +278,11 @@ const calculateDayType = (hours) => {
       if (record.timeIn && record.timeOut) {
         hours = calculateHours(record.timeIn, record.timeOut);
         summaryMap[username].totalHours += hours;
+        
+        // Calculate overtime hours (any time beyond 8 hours)
+        if (hours > 8) {
+          summaryMap[username].overtimeHours += (hours - 8);
+        }
       }
       
       const dayType = calculateDayType(hours);
@@ -872,6 +878,7 @@ const calculateDayType = (hours) => {
                 <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                   <th style={{ padding: '12px' }}>Employee</th>
                   <th style={{ padding: '12px' }}>Total Hours</th>
+                  <th style={{ padding: '12px' }}>Overtime Hours</th>
                   <th style={{ padding: '12px' }}>Present</th>
                   <th style={{ padding: '12px' }}>Late</th>
                   <th style={{ padding: '12px' }}>Absent</th>
@@ -887,6 +894,7 @@ const calculateDayType = (hours) => {
                     <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '12px', fontWeight: 'bold' }}>{item.username}</td>
                       <td style={{ padding: '12px', color: '#016667', fontWeight: 'bold' }}>{item.totalHours.toFixed(2)} hrs</td>
+                      <td style={{ padding: '12px', color: '#e67e22', fontWeight: 'bold' }}>{item.overtimeHours.toFixed(2)} hrs</td>
                       <td style={{ padding: '12px' }}>{item.present}</td>
                       <td style={{ padding: '12px' }}>{item.late}</td>
                       <td style={{ padding: '12px' }}>{item.absent}</td>
@@ -898,7 +906,7 @@ const calculateDayType = (hours) => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan="10" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
                       No attendance records found for this month.
                     </td>
                   </tr>

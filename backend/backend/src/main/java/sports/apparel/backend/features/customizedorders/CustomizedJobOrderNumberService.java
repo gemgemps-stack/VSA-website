@@ -21,7 +21,7 @@ public class CustomizedJobOrderNumberService {
         Optional<Integer> maxSequence = customizedOrderRepository.findMaxSequenceByJobOrderPrefix(prefix);
         int nextSequence = maxSequence.map(seq -> seq + 1).orElse(1);
 
-        return String.format("%s-%04d", prefix, nextSequence);
+        return String.format("%s-%05d", prefix, nextSequence);
     }
 
     private String generatePrefix(LocalDate date) {

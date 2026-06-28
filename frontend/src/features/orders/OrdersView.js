@@ -100,7 +100,7 @@ const createInitialFormData = () => ({
   downPayment: '0',
   shop: '',
   orderDate: new Date().toISOString().split('T')[0],
-  modeOfPayment: 'Cash',
+  modeOfPayment: '',
   notes: '',
 });
 
@@ -415,7 +415,7 @@ const Orders = () => {
       downPayment: order.downPayment != null ? String(order.downPayment) : '0',
       shop: order.shop || '',
       orderDate: order.orderDate || new Date().toISOString().split('T')[0],
-      modeOfPayment: order.modeOfPayment || 'Cash',
+      modeOfPayment: order.modeOfPayment || '',
       notes: order.remarks || '',
     });
     if (!order.items || order.items.length === 0) {

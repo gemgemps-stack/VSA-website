@@ -15,4 +15,6 @@ public interface IncomeSourceRepository extends JpaRepository<IncomeSource, UUID
     List<IncomeSource> findByIncomeDateBetween(LocalDate startDate, LocalDate endDate);
 
     List<IncomeSource> findByJobOrderNo(String jobOrderNo);
+
+    List<IncomeSource> findByJobOrderNoOrderByCreatedAtAsc(String jobOrderNo);
 }

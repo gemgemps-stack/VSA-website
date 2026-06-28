@@ -101,7 +101,8 @@ public class OrderService {
         // Record any money already collected on the order so Finance reflects it immediately.
         BigDecimal paymentAmount = determineInitialPaymentAmount(savedOrder, request.getDownPayment());
         if (paymentAmount.compareTo(BigDecimal.ZERO) > 0) {
-            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), null);
+            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), null,
+                    STATUS_FULLY_PAID.equalsIgnoreCase(savedOrder.getStatus()) ? "FULL_PAYMENT" : "DOWN_PAYMENT");
         }
 
         orderRepository.save(savedOrder);
@@ -141,7 +142,7 @@ public class OrderService {
         return downPayment.min(totalDue);
     }
 
-    private void recordIncomeForOrder(Order order, BigDecimal amount, String referenceNumber, String checkNumber) {
+    private void recordIncomeForOrder(Order order, BigDecimal amount, String referenceNumber, String checkNumber, String paymentCategory) {
         BigDecimal paymentAmount = amount != null ? amount : BigDecimal.ZERO;
         if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
@@ -155,6 +156,7 @@ public class OrderService {
         incomeRequest.setShopType(order.getShop());
         incomeRequest.setReferenceNumber(referenceNumber != null && !referenceNumber.isBlank() ? referenceNumber : order.getReferenceNumber());
         incomeRequest.setCheckNumber(checkNumber);
+        incomeRequest.setPaymentCategory(paymentCategory);
         incomeRequest.setClientName(order.getClientName());
         if (order.getClient() != null) {
             incomeRequest.setClientId(order.getClient().getId());
@@ -298,7 +300,7 @@ public class OrderService {
         if (STATUS_FULLY_PAID.equalsIgnoreCase(newStatus) && !STATUS_FULLY_PAID.equalsIgnoreCase(oldStatus)) {
             BigDecimal remainingBalance = calculateRemainingBalance(order);
             if (remainingBalance.compareTo(BigDecimal.ZERO) > 0) {
-                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), null);
+                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), null, "FULL_PAYMENT");
             }
         }
 
@@ -325,7 +327,7 @@ public class OrderService {
             throw new IllegalArgumentException("Payment update cannot exceed the remaining balance");
         }
 
-        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber());
+        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber(), "PAYMENT_UPDATE");
         order.setRemarks(request.getRemarks() != null ? request.getRemarks() : order.getRemarks());
         if (amount.compareTo(remainingBalance) >= 0) {
             order.setStatus(STATUS_FULLY_PAID);
@@ -336,6 +338,7 @@ public class OrderService {
         Order updatedOrder = orderRepository.save(order);
         return new OrderDTO(updatedOrder);
     }
+
 
     private String resolveStatus(String requestedStatus, String fallbackStatus) {
         if (requestedStatus == null || requestedStatus.isBlank()) {

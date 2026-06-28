@@ -22,4 +22,6 @@ public class PaymentUpdateRequest {
     private String checkNumber;
 
     private String remarks;
+
+    private BigDecimal downPayment;
 }

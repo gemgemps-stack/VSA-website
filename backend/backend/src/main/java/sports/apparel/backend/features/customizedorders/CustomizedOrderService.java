@@ -87,7 +87,8 @@ public class CustomizedOrderService {
 
         BigDecimal paymentAmount = determineInitialPaymentAmount(savedOrder, request.getDownPayment());
         if (paymentAmount.compareTo(BigDecimal.ZERO) > 0) {
-            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), null);
+            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), null,
+                    STATUS_FULLY_PAID.equalsIgnoreCase(savedOrder.getStatus()) ? "FULL_PAYMENT" : "DOWN_PAYMENT");
         }
 
         return new CustomizedOrderDTO(savedOrder);
@@ -204,7 +205,7 @@ public class CustomizedOrderService {
         if (STATUS_FULLY_PAID.equalsIgnoreCase(newStatus) && !STATUS_FULLY_PAID.equalsIgnoreCase(oldStatus)) {
             BigDecimal remainingBalance = calculateRemainingBalance(order);
             if (remainingBalance.compareTo(BigDecimal.ZERO) > 0) {
-                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), null);
+                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), null, "FULL_PAYMENT");
             }
         }
 
@@ -241,7 +242,7 @@ public class CustomizedOrderService {
         return downPayment.min(totalDue);
     }
 
-    private void recordIncomeForOrder(CustomizedOrder order, BigDecimal amount, String referenceNumber, String checkNumber) {
+    private void recordIncomeForOrder(CustomizedOrder order, BigDecimal amount, String referenceNumber, String checkNumber, String paymentCategory) {
         BigDecimal paymentAmount = amount != null ? amount : BigDecimal.ZERO;
         if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
@@ -255,6 +256,7 @@ public class CustomizedOrderService {
         incomeRequest.setShopType(order.getShop());
         incomeRequest.setReferenceNumber(referenceNumber != null && !referenceNumber.isBlank() ? referenceNumber : order.getReferenceNumber());
         incomeRequest.setCheckNumber(checkNumber);
+        incomeRequest.setPaymentCategory(paymentCategory);
         incomeRequest.setClientName(order.getClientName());
         if (order.getClient() != null) {
             incomeRequest.setClientId(order.getClient().getId());
@@ -282,7 +284,7 @@ public class CustomizedOrderService {
             throw new IllegalArgumentException("Payment update cannot exceed the remaining balance");
         }
 
-        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber());
+        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber(), "PAYMENT_UPDATE");
         order.setRemarks(request.getRemarks() != null ? request.getRemarks() : order.getRemarks());
         if (amount.compareTo(remainingBalance) >= 0) {
             order.setStatus(STATUS_FULLY_PAID);
@@ -293,6 +295,7 @@ public class CustomizedOrderService {
         CustomizedOrder updatedOrder = customizedOrderRepository.save(order);
         return new CustomizedOrderDTO(updatedOrder);
     }
+
 
     private void populateLegacySummaryFields(CustomizedOrder order) {
         List<CustomizedOrderItem> items = order.getItems();

@@ -899,6 +899,137 @@
   overflow-wrap: anywhere;
 }
 
+.receipt-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.receipt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.receipt-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #dfe7e3;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7faf9 100%);
+}
+
+.receipt-eyebrow {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6e645a;
+}
+
+.receipt-header h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #20150d;
+}
+
+.receipt-muted {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #6e645a;
+}
+
+.receipt-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #20150d;
+  text-align: right;
+}
+
+.receipt-summary {
+  background: #f9fcfb;
+}
+
+.receipt-items {
+  overflow-x: auto;
+  border: 1px solid #dfe7e3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.receipt-table th,
+.receipt-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #edf2ef;
+  text-align: left;
+}
+
+.receipt-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6e645a;
+  background: #f7faf9;
+}
+
+.receipt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.receipt-empty-cell {
+  text-align: center;
+  color: #6e645a;
+}
+
+.receipt-transaction {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 16px 18px;
+  border: 1px solid #dfe7e3;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 14px;
+  color: #20150d;
+}
+
+.receipt-footer-notes {
+  padding: 16px 18px;
+  border: 1px solid #dfe7e3;
+  border-radius: 14px;
+  background: #f9fcfb;
+}
+
+.receipt-footer-notes p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.receipt-footer-notes p:last-child {
+  margin-bottom: 0;
+}
+
+.receipt-actions .income-details-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .income-details-empty {
   margin: 0;
   color: #6e645a;
@@ -926,6 +1057,14 @@
 
 .finance-panel-full {
   grid-column: 1 / -1;
+}
+
+.finance-bottom-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: stretch;
 }
 
 .finance-panel .page-header h2 {
@@ -1292,6 +1431,10 @@
     grid-template-columns: 1fr;
   }
 
+  .finance-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
   .income-shop-grids {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1336,6 +1479,11 @@
 
   .transaction-histories-grid {
     grid-template-columns: 1fr;
+  }
+
+  .finance-bottom-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
 }
 

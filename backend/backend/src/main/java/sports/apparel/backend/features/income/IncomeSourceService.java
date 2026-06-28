@@ -36,6 +36,7 @@ public class IncomeSourceService {
         incomeSource.setAmount(request.getAmount());
         incomeSource.setReferenceNumber(request.getReferenceNumber());
         incomeSource.setCheckNumber(request.getCheckNumber());
+        incomeSource.setPaymentCategory(request.getPaymentCategory());
 
         // Set client relationship
         if (request.getClientId() != null) {
@@ -70,6 +71,77 @@ public class IncomeSourceService {
         return incomeSourceRepository.findByJobOrderNo(jobOrderNo).stream()
                 .map(income -> income.getAmount() != null ? income.getAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public void syncOrderPayment(CreateIncomeSourceRequest request) {
+        if (request.getJobOrderNo() == null || request.getJobOrderNo().isBlank()) {
+            return;
+        }
+
+        IncomeSource existingPayment = findOrderPaymentEntry(request.getJobOrderNo(), request.getPaymentCategory());
+        BigDecimal amount = request.getAmount() != null ? request.getAmount() : BigDecimal.ZERO;
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            if (existingPayment != null) {
+                incomeSourceRepository.delete(existingPayment);
+            }
+            return;
+        }
+
+        if (existingPayment == null) {
+            createIncomeSource(request);
+            return;
+        }
+
+        existingPayment.setShopType(request.getShopType());
+        existingPayment.setPaymentMethod(request.getPaymentMethod());
+        existingPayment.setIncomeDate(request.getIncomeDate());
+        existingPayment.setAmount(amount);
+        existingPayment.setReferenceNumber(request.getReferenceNumber());
+        existingPayment.setCheckNumber(request.getCheckNumber());
+        existingPayment.setPaymentCategory(request.getPaymentCategory());
+
+        if (request.getClientId() != null) {
+            Optional<Client> client = clientRepository.findById(request.getClientId());
+            client.ifPresent(existingPayment::setClient);
+        } else if (request.getClientCode() != null) {
+            Optional<Client> client = clientRepository.findByClientCode(request.getClientCode());
+            client.ifPresent(existingPayment::setClient);
+        } else {
+            existingPayment.setClient(null);
+        }
+
+        if (existingPayment.getClient() == null && request.getClientCode() != null) {
+            existingPayment.setClientCode(request.getClientCode());
+        } else {
+            existingPayment.setClientCode(null);
+        }
+
+        if (existingPayment.getClient() != null) {
+            existingPayment.setClientName(existingPayment.getClient().getClientName());
+        } else {
+            existingPayment.setClientName(request.getClientName());
+        }
+
+        incomeSourceRepository.save(existingPayment);
+    }
+
+    private IncomeSource findOrderPaymentEntry(String jobOrderNo, String paymentCategory) {
+        List<IncomeSource> entries = incomeSourceRepository.findByJobOrderNoOrderByCreatedAtAsc(jobOrderNo);
+        if (entries.isEmpty()) {
+            return null;
+        }
+
+        if (paymentCategory != null && !paymentCategory.isBlank()) {
+            Optional<IncomeSource> categorizedEntry = entries.stream()
+                    .filter(entry -> paymentCategory.equalsIgnoreCase(entry.getPaymentCategory()))
+                    .findFirst();
+            if (categorizedEntry.isPresent()) {
+                return categorizedEntry.get();
+            }
+        }
+
+        return entries.get(0);
     }
 
     public IncomeSourceDTO getIncomeSourceById(UUID id) {
