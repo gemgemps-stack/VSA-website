@@ -11,7 +11,7 @@ import orderService from '../../services/orderService';
 import teamService from '../../services/teamService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 
-const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
+const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 const ORDER_STATUS = {
   FOR_CLIENT_APPROVAL: 'FOR_CLIENT_APPROVAL',
   NOT_APPROVED: 'NOT_APPROVED',
@@ -21,6 +21,17 @@ const ORDER_STATUS = {
   FULLY_PAID: 'FULLY_PAID',
   CANCELLED: 'CANCELLED',
 };
+
+const PAYMENT_MODE_REQUIRED_STATUSES = new Set([
+  ORDER_STATUS.DOWN_PAYMENT_PENDING,
+  ORDER_STATUS.IN_PRODUCTION,
+  ORDER_STATUS.NOT_YET_FULLY_PAID,
+]);
+
+const requiresModeOfPayment = (status) => PAYMENT_MODE_REQUIRED_STATUSES.has((status || '').toUpperCase());
+const isApprovalToDownPaymentPendingTransition = (currentStatus, nextStatus) =>
+  (currentStatus || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL &&
+  (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING;
 
 const ORDER_FILTERS = [
   { key: 'ALL', label: 'All' },
@@ -98,6 +109,8 @@ const createInitialFormData = () => ({
   freebie: '',
   discount: '0',
   downPayment: '0',
+  referenceNumber: '',
+  checkNumber: '',
   shop: '',
   orderDate: new Date().toISOString().split('T')[0],
   modeOfPayment: '',
@@ -120,6 +133,8 @@ const Orders = () => {
   const [remarks, setRemarks] = useState('');
   const [paymentUpdateAmount, setPaymentUpdateAmount] = useState('');
   const [paymentCheckNumber, setPaymentCheckNumber] = useState('');
+  const [paymentModeOfPayment, setPaymentModeOfPayment] = useState('');
+  const [downPaymentAmount, setDownPaymentAmount] = useState('');
   const [incomeEntries, setIncomeEntries] = useState([]);
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchQuery, setSearchQuery] = useState('');
@@ -318,6 +333,8 @@ const Orders = () => {
             finalValue = String(maxQty);
           } else if (isNaN(numValue) && value !== '') {
              finalValue = '0';
+          } else if (!isNaN(numValue) && numValue < 0) {
+             finalValue = '0';
           }
         }
       }
@@ -359,7 +376,7 @@ const Orders = () => {
   const handleDownPaymentChange = (e) => {
     const value = e.target.value;
     if (value === '') {
-      setFormData({ ...formData, downPayment: value });
+      setFormData({ ...formData, downPayment: value, referenceNumber: '', checkNumber: '' });
       return;
     }
     const numValue = Number.parseFloat(value);
@@ -374,6 +391,8 @@ const Orders = () => {
     setRemarks(order.remarks || '');
     setPaymentUpdateAmount('');
     setPaymentCheckNumber('');
+    setPaymentModeOfPayment(order.modeOfPayment || '');
+    setDownPaymentAmount('');
     setDetailsOpen(true);
   };
 
@@ -391,6 +410,8 @@ const Orders = () => {
       setRemarks(targetOrder.remarks || '');
       setPaymentUpdateAmount('');
       setPaymentCheckNumber('');
+      setPaymentModeOfPayment(targetOrder.modeOfPayment || '');
+      setDownPaymentAmount('');
       setDetailsOpen(true);
     }
   }, [location.state, orders]);
@@ -413,6 +434,8 @@ const Orders = () => {
       freebie: order.freebie || '',
       discount: order.discount != null ? String(order.discount) : '0',
       downPayment: order.downPayment != null ? String(order.downPayment) : '0',
+      referenceNumber: order.referenceNumber || '',
+      checkNumber: order.checkNumber || '',
       shop: order.shop || '',
       orderDate: order.orderDate || new Date().toISOString().split('T')[0],
       modeOfPayment: order.modeOfPayment || '',
@@ -448,7 +471,28 @@ const Orders = () => {
       const invalidItem = formData.items.find(item => !item.productName.trim() || !item.unitPrice || !item.quantity);
       if (invalidItem) { alert('Please fill in all product details.'); return; }
       if (!formData.shop) { alert('Please select a shop.'); return; }
-      if (!formData.modeOfPayment) { alert('Please select a mode of payment.'); return; }
+      // Validate non-negative discount, quantities, and down payment
+      const discount = Number(formData.discount || 0);
+      if (discount < 0) { alert('Discount cannot be less than zero.'); return; }
+
+      const negativeQty = formData.items.find(item => Number(item.quantity) < 0);
+      if (negativeQty) { alert('Item quantity cannot be less than zero.'); return; }
+
+      const downPaymentAmount = Number(formData.downPayment || 0);
+      if (downPaymentAmount < 0) { alert('Down payment cannot be less than zero.'); return; }
+      const statusToSave = (editingOrder?.status === ORDER_STATUS.NOT_APPROVED)
+        ? ORDER_STATUS.FOR_CLIENT_APPROVAL
+        : (editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL);
+      const selectedModeOfPayment = formData.modeOfPayment.trim();
+      if (requiresModeOfPayment(statusToSave) && !selectedModeOfPayment) {
+        alert('Please select a mode of payment.');
+        return;
+      }
+      const discountedTotal = getDiscountedTotal();
+      if (downPaymentAmount > discountedTotal) {
+        alert(`Down payment cannot exceed the total discounted amount (${formatMoney(discountedTotal)}).`);
+        return;
+      }
 
       const payload = {
         clientId: formData.clientId || null,
@@ -459,14 +503,18 @@ const Orders = () => {
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
         })),
-        discount: Number(formData.discount || 0),
-        downPayment: Number(formData.downPayment || 0),
+        discount: discount,
+        downPayment: downPaymentAmount,
+        referenceNumber: downPaymentAmount > 0 ? formData.referenceNumber.trim() || null : null,
+        checkNumber: downPaymentAmount > 0 ? formData.checkNumber.trim() || null : null,
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
-        modeOfPayment: formData.modeOfPayment.trim(),
+        modeOfPayment: requiresModeOfPayment(statusToSave)
+          ? selectedModeOfPayment
+          : null,
         remarks: formData.notes.trim() || null,
         freebie: formData.freebie.trim() || null,
-        status: (editingOrder?.status === ORDER_STATUS.NOT_APPROVED) ? ORDER_STATUS.FOR_CLIENT_APPROVAL : (editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL),
+        status: statusToSave,
       };
 
       if (editingOrder) {
@@ -488,16 +536,24 @@ const Orders = () => {
     setSelectedOrder(null);
     setPaymentUpdateAmount('');
     setPaymentCheckNumber('');
+    setPaymentModeOfPayment('');
+    setDownPaymentAmount('');
   };
 
   const updateSelectedOrderStatus = async (newStatus) => {
     if (!selectedOrder) return;
+    const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+    if (requiresModeOfPayment(newStatus) && !effectiveModeOfPayment && !isApprovalToDownPaymentPendingTransition(selectedOrder.status, newStatus)) {
+      alert('Please select a mode of payment before changing the order to this status.');
+      return;
+    }
     try {
       const payload = {
         ...selectedOrder,
         status: newStatus,
         remarks: remarks,
         referenceNumber: referenceNumber,
+        modeOfPayment: effectiveModeOfPayment || null,
       };
       await orderService.updateOrder(selectedOrder.id, payload);
       setSelectedOrder(prev => ({ ...prev, status: newStatus }));
@@ -505,31 +561,6 @@ const Orders = () => {
     } catch (error) {
       alert(`Failed to update status: ${getApiErrorMessage(error)}`);
     }
-  };
-
-  const handleFullPaymentYes = async () => {
-    if (!selectedOrder) return;
-    const remainingBalance = getRemainingBalance(selectedOrder);
-    if (remainingBalance <= 0) {
-      await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
-      return;
-    }
-
-    try {
-      await orderService.applyPaymentUpdate(selectedOrder.id, {
-        amount: remainingBalance,
-        referenceNumber: referenceNumber.trim() || null,
-        remarks: remarks.trim() || null,
-      });
-      loadOrders();
-      loadIncomeEntries();
-    } catch (error) {
-      alert(`Failed to record payment: ${getApiErrorMessage(error)}`);
-    }
-  };
-
-  const handleNotYetFullyPaid = async () => {
-    await updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID);
   };
 
   const handlePaymentUpdate = async () => {
@@ -541,19 +572,71 @@ const Orders = () => {
       return;
     }
 
+    const remainingBalance = getRemainingBalance(selectedOrder);
+    if (amount > remainingBalance) {
+      alert(`Payment update cannot exceed the remaining balance of ${formatMoney(remainingBalance)}.`);
+      return;
+    }
+
     try {
+      const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+      if (!effectiveModeOfPayment) {
+        alert('Please select a mode of payment before recording this payment.');
+        return;
+      }
       await orderService.applyPaymentUpdate(selectedOrder.id, {
         amount,
         checkNumber: paymentCheckNumber.trim() || null,
         referenceNumber: referenceNumber.trim() || null,
+        modeOfPayment: effectiveModeOfPayment,
         remarks: remarks.trim() || null,
       });
       setPaymentUpdateAmount('');
       setPaymentCheckNumber('');
+      setReferenceNumber('');
+      setPaymentModeOfPayment('');
       loadOrders();
       loadIncomeEntries();
     } catch (error) {
       alert(`Failed to save payment update: ${getApiErrorMessage(error)}`);
+    }
+  };
+
+  const handleDownPaymentPaid = async () => {
+    if (!selectedOrder) return;
+
+    const existingDownPayment = Number(selectedOrder.downPayment || 0);
+    const enteredAmount = Number(downPaymentAmount || 0);
+
+    if (existingDownPayment <= 0 && (!Number.isFinite(enteredAmount) || enteredAmount <= 0)) {
+      alert('Cannot proceed. Please enter a down payment amount.');
+      return;
+    }
+
+    try {
+      const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+      if (!effectiveModeOfPayment) {
+        alert('Please select a mode of payment before recording this down payment.');
+        return;
+      }
+      if (enteredAmount > 0) {
+        await orderService.applyPaymentUpdate(selectedOrder.id, {
+          amount: enteredAmount,
+          checkNumber: paymentCheckNumber.trim() || null,
+          referenceNumber: referenceNumber.trim() || null,
+          modeOfPayment: effectiveModeOfPayment,
+          remarks: remarks.trim() || null,
+        });
+      }
+
+      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION);
+      setDownPaymentAmount('');
+      setPaymentCheckNumber('');
+      setReferenceNumber('');
+      setPaymentModeOfPayment('');
+      loadIncomeEntries();
+    } catch (error) {
+      alert(`Failed to save down payment: ${getApiErrorMessage(error)}`);
     }
   };
 
@@ -770,6 +853,7 @@ const Orders = () => {
                       <label style={styles.label}>{index === 0 ? 'Quantity *' : ''}</label>
                       <input
                         type="number"
+                        min="0"
                         style={styles.input}
                         value={item.quantity}
                         onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
@@ -797,7 +881,20 @@ const Orders = () => {
               <div style={{ ...styles.formGrid, gridTemplateColumns: '0.5fr 1fr 1fr 1.5fr' }}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Discount %</label>
-                  <input type="number" style={styles.input} value={formData.discount} onChange={(e) => setFormData(p => ({ ...p, discount: e.target.value }))} placeholder="0" />
+                  <input
+                    type="number"
+                    min="0"
+                    style={styles.input}
+                    value={formData.discount}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') { setFormData(p => ({ ...p, discount: v })); return; }
+                      const n = Number.parseFloat(v);
+                      if (!Number.isFinite(n)) return;
+                      setFormData(p => ({ ...p, discount: String(Math.max(0, n)) }));
+                    }}
+                    placeholder="0"
+                  />
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Down Payment</label>
@@ -813,7 +910,39 @@ const Orders = () => {
                 </div>
               </div>
 
-              <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr' }}>
+              {(Number(formData.downPayment || 0) > 0 || requiresModeOfPayment(editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL)) && (
+                <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Reference Number</label>
+                    <input
+                      type="text"
+                      style={styles.input}
+                      value={formData.referenceNumber}
+                      onChange={(e) => setFormData(p => ({ ...p, referenceNumber: e.target.value }))}
+                      placeholder="Reference #"
+                    />
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Check Number</label>
+                    <input
+                      type="text"
+                      style={styles.input}
+                      value={formData.checkNumber}
+                      onChange={(e) => setFormData(p => ({ ...p, checkNumber: e.target.value }))}
+                      placeholder="Check #"
+                    />
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Mode of Payment</label>
+                    <select style={styles.input} value={formData.modeOfPayment} onChange={(e) => setFormData(p => ({ ...p, modeOfPayment: e.target.value }))}>
+                      <option value="">Select Payment</option>
+                      {PAYMENT_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr' }}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Shop *</label>
                   <input
@@ -823,13 +952,6 @@ const Orders = () => {
                     readOnly
                     placeholder="Select a product first"
                   />
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Mode of Payment *</label>
-                  <select style={styles.input} value={formData.modeOfPayment} onChange={(e) => setFormData(p => ({ ...p, modeOfPayment: e.target.value }))}>
-                    <option value="">Select Payment</option>
-                    {PAYMENT_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Order Date *</label>
@@ -954,6 +1076,9 @@ const Orders = () => {
                                     <span style={styles.financialLabel}>
                                       Check No.: {payment.checkNumber || 'N/A'}
                                     </span>
+                                    <span style={styles.financialLabel}>
+                                      Mode of Payment: {payment.paymentMethod || 'N/A'}
+                                    </span>
                                   </div>
                                   <strong>{formatMoney(payment.amount)}</strong>
                                 </div>
@@ -972,14 +1097,78 @@ const Orders = () => {
                   <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                     <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}>Order Cancelled</button>
                     <button style={{ ...styles.button, ...styles.buttonSecondary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_APPROVED)}>Not Approved</button>
-                    <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.DOWN_PAYMENT_PENDING)}>Approved by Client?</button>
+                    <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.DOWN_PAYMENT_PENDING)}>Approved by Client</button>
                   </div>
                 )}
 
                 {selectedOrder.status === ORDER_STATUS.DOWN_PAYMENT_PENDING && (
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                    <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}>Order Cancelled</button>
-                    <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION)}>Down Payment Paid</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Enter Down Payment Amount</label>
+                        <input
+                          type="number"
+                          value={downPaymentAmount}
+                          onChange={(e) => {
+                            const rawValue = e.target.value;
+                            if (rawValue === '') {
+                              setDownPaymentAmount('');
+                              return;
+                            }
+                            const numValue = Number(rawValue);
+                            const remainingBalance = selectedOrder ? getRemainingBalance(selectedOrder) : 0;
+                            if (!Number.isFinite(numValue) || numValue < 0) return;
+                            setDownPaymentAmount(String(Math.min(numValue, remainingBalance)));
+                          }}
+                          placeholder="0"
+                          min="0"
+                          style={styles.input}
+                        />
+                      </div>
+                      {(Number(downPaymentAmount) > 0) && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Reference Number</label>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={(e) => setReferenceNumber(e.target.value)}
+                              placeholder="Enter reference number"
+                              style={styles.input}
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Check Number</label>
+                            <input
+                              type="text"
+                              value={paymentCheckNumber}
+                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                              placeholder="Enter check number"
+                              style={styles.input}
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Mode of Payment</label>
+                            <select
+                              value={paymentModeOfPayment}
+                              onChange={(e) => setPaymentModeOfPayment(e.target.value)}
+                              style={styles.input}
+                            >
+                              <option value="">Select Payment</option>
+                              {PAYMENT_OPTIONS.map((payment) => (
+                                <option key={payment} value={payment}>
+                                  {payment}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}>Order Cancelled</button>
+                      <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={handleDownPaymentPaid}>Down Payment Paid</button>
+                    </div>
                   </div>
                 )}
 
@@ -992,7 +1181,17 @@ const Orders = () => {
                         style={styles.input}
                         placeholder="Input payment update"
                         value={paymentUpdateAmount}
-                        onChange={(e) => setPaymentUpdateAmount(e.target.value)}
+                        onChange={(e) => {
+                          const rawValue = e.target.value;
+                          if (rawValue === '') {
+                            setPaymentUpdateAmount('');
+                            return;
+                          }
+                          const amount = Number(rawValue);
+                          const remainingBalance = selectedOrder ? getRemainingBalance(selectedOrder) : 0;
+                          if (!Number.isFinite(amount) || amount < 0) return;
+                          setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
+                        }}
                       />
                       <input
                         type="text"
@@ -1008,6 +1207,18 @@ const Orders = () => {
                         value={referenceNumber}
                         onChange={(e) => setReferenceNumber(e.target.value)}
                       />
+                      <select
+                        style={styles.input}
+                        value={paymentModeOfPayment}
+                        onChange={(e) => setPaymentModeOfPayment(e.target.value)}
+                      >
+                        <option value="">Select Payment Method</option>
+                        {PAYMENT_OPTIONS.map((payment) => (
+                          <option key={payment} value={payment}>
+                            {payment}
+                          </option>
+                        ))}
+                      </select>
                       <textarea
                         style={styles.textarea}
                         placeholder="Enter Remarks"
@@ -1016,8 +1227,6 @@ const Orders = () => {
                       />
                       <div style={{ display: 'flex', gap: '10px' }}>
                         <button style={{ ...styles.button, ...styles.buttonPrimary, flex: 1 }} onClick={handlePaymentUpdate}>Save Payment Update</button>
-                        <button style={{ ...styles.button, ...styles.buttonSecondary, flex: 1 }} onClick={handleFullPaymentYes}>Mark Fully Paid</button>
-                        <button style={{ ...styles.button, ...styles.buttonSecondary, flex: 1 }} onClick={handleNotYetFullyPaid}>Not Yet Fully Paid</button>
                       </div>
                     </div>
                   </div>

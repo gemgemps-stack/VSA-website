@@ -25,8 +25,8 @@
 .modal-content {
   background: white;
   border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
+  width: 92%;
+  max-width: 760px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease-out;
   display: flex;
@@ -35,18 +35,23 @@
 }
 
 .modal-large {
-  width: 75vw;
-  max-width: 1200px;
+  width: 80vw;
+  max-width: 1320px;
 }
 
 .modal-xlarge {
-  width: 65vw;
-  max-width: 1100px;
+  width: 90vw;
+  max-width: 1480px;
+}
+
+.modal-finance {
+  width: 60vw;
+  max-width: 1200px;
 }
 
 .modal-attendance {
-  width: 45vw;
-  max-width: 700px;
+  width: 50vw;
+  max-width: 780px;
 }
 
 @keyframes slideUp {

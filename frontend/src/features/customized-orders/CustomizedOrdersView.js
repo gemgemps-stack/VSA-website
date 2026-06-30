@@ -11,7 +11,7 @@ import clientService from '../../services/clientService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
-const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit'];
+const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 
 const ORDER_STATUS = {
   FOR_CLIENT_APPROVAL: 'FOR_CLIENT_APPROVAL',
@@ -23,6 +23,17 @@ const ORDER_STATUS = {
   CANCELLED: 'CANCELLED',
   MANUFACTURED: 'MANUFACTURED',
 };
+
+const PAYMENT_MODE_REQUIRED_STATUSES = new Set([
+  ORDER_STATUS.DOWN_PAYMENT_PENDING,
+  ORDER_STATUS.IN_PRODUCTION,
+  ORDER_STATUS.NOT_YET_FULLY_PAID,
+]);
+
+const requiresModeOfPayment = (status) => PAYMENT_MODE_REQUIRED_STATUSES.has((status || '').toUpperCase());
+const isApprovalToDownPaymentPendingTransition = (currentStatus, nextStatus) =>
+  (currentStatus || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL &&
+  (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING;
 
 const INITIAL_PAGE_SIZE = 100;
 const ORDER_FILTERS = [
@@ -88,6 +99,8 @@ const createInitialFormData = () => ({
   freebie: '',
   discount: '0',
   downPayment: '0',
+  referenceNumber: '',
+  checkNumber: '',
   shop: '',
   orderDate: new Date().toISOString().split('T')[0],
   modeOfPayment: '',
@@ -108,6 +121,8 @@ const CustomizedOrders = () => {
   const [isReferenceNumberEditing, setIsReferenceNumberEditing] = useState(false);
   const [paymentUpdateAmount, setPaymentUpdateAmount] = useState('');
   const [paymentCheckNumber, setPaymentCheckNumber] = useState('');
+  const [paymentModeOfPayment, setPaymentModeOfPayment] = useState('');
+  const [downPaymentAmount, setDownPaymentAmount] = useState('');
   const [incomeEntries, setIncomeEntries] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -191,6 +206,8 @@ const CustomizedOrders = () => {
       setIsReferenceNumberEditing(false);
       setPaymentUpdateAmount('');
       setPaymentCheckNumber('');
+      setPaymentModeOfPayment(targetOrder.modeOfPayment || '');
+      setDownPaymentAmount('');
       setDetailsOpen(true);
     }
   }, [location.state, orders]);
@@ -331,7 +348,17 @@ const CustomizedOrders = () => {
   const handleItemChange = (index, field, value) => {
     setFormData((prev) => {
       const newItems = [...prev.items];
-      newItems[index] = { ...newItems[index], [field]: value };
+      // Prevent negative quantities
+      if (field === 'quantity') {
+        if (value === '') {
+          newItems[index] = { ...newItems[index], [field]: '' };
+        } else {
+          const n = Number.parseInt(value, 10);
+          newItems[index] = { ...newItems[index], [field]: Number.isFinite(n) ? String(Math.max(0, n)) : newItems[index][field] };
+        }
+      } else {
+        newItems[index] = { ...newItems[index], [field]: value };
+      }
       return { ...prev, items: newItems };
     });
   };
@@ -354,7 +381,7 @@ const CustomizedOrders = () => {
     const value = e.target.value;
 
     if (value === '') {
-      setFormData({ ...formData, downPayment: value });
+      setFormData({ ...formData, downPayment: value, referenceNumber: '', checkNumber: '' });
       return;
     }
 
@@ -456,17 +483,30 @@ const CustomizedOrders = () => {
         return;
       }
 
-      if (!formData.modeOfPayment) {
-        alert('Please select a mode of payment.');
-        return;
-      }
-
       const discount = Number(formData.discount || 0);
       const downPaymentAmount = Number(formData.downPayment || 0);
       const discountedTotal = getDiscountedTotal();
 
+      // Validate non-negative discount and quantities
+      if (discount < 0) {
+        alert('Discount cannot be less than zero.');
+        return;
+      }
+
+      const negativeQty = formData.items.find(item => Number(item.quantity) < 0);
+      if (negativeQty) {
+        alert('Item quantity cannot be less than zero.');
+        return;
+      }
+
       if (downPaymentAmount > discountedTotal) {
         alert(`Down payment cannot exceed the total discounted amount (${discountedTotal.toFixed(2)}).`);
+        return;
+      }
+      const statusToSave = editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL;
+      const selectedModeOfPayment = formData.modeOfPayment.trim();
+      if (requiresModeOfPayment(statusToSave) && !selectedModeOfPayment) {
+        alert('Please select a mode of payment.');
         return;
       }
 
@@ -482,12 +522,14 @@ const CustomizedOrders = () => {
         })),
         discount: Number.isFinite(discount) ? discount : 0,
         downPayment: Number.isFinite(downPaymentAmount) ? downPaymentAmount : 0,
-        shop: formData.shop.trim(),
+        referenceNumber: formData.referenceNumber.trim() || null,
+        checkNumber: formData.checkNumber.trim() || null,
+        shop: formData.shop.trim() || null,
         orderDate: formData.orderDate,
-        modeOfPayment: formData.modeOfPayment.trim(),
+        modeOfPayment: requiresModeOfPayment(statusToSave) ? selectedModeOfPayment : null,
         remarks: formData.notes.trim() || null,
         freebie: formData.freebie.trim() || null,
-        status: editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
+        status: statusToSave,
       };
 
       if (editingOrder) {
@@ -519,6 +561,8 @@ const CustomizedOrders = () => {
     setIsReferenceNumberEditing(false);
     setPaymentUpdateAmount('');
     setPaymentCheckNumber('');
+    setPaymentModeOfPayment(order.modeOfPayment || '');
+    setDownPaymentAmount('');
     setDetailsOpen(true);
   };
 
@@ -530,6 +574,8 @@ const CustomizedOrders = () => {
     setIsReferenceNumberEditing(false);
     setPaymentUpdateAmount('');
     setPaymentCheckNumber('');
+    setPaymentModeOfPayment('');
+    setDownPaymentAmount('');
   };
 
   const buildOrderPayload = (order, statusOverride) => ({
@@ -547,7 +593,7 @@ const CustomizedOrders = () => {
     downPayment: Number(order.downPayment || 0),
     shop: order.shop,
     orderDate: order.orderDate,
-    modeOfPayment: order.modeOfPayment,
+    modeOfPayment: paymentModeOfPayment.trim() || order.modeOfPayment || null,
     remarks: order.remarks || '',
     referenceNumber: referenceNumber.trim() || null,
     status: statusOverride || order.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
@@ -555,6 +601,12 @@ const CustomizedOrders = () => {
 
   const updateSelectedOrderStatus = async (newStatus) => {
     if (!selectedOrder) {
+      return;
+    }
+
+    const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+    if (requiresModeOfPayment(newStatus) && !effectiveModeOfPayment && !isApprovalToDownPaymentPendingTransition(selectedOrder.status, newStatus)) {
+      alert('Please select a mode of payment before changing the order to this status.');
       return;
     }
 
@@ -582,25 +634,38 @@ const CustomizedOrders = () => {
     }
   };
 
-  const handleFullPaymentYes = async () => {
+  const handlePaymentUpdate = async () => {
     if (!selectedOrder) {
       return;
     }
 
-    try {
-      const remainingBalance = getRemainingBalance(selectedOrder);
+    const amount = Number(paymentUpdateAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('Please enter a valid payment update amount.');
+      return;
+    }
 
-      if (remainingBalance <= 0) {
-        await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
+    const remainingBalance = getRemainingBalance(selectedOrder);
+    if (amount > remainingBalance) {
+      alert(`Payment update cannot exceed the remaining balance of ${formatMoney(remainingBalance)}.`);
+      return;
+    }
+
+    try {
+      const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+      if (!effectiveModeOfPayment) {
+        alert('Please select a mode of payment before recording this payment.');
         return;
       }
 
       await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
-        amount: remainingBalance,
-        referenceNumber: referenceNumber.trim() || null,
-        remarks: manufacturingNotes.trim() || null,
+        amount,
+        checkNumber: selectedOrder.checkNumber || null,
+        referenceNumber: selectedOrder.referenceNumber || null,
+        modeOfPayment: effectiveModeOfPayment,
+        remarks: selectedOrder.remarks || null,
       });
-
+      setPaymentUpdateAmount('');
       loadOrders();
       loadIncomeEntries();
     } catch (error) {
@@ -615,37 +680,57 @@ const CustomizedOrders = () => {
     }
   };
 
-  const handlePaymentUpdate = async () => {
+  const handleDownPaymentPaid = async () => {
     if (!selectedOrder) {
       return;
     }
 
-    const amount = Number(paymentUpdateAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      alert('Please enter a valid payment update amount.');
+    const remainingBalance = getRemainingBalance(selectedOrder);
+    const existingDownPayment = Number(selectedOrder.downPayment || 0);
+    const enteredAmount = Number(downPaymentAmount || 0);
+
+    if (existingDownPayment <= 0 && (!Number.isFinite(enteredAmount) || enteredAmount <= 0)) {
+      alert('Cannot proceed. Please enter a down payment amount.');
+      return;
+    }
+
+    if (enteredAmount > remainingBalance) {
+      alert(`Down payment cannot exceed the remaining balance of ${formatMoney(remainingBalance)}.`);
       return;
     }
 
     try {
-      await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
-        amount,
-        checkNumber: paymentCheckNumber.trim() || null,
-        referenceNumber: referenceNumber.trim() || null,
-        remarks: manufacturingNotes.trim() || null,
-      });
-      setPaymentUpdateAmount('');
+      const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+      if (!effectiveModeOfPayment) {
+        alert('Please select a mode of payment before recording this down payment.');
+        return;
+      }
+
+      if (enteredAmount > 0) {
+        await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
+          amount: enteredAmount,
+          checkNumber: paymentCheckNumber.trim() || null,
+          referenceNumber: referenceNumber.trim() || null,
+          modeOfPayment: effectiveModeOfPayment,
+          remarks: manufacturingNotes.trim() || null,
+        });
+      }
+
+      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION);
+      setDownPaymentAmount('');
       setPaymentCheckNumber('');
-      loadOrders();
+      setReferenceNumber('');
+      setPaymentModeOfPayment('');
       loadIncomeEntries();
     } catch (error) {
-      console.error('Error saving payment update:', error);
+      console.error('Error recording down payment:', error);
       const apiMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.response?.data?.detail ||
         error.message ||
         'Unknown error';
-      alert(`Failed to save payment update: ${apiMessage}`);
+      alert(`Failed to record down payment: ${apiMessage}`);
     }
   };
 
@@ -911,16 +996,17 @@ const CustomizedOrders = () => {
 	                        />
 	                      </div>
 	
-	                      <div style={styles.formGroup}>
-	                        <label style={styles.label}>{index === 0 ? 'Qty *' : ''}</label>
-	                        <input
-	                          type="number"
-	                          value={item.quantity}
-	                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-	                          placeholder="0"
-	                          style={styles.input}
-	                        />
-	                      </div>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>{index === 0 ? 'Qty *' : ''}</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                            placeholder="0"
+                            style={styles.input}
+                          />
+                        </div>
 	
 	                      <div style={styles.formGroup}>
 	                        <label style={styles.label}>{index === 0 ? 'Total' : ''}</label>
@@ -972,8 +1058,18 @@ const CustomizedOrders = () => {
                       <label style={styles.label}>Discount %</label>
                       <input
                         type="number"
+                        min="0"
                         value={formData.discount}
-                        onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === '') {
+                            setFormData({ ...formData, discount: v });
+                            return;
+                          }
+                          const n = Number.parseFloat(v);
+                          if (!Number.isFinite(n)) return;
+                          setFormData({ ...formData, discount: String(Math.max(0, n)) });
+                        }}
                         placeholder="0"
                         step="0.01"
                         style={styles.input}
@@ -988,6 +1084,7 @@ const CustomizedOrders = () => {
                         onChange={handleDownPaymentChange}
                         placeholder="0.00"
                         step="0.01"
+                        min="0"
                         style={styles.input}
                       />
                     </div>
@@ -1014,8 +1111,48 @@ const CustomizedOrders = () => {
                     </div>
                   </div>
 
-                  {/* Row 4: Shop, Mode of Payment, Order Date */}
-                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              {(Number(formData.downPayment || 0) > 0 || requiresModeOfPayment(editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL)) && (
+                <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Reference Number</label>
+                        <input
+                          type="text"
+                          value={formData.referenceNumber}
+                          onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                          placeholder="Enter reference number"
+                          style={styles.input}
+                        />
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Check Number</label>
+                        <input
+                          type="text"
+                          value={formData.checkNumber}
+                          onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value })}
+                          placeholder="Enter check number"
+                          style={styles.input}
+                        />
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Mode of Payment</label>
+                        <select
+                          value={formData.modeOfPayment}
+                          onChange={(e) => setFormData({ ...formData, modeOfPayment: e.target.value })}
+                          style={styles.input}
+                        >
+                          <option value="">Select Payment Method</option>
+                          {PAYMENT_OPTIONS.map((payment) => (
+                            <option key={payment} value={payment}>
+                              {payment}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Row 4: Shop and Order Date */}
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(2, 1fr)' }}>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Shop *</label>
                       <select
@@ -1027,22 +1164,6 @@ const CustomizedOrders = () => {
                         {SHOP_OPTIONS.map((shop) => (
                           <option key={shop} value={shop}>
                             {shop}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Mode of Payment *</label>
-                      <select
-                        value={formData.modeOfPayment}
-                        onChange={(e) => setFormData({ ...formData, modeOfPayment: e.target.value })}
-                        style={styles.input}
-                      >
-                        <option value="">Select Payment Method</option>
-                        {PAYMENT_OPTIONS.map((payment) => (
-                          <option key={payment} value={payment}>
-                            {payment}
                           </option>
                         ))}
                       </select>
@@ -1215,6 +1336,9 @@ const CustomizedOrders = () => {
                                     <span style={styles.financialLabel}>
                                       Check No.: {payment.checkNumber || 'N/A'}
                                     </span>
+                                    <span style={styles.financialLabel}>
+                                      Mode of Payment: {payment.paymentMethod || 'N/A'}
+                                    </span>
                                   </div>
                                   <strong>{formatMoney(payment.amount)}</strong>
                                 </div>
@@ -1235,130 +1359,168 @@ const CustomizedOrders = () => {
                   <>
                     {(selectedOrder?.status === ORDER_STATUS.IN_PRODUCTION ||
                       selectedOrder?.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
-                      <div style={styles.statusActions}>
-                        <p style={styles.statusPrompt}>Payment Update</p>
-                        <div style={styles.formGroup}>
-                          <input
-                            type="number"
-                            value={paymentUpdateAmount}
-                            onChange={(e) => setPaymentUpdateAmount(e.target.value)}
-                            placeholder="Input payment update"
-                            style={styles.input}
-                          />
+                      <div style={styles.paymentUpdateCard}>
+                        <h4 style={styles.paymentUpdateTitle}>Payment Update</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <div style={styles.formGroup}>
+                            <input
+                              type="number"
+                              value={paymentUpdateAmount}
+                              onChange={(e) => {
+                                const rawValue = e.target.value;
+                                if (rawValue === '') {
+                                  setPaymentUpdateAmount('');
+                                  return;
+                                }
+                                const amount = Number(rawValue);
+                                const remainingBalance = selectedOrder ? getRemainingBalance(selectedOrder) : 0;
+                                if (!Number.isFinite(amount) || amount < 0) return;
+                                setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
+                              }}
+                              placeholder="Input payment update"
+                              style={styles.input}
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <input
+                              type="text"
+                              value={paymentCheckNumber}
+                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                              placeholder="Check number (optional)"
+                              style={styles.input}
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={(e) => setReferenceNumber(e.target.value)}
+                              placeholder="Enter Reference Number"
+                              style={styles.input}
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <select
+                              value={paymentModeOfPayment}
+                              onChange={(e) => setPaymentModeOfPayment(e.target.value)}
+                              style={styles.input}
+                            >
+                              <option value="">Select Payment Method</option>
+                              {PAYMENT_OPTIONS.map((payment) => (
+                                <option key={payment} value={payment}>
+                                  {payment}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div style={styles.formGroup}>
+                            <textarea
+                              style={styles.textarea}
+                              placeholder="Enter Remarks"
+                              value={manufacturingNotes}
+                              onChange={(e) => setManufacturingNotes(e.target.value)}
+                            />
+                          </div>
                         </div>
-                        <div style={styles.formGroup}>
-                          <input
-                            type="text"
-                            value={paymentCheckNumber}
-                            onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                            placeholder="Check number (optional)"
-                            style={styles.input}
-                          />
-                        </div>
-                        <div style={styles.modalActions}>
+                        <div style={styles.paymentUpdateActions}>
                           <button
                             onClick={handlePaymentUpdate}
                             style={{
                               ...styles.button,
                               ...styles.buttonPrimary,
+                              width: '100%',
                             }}
                           >
                             Save Payment Update
                           </button>
-                          <button
-                            onClick={handleFullPaymentYes}
-                            style={{
-                              ...styles.button,
-                              ...styles.buttonSecondary,
-                            }}
-                          >
-                            Mark Fully Paid
-                          </button>
                         </div>
                       </div>
                     )}
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Reference Number</label>
-                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <input
-                          type="text"
-                          value={referenceNumber}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setReferenceNumber(value);
-                            setSelectedOrder((prev) =>
-                              prev ? { ...prev, referenceNumber: value } : prev
-                            );
-                          }}
-                          placeholder="Enter reference number"
-                          readOnly={
-                            selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                            !isReferenceNumberEditing
-                          }
-                          style={{
-                            ...styles.input,
-                            ...(selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                            !isReferenceNumberEditing
-                              ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
-                              : {}),
-                          }}
-                        />
-                        {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                          !isReferenceNumberEditing && (
-                            <button
-                              type="button"
-                              style={{
-                                ...styles.button,
-                                ...styles.buttonSecondary,
-                              }}
-                              onClick={() => setIsReferenceNumberEditing(true)}
-                            >
-                              Edit
-                            </button>
-                          )}
-                        {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                          isReferenceNumberEditing && (
-                            <>
-                              <button
-                                type="button"
-                                style={{
-                                  ...styles.button,
-                                  ...styles.buttonPrimary,
-                                }}
-                                onClick={handleSaveReferenceNumber}
-                              >
-                                Save
-                              </button>
+                    {selectedOrder?.status === ORDER_STATUS.FULLY_PAID && (
+                      <div style={styles.formGroup}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            value={referenceNumber}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setReferenceNumber(value);
+                              setSelectedOrder((prev) =>
+                                prev ? { ...prev, referenceNumber: value } : prev
+                              );
+                            }}
+                            placeholder="Enter reference number"
+                            readOnly={
+                              selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                              !isReferenceNumberEditing
+                            }
+                            style={{
+                              ...styles.input,
+                              ...(selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                              !isReferenceNumberEditing
+                                ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
+                                : {}),
+                            }}
+                          />
+                          {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                            !isReferenceNumberEditing && (
                               <button
                                 type="button"
                                 style={{
                                   ...styles.button,
                                   ...styles.buttonSecondary,
                                 }}
-                                onClick={handleCancelReferenceNumberEdit}
+                                onClick={() => setIsReferenceNumberEditing(true)}
                               >
-                                Cancel
+                                Edit
                               </button>
-                            </>
-                          )}
+                            )}
+                          {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
+                            isReferenceNumberEditing && (
+                              <>
+                                <button
+                                  type="button"
+                                  style={{
+                                    ...styles.button,
+                                    ...styles.buttonPrimary,
+                                  }}
+                                  onClick={handleSaveReferenceNumber}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{
+                                    ...styles.button,
+                                    ...styles.buttonSecondary,
+                                  }}
+                                  onClick={handleCancelReferenceNumberEdit}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                        </div>
                       </div>
-                    </div>
-                    <div style={styles.notesSection}>
-                      <label style={styles.label}>Remarks</label>
-                      <textarea
-                        value={manufacturingNotes}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setManufacturingNotes(value);
-                          setSelectedOrder((prev) =>
-                            prev ? { ...prev, remarks: value } : prev
-                          );
-                        }}
-                        onBlur={handleRemarksBlur}
-                        placeholder="Enter remarks or comments"
-                        style={styles.notesTextarea}
-                      />
-                    </div>
+                    )}
+                    {selectedOrder?.status === ORDER_STATUS.FULLY_PAID && (
+                      <div style={styles.notesSection}>
+                        <label style={styles.label}>Remarks</label>
+                        <textarea
+                          value={manufacturingNotes}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setManufacturingNotes(value);
+                            setSelectedOrder((prev) =>
+                              prev ? { ...prev, remarks: value } : prev
+                            );
+                          }}
+                          onBlur={handleRemarksBlur}
+                          placeholder="Enter remarks or comments"
+                          style={styles.notesTextarea}
+                        />
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -1392,49 +1554,80 @@ const CustomizedOrders = () => {
 
                 {selectedOrder?.status === ORDER_STATUS.DOWN_PAYMENT_PENDING && (
                   <div style={styles.statusActions}>
-                    <p style={styles.statusPrompt}>Deposit paid?</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginBottom: '15px' }}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Enter Down Payment Amount</label>
+                        <input
+                          type="number"
+                          value={downPaymentAmount}
+                          onChange={(e) => {
+                            const rawValue = e.target.value;
+                            if (rawValue === '') {
+                              setDownPaymentAmount('');
+                              return;
+                            }
+                            const numValue = Number(rawValue);
+                            const remainingBalance = selectedOrder ? getRemainingBalance(selectedOrder) : 0;
+                            if (!Number.isFinite(numValue) || numValue < 0) return;
+                            setDownPaymentAmount(String(Math.min(numValue, remainingBalance)));
+                          }}
+                          placeholder="0"
+                          min="0"
+                          style={styles.input}
+                        />
+                      </div>
+                      {(Number(downPaymentAmount) > 0) && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Reference Number</label>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={(e) => setReferenceNumber(e.target.value)}
+                              placeholder="Enter reference number"
+                              style={styles.input}
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Check Number</label>
+                            <input
+                              type="text"
+                              value={paymentCheckNumber}
+                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                              placeholder="Enter check number"
+                              style={styles.input}
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Mode of Payment</label>
+                            <select
+                              value={paymentModeOfPayment}
+                              onChange={(e) => setPaymentModeOfPayment(e.target.value)}
+                              style={styles.input}
+                            >
+                              <option value="">Select Payment Method</option>
+                              {PAYMENT_OPTIONS.map((payment) => (
+                                <option key={payment} value={payment}>
+                                  {payment}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <p style={styles.statusPrompt}>Down Payment Paid?</p>
                     <div style={styles.modalActions}>
                       <button
-                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION)}
+                        onClick={handleDownPaymentPaid}
                         style={{
                           ...styles.button,
                           ...styles.buttonPrimary,
                         }}
                       >
-                        Deposit Paid  
+                        Down Payment Paid
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {(selectedOrder?.status === ORDER_STATUS.IN_PRODUCTION ||
-                  selectedOrder?.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
-                  <div style={styles.statusActions}>
-                    {selectedOrder?.status !== ORDER_STATUS.FULLY_PAID && (
-                      <>
-                        <p style={styles.statusPrompt}>Full Payment Complete?</p>
-                        <div style={styles.modalActions}>
-                          <button
-                            onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
-                            style={{
-                              ...styles.button,
-                              ...styles.buttonSecondary,
-                            }}
-                          >
-                            Not Yet Fully Paid
-                          </button>
-                          <button
-                            onClick={handleFullPaymentYes}
-                            style={{
-                              ...styles.button,
-                              ...styles.buttonPrimary,
-                            }}
-                          >
-                            Fully Paid
-                          </button>
-                        </div>
-                      </>
-                    )}
                   </div>
                 )}
 
@@ -1708,10 +1901,25 @@ const styles = {
   statusActions: {
     marginBottom: '20px',
   },
+  paymentUpdateCard: {
+    marginTop: '20px',
+    padding: '15px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    backgroundColor: '#fff',
+  },
+  paymentUpdateTitle: {
+    margin: '0 0 10px 0',
+    fontSize: '1.1rem',
+    color: '#222',
+  },
   statusPrompt: {
     margin: '0 0 12px',
     fontWeight: '600',
     color: '#444',
+  },
+  paymentUpdateActions: {
+    marginTop: '10px',
   },
   successState: {
     padding: '15px',

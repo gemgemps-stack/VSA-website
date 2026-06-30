@@ -2085,3 +2085,16 @@
   cursor: not-allowed;
   transform: none;
 }
+
+/* Income Reporting Summary One-Row Layout */
+.income-reporting-summary {
+  /* Adjusted: Report Total 46%, Range 35%, Entries 15% */
+  grid-template-columns: 46% 35% 15% !important;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .income-reporting-summary {
+    grid-template-columns: 1fr !important;
+  }
+}

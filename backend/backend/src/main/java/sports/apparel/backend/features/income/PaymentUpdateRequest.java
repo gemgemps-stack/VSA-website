@@ -21,6 +21,8 @@ public class PaymentUpdateRequest {
 
     private String checkNumber;
 
+    private String modeOfPayment;
+
     private String remarks;
 
     private BigDecimal downPayment;

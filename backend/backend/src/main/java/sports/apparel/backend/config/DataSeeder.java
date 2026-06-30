@@ -45,8 +45,10 @@ public class DataSeeder {
         return args -> {
             boolean localProfile = Arrays.stream(environment.getActiveProfiles())
                     .anyMatch(profile -> "local".equalsIgnoreCase(profile));
+            String datasourceUrl = environment.getProperty("spring.datasource.url", "");
+            boolean h2Database = datasourceUrl.toLowerCase().startsWith("jdbc:h2:");
 
-            if (!bootstrapAdminEnabled && !localProfile) {
+            if (!bootstrapAdminEnabled && (!localProfile || !h2Database)) {
                 return;
             }
 

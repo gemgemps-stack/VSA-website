@@ -43,12 +43,18 @@ const probeBaseUrl = async (baseUrl) => {
 };
 
 const discoverApiBaseUrl = async () => {
-  if (resolvedApiBaseUrl) {
+  // If we already have a resolved URL from EXPLICIT_API_BASE_URL, use it immediately
+  if (EXPLICIT_API_BASE_URL && isLocalUrl(EXPLICIT_API_BASE_URL)) {
+    return EXPLICIT_API_BASE_URL;
+  }
+
+  if (resolvedApiBaseUrl && resolvedApiBaseUrl !== EXPLICIT_API_BASE_URL) {
     return resolvedApiBaseUrl;
   }
 
   if (!resolveApiBaseUrlPromise) {
     resolveApiBaseUrlPromise = (async () => {
+      // Only do local discovery if we're in a browser on localhost and no explicit URL is set
       if (preferLocalDiscovery || !EXPLICIT_API_BASE_URL) {
         for (const port of LOCAL_API_PORTS) {
           const candidate = `http://localhost:${port}`;
@@ -59,6 +65,7 @@ const discoverApiBaseUrl = async () => {
         }
       }
 
+      // Fallback to explicit URL or default
       resolvedApiBaseUrl = EXPLICIT_API_BASE_URL || 'http://localhost:8080';
       return resolvedApiBaseUrl;
     })();

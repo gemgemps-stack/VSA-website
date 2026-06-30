@@ -53,6 +53,10 @@ public class CustomizedOrderService {
         }
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
+        String resolvedStatus = resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL);
+        String resolvedModeOfPayment = resolveStoredModeOfPayment(request.getModeOfPayment(), null);
+
+        validateModeOfPaymentForStatus(resolvedStatus, resolvedModeOfPayment);
 
         CustomizedOrder order = new CustomizedOrder();
         order.setJobOrderNo(jobOrderNumberService.generateJobOrderNumber(request.getOrderDate()));
@@ -64,10 +68,10 @@ public class CustomizedOrderService {
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
-        order.setModeOfPayment(request.getModeOfPayment());
+        order.setModeOfPayment(resolvedModeOfPayment);
         order.setRemarks(request.getRemarks());
         order.setReferenceNumber(request.getReferenceNumber());
-        order.setStatus(resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL));
+        order.setStatus(resolvedStatus);
 
         if (request.getItems() != null) {
             List<CustomizedOrderItem> items = request.getItems().stream().map(itemReq -> {
@@ -87,7 +91,7 @@ public class CustomizedOrderService {
 
         BigDecimal paymentAmount = determineInitialPaymentAmount(savedOrder, request.getDownPayment());
         if (paymentAmount.compareTo(BigDecimal.ZERO) > 0) {
-            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), null,
+            recordIncomeForOrder(savedOrder, paymentAmount, request.getReferenceNumber(), request.getCheckNumber(), request.getModeOfPayment(),
                     STATUS_FULLY_PAID.equalsIgnoreCase(savedOrder.getStatus()) ? "FULL_PAYMENT" : "DOWN_PAYMENT");
         }
 
@@ -146,6 +150,9 @@ public class CustomizedOrderService {
         }
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
+        String oldStatus = order.getStatus();
+        String newStatus = resolveStatus(request.getStatus(), order.getStatus());
+        String resolvedModeOfPayment = resolveStoredModeOfPayment(request.getModeOfPayment(), order.getModeOfPayment());
 
         order.setClient(client);
         order.setClientName(request.getClientName());
@@ -155,16 +162,17 @@ public class CustomizedOrderService {
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
-        order.setModeOfPayment(request.getModeOfPayment());
+        order.setModeOfPayment(resolvedModeOfPayment);
         if (request.getRemarks() != null) {
             order.setRemarks(request.getRemarks());
         }
         if (request.getReferenceNumber() != null) {
             order.setReferenceNumber(request.getReferenceNumber());
         }
-        String oldStatus = order.getStatus();
-        order.setStatus(resolveStatus(request.getStatus(), order.getStatus()));
-        String newStatus = order.getStatus();
+        if (!isApprovalToDownPaymentPendingTransition(oldStatus, newStatus)) {
+            validateModeOfPaymentForStatus(newStatus, resolvedModeOfPayment);
+        }
+        order.setStatus(newStatus);
 
         if (request.getItems() != null) {
             List<CustomizedOrderItem> existingItems = order.getItems();
@@ -205,7 +213,7 @@ public class CustomizedOrderService {
         if (STATUS_FULLY_PAID.equalsIgnoreCase(newStatus) && !STATUS_FULLY_PAID.equalsIgnoreCase(oldStatus)) {
             BigDecimal remainingBalance = calculateRemainingBalance(order);
             if (remainingBalance.compareTo(BigDecimal.ZERO) > 0) {
-                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), null, "FULL_PAYMENT");
+                recordIncomeForOrder(order, remainingBalance, request.getReferenceNumber(), request.getCheckNumber(), request.getModeOfPayment(), "FULL_PAYMENT");
             }
         }
 
@@ -242,7 +250,41 @@ public class CustomizedOrderService {
         return downPayment.min(totalDue);
     }
 
-    private void recordIncomeForOrder(CustomizedOrder order, BigDecimal amount, String referenceNumber, String checkNumber, String paymentCategory) {
+    private String resolveStoredModeOfPayment(String requestedModeOfPayment, String fallbackModeOfPayment) {
+        if (requestedModeOfPayment != null && !requestedModeOfPayment.isBlank()) {
+            return requestedModeOfPayment;
+        }
+        if (fallbackModeOfPayment != null && !fallbackModeOfPayment.isBlank()) {
+            return fallbackModeOfPayment;
+        }
+        return "";
+    }
+
+    private String resolvePaymentMethod(String requestedPaymentMethod, String fallbackPaymentMethod) {
+        if (requestedPaymentMethod != null && !requestedPaymentMethod.isBlank()) {
+            return requestedPaymentMethod;
+        }
+        return fallbackPaymentMethod;
+    }
+
+    private boolean requiresModeOfPayment(String status) {
+        return STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(status)
+                || STATUS_IN_PRODUCTION.equalsIgnoreCase(status)
+                || STATUS_NOT_YET_FULLY_PAID.equalsIgnoreCase(status);
+    }
+
+    private void validateModeOfPaymentForStatus(String status, String modeOfPayment) {
+        if (requiresModeOfPayment(status) && (modeOfPayment == null || modeOfPayment.isBlank())) {
+            throw new IllegalArgumentException("Mode of payment is required for Down Payment Pending, In Production, and Not Yet Fully Paid orders");
+        }
+    }
+
+    private boolean isApprovalToDownPaymentPendingTransition(String oldStatus, String newStatus) {
+        return STATUS_FOR_CLIENT_APPROVAL.equalsIgnoreCase(oldStatus)
+                && STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(newStatus);
+    }
+
+    private void recordIncomeForOrder(CustomizedOrder order, BigDecimal amount, String referenceNumber, String checkNumber, String paymentMethod, String paymentCategory) {
         BigDecimal paymentAmount = amount != null ? amount : BigDecimal.ZERO;
         if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
@@ -252,7 +294,7 @@ public class CustomizedOrderService {
         incomeRequest.setAmount(paymentAmount);
         incomeRequest.setIncomeDate(LocalDate.now());
         incomeRequest.setJobOrderNo(order.getJobOrderNo());
-        incomeRequest.setPaymentMethod(order.getModeOfPayment());
+        incomeRequest.setPaymentMethod(resolvePaymentMethod(paymentMethod, order.getModeOfPayment()));
         incomeRequest.setShopType(order.getShop());
         incomeRequest.setReferenceNumber(referenceNumber != null && !referenceNumber.isBlank() ? referenceNumber : order.getReferenceNumber());
         incomeRequest.setCheckNumber(checkNumber);
@@ -284,7 +326,10 @@ public class CustomizedOrderService {
             throw new IllegalArgumentException("Payment update cannot exceed the remaining balance");
         }
 
-        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber(), "PAYMENT_UPDATE");
+        String resolvedModeOfPayment = resolvePaymentMethod(request.getModeOfPayment(), order.getModeOfPayment());
+        validateModeOfPaymentForStatus(order.getStatus(), resolvedModeOfPayment);
+
+        recordIncomeForOrder(order, amount, request.getReferenceNumber(), request.getCheckNumber(), resolvedModeOfPayment, "PAYMENT_UPDATE");
         order.setRemarks(request.getRemarks() != null ? request.getRemarks() : order.getRemarks());
         if (amount.compareTo(remainingBalance) >= 0) {
             order.setStatus(STATUS_FULLY_PAID);

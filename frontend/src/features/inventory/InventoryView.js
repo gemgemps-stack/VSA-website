@@ -185,6 +185,12 @@ const Inventory = () => {
         return;
       }
 
+      const parsedQty = Number.parseInt(formData.quantity, 10);
+      if (!Number.isFinite(parsedQty) || parsedQty < 0) {
+        alert('Quantity cannot be less than zero');
+        return;
+      }
+
       const payload = {
         itemType: formData.itemType,
         jerseyType: formData.jerseyType.trim() || null,
@@ -390,8 +396,18 @@ const Inventory = () => {
                   <label>Quantity</label>
                   <input
                     type="number"
+                    min="0"
                     value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '') {
+                        setFormData({ ...formData, quantity: '' });
+                        return;
+                      }
+                      const n = Number.parseInt(v, 10);
+                      if (!Number.isFinite(n)) return;
+                      setFormData({ ...formData, quantity: String(Math.max(0, n)) });
+                    }}
                     required
                   />
                 </div>

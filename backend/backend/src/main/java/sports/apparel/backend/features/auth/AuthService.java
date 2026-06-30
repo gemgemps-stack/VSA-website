@@ -45,7 +45,7 @@ public class AuthService {
                     .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
             String storedPassword = user.getPassword();
-            boolean matches = storedPassword != null && passwordEncoder.matches(rawPassword, storedPassword);
+            boolean matches = passwordMatches(rawPassword, storedPassword);
 
             if (!matches) {
                 throw new BadCredentialsException("Invalid email or password");
@@ -95,5 +95,25 @@ public class AuthService {
                 user.getPassword(),
                 authorities
         );
+    }
+
+    private boolean passwordMatches(String rawPassword, String storedPassword) {
+        if (rawPassword == null || storedPassword == null || storedPassword.isBlank()) {
+            return false;
+        }
+
+        String normalizedStoredPassword = storedPassword.trim();
+
+        if (normalizedStoredPassword.startsWith("{bcrypt}")) {
+            return passwordEncoder.matches(rawPassword, normalizedStoredPassword.substring("{bcrypt}".length()));
+        }
+
+        if (normalizedStoredPassword.startsWith("$2a$")
+                || normalizedStoredPassword.startsWith("$2b$")
+                || normalizedStoredPassword.startsWith("$2y$")) {
+            return passwordEncoder.matches(rawPassword, normalizedStoredPassword);
+        }
+
+        return rawPassword.equals(normalizedStoredPassword);
     }
 }

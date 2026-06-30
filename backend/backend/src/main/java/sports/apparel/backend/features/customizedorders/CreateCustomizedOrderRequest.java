@@ -56,12 +56,13 @@ public class CreateCustomizedOrderRequest {
     @NotNull(message = "Order date is required")
     private LocalDate orderDate;
 
-    @NotBlank(message = "Mode of payment is required")
     private String modeOfPayment;
 
     private String remarks;
 
     private String referenceNumber;
+
+    private String checkNumber;
 
     private String status;
 }
