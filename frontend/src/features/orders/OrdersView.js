@@ -578,6 +578,13 @@ const Orders = () => {
       return;
     }
 
+    const trimmedCheckNumber = paymentCheckNumber.trim();
+    const trimmedReferenceNumber = referenceNumber.trim();
+    if (!trimmedCheckNumber && !trimmedReferenceNumber) {
+      alert('Please provide a Check Number or Reference Number.');
+      return;
+    }
+
     try {
       const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
       if (!effectiveModeOfPayment) {
@@ -586,8 +593,8 @@ const Orders = () => {
       }
       await orderService.applyPaymentUpdate(selectedOrder.id, {
         amount,
-        checkNumber: paymentCheckNumber.trim() || null,
-        referenceNumber: referenceNumber.trim() || null,
+        checkNumber: trimmedCheckNumber || null,
+        referenceNumber: trimmedReferenceNumber || null,
         modeOfPayment: effectiveModeOfPayment,
         remarks: remarks.trim() || null,
       });
@@ -668,7 +675,21 @@ const Orders = () => {
     detailRow: { display: 'flex', flexDirection: 'column', gap: '4px' },
     productRow: { display: 'grid', gridTemplateColumns: '57% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
     removeBtn: { backgroundColor: '#ff5252', color: 'white', border: 'none', borderRadius: '4px', width: '100%', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    addBtn: { backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' }
+    addBtn: { backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' },
+    paymentUpdateCard: {
+      marginTop: '20px',
+      padding: '15px',
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      width: '50%',
+      minWidth: '360px',
+      boxSizing: 'border-box',
+    },
+    paymentUpdateHint: {
+      margin: '0',
+      fontSize: '0.85rem',
+      color: '#666',
+    }
   };
 
   return (
@@ -1173,7 +1194,7 @@ const Orders = () => {
                 )}
 
                 {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION || selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
-                  <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px' }}>
+                  <div style={styles.paymentUpdateCard}>
                     <h4 style={{ margin: '0 0 10px 0' }}>Payment Update</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <input
@@ -1193,10 +1214,11 @@ const Orders = () => {
                           setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
                         }}
                       />
+                      <p style={styles.paymentUpdateHint}>Provide a Check Number or Reference Number</p>
                       <input
                         type="text"
                         style={styles.input}
-                        placeholder="Check number (optional)"
+                        placeholder="Enter Check Number"
                         value={paymentCheckNumber}
                         onChange={(e) => setPaymentCheckNumber(e.target.value)}
                       />

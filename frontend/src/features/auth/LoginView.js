@@ -16,8 +16,14 @@ const Login = () => {
     setError('');
     setLoading(true);
 
+    const form = e.currentTarget;
+    const emailInput = form.elements.email;
+    const passwordInput = form.elements.password;
+    const submittedEmail = (emailInput?.value || '').trim();
+    const submittedPassword = passwordInput?.value || '';
+
     try {
-      await login(email.trim(), password);
+      await login(submittedEmail, submittedPassword);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');

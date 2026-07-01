@@ -651,6 +651,13 @@ const CustomizedOrders = () => {
       return;
     }
 
+    const trimmedCheckNumber = paymentCheckNumber.trim();
+    const trimmedReferenceNumber = referenceNumber.trim();
+    if (!trimmedCheckNumber && !trimmedReferenceNumber) {
+      alert('Please provide a Check Number or Reference Number.');
+      return;
+    }
+
     try {
       const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
       if (!effectiveModeOfPayment) {
@@ -660,10 +667,10 @@ const CustomizedOrders = () => {
 
       await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
         amount,
-        checkNumber: selectedOrder.checkNumber || null,
-        referenceNumber: selectedOrder.referenceNumber || null,
+        checkNumber: trimmedCheckNumber || null,
+        referenceNumber: trimmedReferenceNumber || null,
         modeOfPayment: effectiveModeOfPayment,
-        remarks: selectedOrder.remarks || null,
+        remarks: manufacturingNotes.trim() || null,
       });
       setPaymentUpdateAmount('');
       loadOrders();
@@ -1382,11 +1389,12 @@ const CustomizedOrders = () => {
                             />
                           </div>
                           <div style={styles.formGroup}>
+                            <p style={styles.statusPrompt}>Provide a Check Number or Reference Number</p>
                             <input
                               type="text"
                               value={paymentCheckNumber}
                               onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                              placeholder="Check number (optional)"
+                              placeholder="Enter Check Number"
                               style={styles.input}
                             />
                           </div>
@@ -1907,6 +1915,9 @@ const styles = {
     border: '1px solid #ddd',
     borderRadius: '8px',
     backgroundColor: '#fff',
+    width: '50%',
+    minWidth: '360px',
+    boxSizing: 'border-box',
   },
   paymentUpdateTitle: {
     margin: '0 0 10px 0',
