@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
@@ -24,6 +23,7 @@ const SOURCE_GRIDS = [
 ];
 
 const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
+const getIncomeAmount = (entry) => Number.parseFloat(entry.amount) || 0;
 const toAscii = (value) => String(value ?? '').replace(/[^\x20-\x7E]/g, '?');
 const escapePdfText = (value) => toAscii(value)
   .replace(/\\/g, '\\\\')
@@ -32,7 +32,6 @@ const escapePdfText = (value) => toAscii(value)
 
 const SourceIncome = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [incomeEntries, setIncomeEntries] = useState([]);
   const [paymentData, setPaymentData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -155,9 +154,7 @@ const SourceIncome = () => {
     loadData();
   }, [loadPaymentMethods, loadIncomeEntries, loadCreditOrders]);
 
-  const getIncomeAmount = (entry) => Number.parseFloat(entry.amount) || 0;
-
-  const getOrderItems = (order) => {
+  const getOrderItems = useCallback((order) => {
     if (Array.isArray(order?.items) && order.items.length > 0) {
       return order.items;
     }
@@ -172,13 +169,13 @@ const SourceIncome = () => {
     }
 
     return [];
-  };
+  }, []);
 
-  const getOrderTotal = (order) =>
+  const getOrderTotal = useCallback((order) =>
     getOrderItems(order).reduce(
       (sum, item) => sum + (Number(item.unitPrice || 0) * Number(item.quantity || 0)),
       0,
-    );
+    ), [getOrderItems]);
 
   const getPaymentLabel = (entry) =>
     entry.referenceNumber || entry.checkNumber || 'N/A';
@@ -263,7 +260,7 @@ const SourceIncome = () => {
       paidAmount: effectivePaidAmount,
       remainingBalance,
     };
-  }, [incomeEntries]);
+  }, [getOrderItems, getOrderTotal, incomeEntries]);
 
   const loadReceiptOrder = useCallback(async (jobOrderNo) => {
     const cachedOrder = creditOrders.find((order) => order.jobOrderNo === jobOrderNo);
@@ -395,13 +392,6 @@ const SourceIncome = () => {
       setReceiptLoading(false);
     }
   }, [loadReceiptOrder]);
-
-  const handleOpenOrder = (order) => {
-    const targetPath = order?.sourceType === 'Customized Order' ? '/customized-orders' : '/orders';
-    navigate(targetPath, {
-      state: { jobOrderNo: order?.jobOrderNo },
-    });
-  };
 
   const closeCreditDetails = () => {
     setSelectedCreditOrder(null);
