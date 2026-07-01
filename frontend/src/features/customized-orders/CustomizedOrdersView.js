@@ -1434,27 +1434,33 @@ const CustomizedOrders = () => {
                               ))}
                             </select>
                           </div>
-                          {isChequePayment(paymentModeOfPayment) && (
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: isChequePayment(paymentModeOfPayment) ? '1fr 1fr' : '1fr',
+                            gap: '10px',
+                          }}>
+                            {isChequePayment(paymentModeOfPayment) && (
+                              <div style={styles.formGroup}>
+                                <p style={styles.statusPrompt}>Check Number</p>
+                                <input
+                                  type="text"
+                                  value={paymentCheckNumber}
+                                  onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                                  placeholder="Enter Check Number"
+                                  style={styles.input}
+                                />
+                              </div>
+                            )}
                             <div style={styles.formGroup}>
-                              <p style={styles.statusPrompt}>Check Number</p>
+                              <p style={styles.statusPrompt}>Reference Number</p>
                               <input
                                 type="text"
-                                value={paymentCheckNumber}
-                                onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                                placeholder="Enter Check Number"
+                                value={referenceNumber}
+                                onChange={(e) => setReferenceNumber(e.target.value)}
+                                placeholder="Enter Reference Number"
                                 style={styles.input}
                               />
                             </div>
-                          )}
-                          <div style={styles.formGroup}>
-                            <p style={styles.statusPrompt}>Reference Number</p>
-                            <input
-                              type="text"
-                              value={referenceNumber}
-                              onChange={(e) => setReferenceNumber(e.target.value)}
-                              placeholder="Enter Reference Number"
-                              style={styles.input}
-                            />
                           </div>
                           <div style={styles.formGroup}>
                             <textarea
