@@ -1129,30 +1129,6 @@ const CustomizedOrders = () => {
 
               {(Number(formData.downPayment || 0) > 0 || requiresModeOfPayment(editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL)) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                  <div style={{ ...styles.formGrid, gridTemplateColumns: isChequePayment(formData.modeOfPayment) ? '1fr 1fr' : '1fr', gap: '10px' }}>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Reference Number</label>
-                      <input
-                        type="text"
-                        value={formData.referenceNumber}
-                        onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                        placeholder="Enter reference number"
-                        style={styles.input}
-                      />
-                    </div>
-                    {isChequePayment(formData.modeOfPayment) && (
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Check Number</label>
-                        <input
-                          type="text"
-                          value={formData.checkNumber}
-                          onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value })}
-                          placeholder="Enter check number"
-                          style={styles.input}
-                        />
-                      </div>
-                    )}
-                  </div>
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Mode of Payment</label>
                     <select
@@ -1174,6 +1150,30 @@ const CustomizedOrders = () => {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: isChequePayment(formData.modeOfPayment) ? '1fr 1fr' : '1fr', gap: '10px' }}>
+                    {isChequePayment(formData.modeOfPayment) && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Check Number</label>
+                        <input
+                          type="text"
+                          value={formData.checkNumber}
+                          onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value })}
+                          placeholder="Enter check number"
+                          style={styles.input}
+                        />
+                      </div>
+                    )}
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Reference Number</label>
+                      <input
+                        type="text"
+                        value={formData.referenceNumber}
+                        onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                        placeholder="Enter reference number"
+                        style={styles.input}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
