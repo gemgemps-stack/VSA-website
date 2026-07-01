@@ -29,6 +29,7 @@ const PAYMENT_MODE_REQUIRED_STATUSES = new Set([
 ]);
 
 const requiresModeOfPayment = (status) => PAYMENT_MODE_REQUIRED_STATUSES.has((status || '').toUpperCase());
+const isChequePayment = (value) => (value || '').trim().toLowerCase() === 'cheques';
 const isApprovalToDownPaymentPendingTransition = (currentStatus, nextStatus) =>
   (currentStatus || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL &&
   (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING;
@@ -578,15 +579,19 @@ const Orders = () => {
       return;
     }
 
-    const trimmedCheckNumber = paymentCheckNumber.trim();
     const trimmedReferenceNumber = referenceNumber.trim();
-    if (!trimmedCheckNumber && !trimmedReferenceNumber) {
-      alert('Please provide a Check Number or Reference Number.');
+    const trimmedCheckNumber = paymentCheckNumber.trim();
+    const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+    if (!trimmedReferenceNumber) {
+      alert('Please provide a Reference Number.');
+      return;
+    }
+    if (isChequePayment(effectiveModeOfPayment) && !trimmedCheckNumber) {
+      alert('Please provide a Check Number for cheque payments.');
       return;
     }
 
     try {
-      const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
       if (!effectiveModeOfPayment) {
         alert('Please select a mode of payment before recording this payment.');
         return;
@@ -1223,33 +1228,55 @@ const Orders = () => {
                           setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
                         }}
                       />
-                      <p style={styles.paymentUpdateHint}>Provide a Check Number or Reference Number</p>
-                      <input
-                        type="text"
-                        style={styles.input}
-                        placeholder="Enter Check Number"
-                        value={paymentCheckNumber}
-                        onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                      />
-                      <input
-                        type="text"
-                        style={styles.input}
-                        placeholder="Enter Reference Number"
-                        value={referenceNumber}
-                        onChange={(e) => setReferenceNumber(e.target.value)}
-                      />
-                      <select
-                        style={styles.input}
-                        value={paymentModeOfPayment}
-                        onChange={(e) => setPaymentModeOfPayment(e.target.value)}
-                      >
-                        <option value="">Select Payment Method</option>
-                        {PAYMENT_OPTIONS.map((payment) => (
-                          <option key={payment} value={payment}>
-                            {payment}
-                          </option>
-                        ))}
-                      </select>
+                      <div style={styles.formGroup}>
+                        <select
+                          style={styles.input}
+                          value={paymentModeOfPayment}
+                          onChange={(e) => {
+                            const nextMode = e.target.value;
+                            setPaymentModeOfPayment(nextMode);
+                            if (!isChequePayment(nextMode)) {
+                              setPaymentCheckNumber('');
+                            }
+                          }}
+                        >
+                          <option value="">Select Payment Method</option>
+                          {PAYMENT_OPTIONS.map((payment) => (
+                            <option key={payment} value={payment}>
+                              {payment}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isChequePayment(paymentModeOfPayment) ? '1fr 1fr' : '1fr',
+                        gap: '10px',
+                      }}>
+                        <div style={styles.formGroup}>
+                          <p style={styles.paymentUpdateHint}>
+                            Provide a Reference Number{isChequePayment(paymentModeOfPayment) ? ' and, for cheques, a Check Number.' : '.'}
+                          </p>
+                          <input
+                            type="text"
+                            style={styles.input}
+                            placeholder="Enter Reference Number"
+                            value={referenceNumber}
+                            onChange={(e) => setReferenceNumber(e.target.value)}
+                          />
+                        </div>
+                        {isChequePayment(paymentModeOfPayment) && (
+                          <div style={styles.formGroup}>
+                            <input
+                              type="text"
+                              style={styles.input}
+                              placeholder="Enter Check Number"
+                              value={paymentCheckNumber}
+                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <textarea
                         style={styles.textarea}
                         placeholder="Enter Remarks"

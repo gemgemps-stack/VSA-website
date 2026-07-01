@@ -31,6 +31,7 @@ const PAYMENT_MODE_REQUIRED_STATUSES = new Set([
 ]);
 
 const requiresModeOfPayment = (status) => PAYMENT_MODE_REQUIRED_STATUSES.has((status || '').toUpperCase());
+const isChequePayment = (value) => (value || '').trim().toLowerCase() === 'cheques';
 const isApprovalToDownPaymentPendingTransition = (currentStatus, nextStatus) =>
   (currentStatus || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL &&
   (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING;
@@ -651,15 +652,19 @@ const CustomizedOrders = () => {
       return;
     }
 
-    const trimmedCheckNumber = paymentCheckNumber.trim();
     const trimmedReferenceNumber = referenceNumber.trim();
-    if (!trimmedCheckNumber && !trimmedReferenceNumber) {
-      alert('Please provide a Check Number or Reference Number.');
+    const trimmedCheckNumber = paymentCheckNumber.trim();
+    const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+    if (!trimmedReferenceNumber) {
+      alert('Please provide a Reference Number.');
+      return;
+    }
+    if (isChequePayment(effectiveModeOfPayment) && !trimmedCheckNumber) {
+      alert('Please provide a Check Number for cheque payments.');
       return;
     }
 
     try {
-      const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
       if (!effectiveModeOfPayment) {
         alert('Please select a mode of payment before recording this payment.');
         return;
@@ -1399,28 +1404,15 @@ const CustomizedOrders = () => {
                             />
                           </div>
                           <div style={styles.formGroup}>
-                            <p style={styles.statusPrompt}>Provide a Check Number or Reference Number</p>
-                            <input
-                              type="text"
-                              value={paymentCheckNumber}
-                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                              placeholder="Enter Check Number"
-                              style={styles.input}
-                            />
-                          </div>
-                          <div style={styles.formGroup}>
-                            <input
-                              type="text"
-                              value={referenceNumber}
-                              onChange={(e) => setReferenceNumber(e.target.value)}
-                              placeholder="Enter Reference Number"
-                              style={styles.input}
-                            />
-                          </div>
-                          <div style={styles.formGroup}>
                             <select
                               value={paymentModeOfPayment}
-                              onChange={(e) => setPaymentModeOfPayment(e.target.value)}
+                              onChange={(e) => {
+                                const nextMode = e.target.value;
+                                setPaymentModeOfPayment(nextMode);
+                                if (!isChequePayment(nextMode)) {
+                                  setPaymentCheckNumber('');
+                                }
+                              }}
                               style={styles.input}
                             >
                               <option value="">Select Payment Method</option>
@@ -1430,6 +1422,38 @@ const CustomizedOrders = () => {
                                 </option>
                               ))}
                             </select>
+                          </div>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: isChequePayment(paymentModeOfPayment) ? '1fr 1fr' : '1fr',
+                            gap: '10px',
+                          }}>
+                            <div style={styles.formGroup}>
+                              <p style={styles.statusPrompt}>
+                                Provide a Reference Number{isChequePayment(paymentModeOfPayment) ? ' and, for cheques, a Check Number.' : '.'}
+                              </p>
+                              <input
+                                type="text"
+                                value={referenceNumber}
+                                onChange={(e) => setReferenceNumber(e.target.value)}
+                                placeholder="Enter Reference Number"
+                                style={styles.input}
+                              />
+                            </div>
+                            {isChequePayment(paymentModeOfPayment) && (
+                              <div style={styles.formGroup}>
+                                <p style={styles.statusPrompt}>
+                                Provide a Check Number with Reference Number{isChequePayment(paymentModeOfPayment) ? ' and, for cheques, a Check Number.' : '.'}
+                              </p>
+                                <input
+                                  type="text"
+                                  value={paymentCheckNumber}
+                                  onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                                  placeholder="Enter Check Number"
+                                  style={styles.input}
+                                />
+                              </div>
+                            )}
                           </div>
                           <div style={styles.formGroup}>
                             <textarea
