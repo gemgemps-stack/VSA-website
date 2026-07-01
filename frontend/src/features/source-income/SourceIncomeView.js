@@ -187,11 +187,11 @@ const SourceIncome = () => {
       0,
     ), [getOrderItems]);
 
-  const getPaymentLabel = (entry) =>
-    entry.referenceNumber || entry.checkNumber || 'N/A';
+  const getPaymentLabel = useCallback((entry) =>
+    entry.referenceNumber || entry.checkNumber || 'N/A', []);
 
-  const getChequeLabel = (entry) =>
-    entry.checkNumber || entry.referenceNumber || 'N/A';
+  const getChequeLabel = useCallback((entry) =>
+    entry.checkNumber || entry.referenceNumber || 'N/A', []);
 
   const isLiquidationEntry = useCallback((entry) => {
     if (!entry) return false;
@@ -200,11 +200,11 @@ const SourceIncome = () => {
     return paymentCategory === LIQUIDATION_CATEGORY || paymentMethod === LIQUIDATION_PAYMENT_METHOD.toLowerCase();
   }, []);
 
-  const getIncomeDate = (entry) => {
+  const getIncomeDate = useCallback((entry) => {
     const rawDate = entry.incomeDate || entry.createdAt;
     const parsedDate = rawDate ? new Date(rawDate) : new Date(0);
     return Number.isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
-  };
+  }, []);
 
   const getPeriodRange = (period) => {
     const now = new Date();
@@ -245,12 +245,12 @@ const SourceIncome = () => {
       ? incomeEntries.slice().sort((a, b) => getIncomeDate(b) - getIncomeDate(a))
       : incomeEntries
           .filter((entry) => (entry.shopType || '').toLowerCase() === shopLabel.toLowerCase())
-          .sort((a, b) => getIncomeDate(b) - getIncomeDate(a)), [incomeEntries]);
+          .sort((a, b) => getIncomeDate(b) - getIncomeDate(a)), [incomeEntries, getIncomeDate]);
 
   const getIncomeEntriesByMethod = useCallback((method) =>
     incomeEntries
       .filter((entry) => (entry.paymentMethod || '').toLowerCase() === method.toLowerCase())
-      .sort((a, b) => getIncomeDate(b) - getIncomeDate(a)), [incomeEntries]);
+      .sort((a, b) => getIncomeDate(b) - getIncomeDate(a)), [incomeEntries, getIncomeDate]);
 
   const getOrderViewModel = useCallback((order, sourceType = '') => {
     if (!order) return null;
@@ -328,12 +328,12 @@ const SourceIncome = () => {
     return incomeEntries
       .filter((entry) => (entry.paymentMethod || '').toLowerCase() === 'cheques' || entry.checkNumber)
       .sort((a, b) => getIncomeDate(b) - getIncomeDate(a));
-  }, [incomeEntries]);
+  }, [incomeEntries, getIncomeDate]);
 
   const getTotalCheques = () =>
     getChequeEntries().reduce((total, entry) => total + getIncomeAmount(entry), 0);
 
-  const getOrderFinancials = (order) => {
+  const getOrderFinancials = useCallback((order) => {
     const total = (order.items || []).reduce((sum, item) => {
       return sum + (Number(item.unitPrice || 0) * Number(item.quantity || 0));
     }, 0);
@@ -352,7 +352,7 @@ const SourceIncome = () => {
       paidAmount: effectivePaidAmount,
       remainingBalance,
     };
-  };
+  }, [incomeEntries]);
 
   const creditEntries = creditOrders
     .map((order) => {
@@ -492,7 +492,7 @@ const SourceIncome = () => {
         paymentMethod.toLowerCase().includes(searchTerm)
       );
     });
-  }, [searchReferenceNumber, orderReferenceCache]);
+  }, [searchReferenceNumber, orderReferenceCache, getPaymentLabel]);
 
   const handleClearSearch = () => {
     setSearchReferenceNumber('');
@@ -783,7 +783,7 @@ const SourceIncome = () => {
     ]);
 
     return buildFinancePdfBlob(pages);
-  }, [buildFinancePdfBlob, chunkLines, getIncomeDate, getIncomeAmount, getLiquidationEntries, getPaymentLabel, getSalesEntries]);
+  }, [buildFinancePdfBlob, chunkLines, getIncomeDate, getLiquidationEntries, getPaymentLabel, getSalesEntries]);
 
   const openDetails = (type, item) => {
     setDetailsTarget({ type, item });
