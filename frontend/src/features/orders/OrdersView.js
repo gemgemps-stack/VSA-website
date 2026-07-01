@@ -604,6 +604,7 @@ const Orders = () => {
       setPaymentModeOfPayment('');
       loadOrders();
       loadIncomeEntries();
+      alert('Payment update saved successfully.');
     } catch (error) {
       alert(`Failed to save payment update: ${getApiErrorMessage(error)}`);
     }

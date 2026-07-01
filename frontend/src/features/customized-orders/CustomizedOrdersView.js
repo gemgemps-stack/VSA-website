@@ -673,8 +673,12 @@ const CustomizedOrders = () => {
         remarks: manufacturingNotes.trim() || null,
       });
       setPaymentUpdateAmount('');
+      setPaymentCheckNumber('');
+      setReferenceNumber('');
+      setPaymentModeOfPayment('');
       loadOrders();
       loadIncomeEntries();
+      alert('Payment update saved successfully.');
     } catch (error) {
       console.error('Error saving payment update:', error);
       const apiMessage =
