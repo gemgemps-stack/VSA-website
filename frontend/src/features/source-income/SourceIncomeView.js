@@ -727,7 +727,7 @@ const SourceIncome = () => {
                     </strong>
                     </div>
                     <span className="transaction-client-id">
-                      {getClientDisplay(entry)}
+                      {getIncomeDate(entry).toLocaleDateString()}
                     </span>
                     <span className="transaction-client-id">
                       {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
@@ -852,7 +852,7 @@ const SourceIncome = () => {
                       </strong>
                     </div>
                     <span className="transaction-client-id">
-                      {getClientDisplay(entry)}
+                      {getIncomeDate(entry).toLocaleDateString()}
                     </span>
                     <span className="transaction-client-id">
                       {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
@@ -915,7 +915,7 @@ const SourceIncome = () => {
                     </strong>
                   </div>
                   <span className="transaction-client-id">
-                    {getClientDisplay(entry)}
+                    {getIncomeDate(entry).toLocaleDateString()}
                   </span>
                   <span className="transaction-client-id">
                     {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
@@ -1205,7 +1205,7 @@ const SourceIncome = () => {
                               </strong>
                             </div>
                             <span className="transaction-client-id">
-                              {getClientDisplay(entry)}
+                              {getIncomeDate(entry).toLocaleDateString()}
                             </span>
                             <span className="transaction-client-id">
                               {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}

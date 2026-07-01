@@ -1434,11 +1434,7 @@ const CustomizedOrders = () => {
                               ))}
                             </select>
                           </div>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: isChequePayment(paymentModeOfPayment) ? '1fr 1fr' : '1fr',
-                            gap: '10px',
-                          }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             {isChequePayment(paymentModeOfPayment) && (
                               <div style={styles.formGroup}>
                                 <p style={styles.statusPrompt}>Check Number</p>
