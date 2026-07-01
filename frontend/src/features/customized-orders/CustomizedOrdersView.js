@@ -1225,7 +1225,7 @@ const CustomizedOrders = () => {
               isOpen={detailsOpen}
               onClose={closeDetails}
               title={selectedOrder ? `Order Details - ${selectedOrder.jobOrderNo}` : ''}
-              size="xlarge"
+              size="finance"
             >
                 <div style={styles.detailsGrid}>
                   <div style={styles.detailRow}>
@@ -1263,7 +1263,13 @@ const CustomizedOrders = () => {
 
                 <div style={{ marginBottom: '25px' }}>
                   <label style={styles.label}>Products:</label>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '45%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '13%' }} />
+                      <col style={{ width: '20%' }} />
+                    </colgroup>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                         <th style={{ padding: '10px' }}>Product Name</th>
@@ -1911,6 +1917,8 @@ const styles = {
   },
   paymentUpdateCard: {
     marginTop: '20px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
     padding: '15px',
     border: '1px solid #ddd',
     borderRadius: '8px',

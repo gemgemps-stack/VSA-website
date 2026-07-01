@@ -678,6 +678,8 @@ const Orders = () => {
     addBtn: { backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' },
     paymentUpdateCard: {
       marginTop: '20px',
+      marginLeft: 'auto',
+      marginRight: 'auto',
       padding: '15px',
       border: '1px solid #ddd',
       borderRadius: '8px',
@@ -1010,7 +1012,7 @@ const Orders = () => {
             isOpen={detailsOpen}
             title={selectedOrder ? `Order Details - ${selectedOrder.jobOrderNo}` : 'Order Details'}
             onClose={closeDetails}
-            size="xlarge"
+            size="finance"
           >
             {selectedOrder && (
               <div style={styles.modalContent}>
@@ -1032,7 +1034,13 @@ const Orders = () => {
 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={styles.label}>Products:</label>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '45%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '13%' }} />
+                      <col style={{ width: '20%' }} />
+                    </colgroup>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                         <th style={{ padding: '10px' }}>Product Name</th>
