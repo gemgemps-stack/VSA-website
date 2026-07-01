@@ -524,7 +524,7 @@ const CustomizedOrders = () => {
         discount: Number.isFinite(discount) ? discount : 0,
         downPayment: Number.isFinite(downPaymentAmount) ? downPaymentAmount : 0,
         referenceNumber: formData.referenceNumber.trim() || null,
-        checkNumber: formData.checkNumber.trim() || null,
+        checkNumber: isChequePayment(selectedModeOfPayment) ? formData.checkNumber.trim() || null : null,
         shop: formData.shop.trim() || null,
         orderDate: formData.orderDate,
         modeOfPayment: requiresModeOfPayment(statusToSave) ? selectedModeOfPayment : null,
@@ -1128,17 +1128,19 @@ const CustomizedOrders = () => {
                   </div>
 
               {(Number(formData.downPayment || 0) > 0 || requiresModeOfPayment(editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL)) && (
-                <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Reference Number</label>
-                        <input
-                          type="text"
-                          value={formData.referenceNumber}
-                          onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                          placeholder="Enter reference number"
-                          style={styles.input}
-                        />
-                      </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: isChequePayment(formData.modeOfPayment) ? '1fr 1fr' : '1fr', gap: '10px' }}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Reference Number</label>
+                      <input
+                        type="text"
+                        value={formData.referenceNumber}
+                        onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                        placeholder="Enter reference number"
+                        style={styles.input}
+                      />
+                    </div>
+                    {isChequePayment(formData.modeOfPayment) && (
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Check Number</label>
                         <input
@@ -1149,23 +1151,32 @@ const CustomizedOrders = () => {
                           style={styles.input}
                         />
                       </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Mode of Payment</label>
-                        <select
-                          value={formData.modeOfPayment}
-                          onChange={(e) => setFormData({ ...formData, modeOfPayment: e.target.value })}
-                          style={styles.input}
-                        >
-                          <option value="">Select Payment Method</option>
-                          {PAYMENT_OPTIONS.map((payment) => (
-                            <option key={payment} value={payment}>
-                              {payment}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>Mode of Payment</label>
+                    <select
+                      value={formData.modeOfPayment}
+                      onChange={(e) => {
+                        const nextMode = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          modeOfPayment: nextMode,
+                          checkNumber: isChequePayment(nextMode) ? prev.checkNumber : '',
+                        }));
+                      }}
+                      style={styles.input}
+                    >
+                      <option value="">Select Payment Method</option>
+                      {PAYMENT_OPTIONS.map((payment) => (
+                        <option key={payment} value={payment}>
+                          {payment}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
                   {/* Row 4: Shop and Order Date */}
                   <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(2, 1fr)' }}>
@@ -1423,37 +1434,27 @@ const CustomizedOrders = () => {
                               ))}
                             </select>
                           </div>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: isChequePayment(paymentModeOfPayment) ? '1fr 1fr' : '1fr',
-                            gap: '10px',
-                          }}>
+                          {isChequePayment(paymentModeOfPayment) && (
                             <div style={styles.formGroup}>
-                              <p style={styles.statusPrompt}>
-                                Provide a Reference Number{isChequePayment(paymentModeOfPayment) ? ' and, for cheques, a Check Number.' : '.'}
-                              </p>
+                              <p style={styles.statusPrompt}>Check Number</p>
                               <input
                                 type="text"
-                                value={referenceNumber}
-                                onChange={(e) => setReferenceNumber(e.target.value)}
-                                placeholder="Enter Reference Number"
+                                value={paymentCheckNumber}
+                                onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                                placeholder="Enter Check Number"
                                 style={styles.input}
                               />
                             </div>
-                            {isChequePayment(paymentModeOfPayment) && (
-                              <div style={styles.formGroup}>
-                                <p style={styles.statusPrompt}>
-                                Provide a Check Number with Reference Number{isChequePayment(paymentModeOfPayment) ? ' and, for cheques, a Check Number.' : '.'}
-                              </p>
-                                <input
-                                  type="text"
-                                  value={paymentCheckNumber}
-                                  onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                                  placeholder="Enter Check Number"
-                                  style={styles.input}
-                                />
-                              </div>
-                            )}
+                          )}
+                          <div style={styles.formGroup}>
+                            <p style={styles.statusPrompt}>Reference Number</p>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={(e) => setReferenceNumber(e.target.value)}
+                              placeholder="Enter Reference Number"
+                              style={styles.input}
+                            />
                           </div>
                           <div style={styles.formGroup}>
                             <textarea

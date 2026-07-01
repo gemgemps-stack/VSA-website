@@ -507,7 +507,9 @@ const Orders = () => {
         discount: discount,
         downPayment: downPaymentAmount,
         referenceNumber: downPaymentAmount > 0 ? formData.referenceNumber.trim() || null : null,
-        checkNumber: downPaymentAmount > 0 ? formData.checkNumber.trim() || null : null,
+        checkNumber: downPaymentAmount > 0 && isChequePayment(selectedModeOfPayment)
+          ? formData.checkNumber.trim() || null
+          : null,
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
         modeOfPayment: requiresModeOfPayment(statusToSave)
@@ -940,30 +942,45 @@ const Orders = () => {
               </div>
 
               {(Number(formData.downPayment || 0) > 0 || requiresModeOfPayment(editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL)) && (
-                <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Reference Number</label>
-                    <input
-                      type="text"
-                      style={styles.input}
-                      value={formData.referenceNumber}
-                      onChange={(e) => setFormData(p => ({ ...p, referenceNumber: e.target.value }))}
-                      placeholder="Reference #"
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Check Number</label>
-                    <input
-                      type="text"
-                      style={styles.input}
-                      value={formData.checkNumber}
-                      onChange={(e) => setFormData(p => ({ ...p, checkNumber: e.target.value }))}
-                      placeholder="Check #"
-                    />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: isChequePayment(formData.modeOfPayment) ? '1fr 1fr' : '1fr', gap: '10px' }}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Reference Number</label>
+                      <input
+                        type="text"
+                        style={styles.input}
+                        value={formData.referenceNumber}
+                        onChange={(e) => setFormData(p => ({ ...p, referenceNumber: e.target.value }))}
+                        placeholder="Reference #"
+                      />
+                    </div>
+                    {isChequePayment(formData.modeOfPayment) && (
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Check Number</label>
+                        <input
+                          type="text"
+                          style={styles.input}
+                          value={formData.checkNumber}
+                          onChange={(e) => setFormData(p => ({ ...p, checkNumber: e.target.value }))}
+                          placeholder="Check #"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Mode of Payment</label>
-                    <select style={styles.input} value={formData.modeOfPayment} onChange={(e) => setFormData(p => ({ ...p, modeOfPayment: e.target.value }))}>
+                    <select
+                      style={styles.input}
+                      value={formData.modeOfPayment}
+                      onChange={(e) => {
+                        const nextMode = e.target.value;
+                        setFormData(p => ({
+                          ...p,
+                          modeOfPayment: nextMode,
+                          checkNumber: isChequePayment(nextMode) ? p.checkNumber : '',
+                        }));
+                      }}
+                    >
                       <option value="">Select Payment</option>
                       {PAYMENT_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
@@ -1248,34 +1265,27 @@ const Orders = () => {
                           ))}
                         </select>
                       </div>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: isChequePayment(paymentModeOfPayment) ? '1fr 1fr' : '1fr',
-                        gap: '10px',
-                      }}>
+                      {isChequePayment(paymentModeOfPayment) && (
                         <div style={styles.formGroup}>
-                          <p style={styles.paymentUpdateHint}>
-                            Provide a Reference Number{isChequePayment(paymentModeOfPayment) ? ' and, for cheques, a Check Number.' : '.'}
-                          </p>
+                          <p style={styles.paymentUpdateHint}>Check Number</p>
                           <input
                             type="text"
                             style={styles.input}
-                            placeholder="Enter Reference Number"
-                            value={referenceNumber}
-                            onChange={(e) => setReferenceNumber(e.target.value)}
+                            placeholder="Enter Check Number"
+                            value={paymentCheckNumber}
+                            onChange={(e) => setPaymentCheckNumber(e.target.value)}
                           />
                         </div>
-                        {isChequePayment(paymentModeOfPayment) && (
-                          <div style={styles.formGroup}>
-                            <input
-                              type="text"
-                              style={styles.input}
-                              placeholder="Enter Check Number"
-                              value={paymentCheckNumber}
-                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                            />
-                          </div>
-                        )}
+                      )}
+                      <div style={styles.formGroup}>
+                        <p style={styles.paymentUpdateHint}>Reference Number</p>
+                        <input
+                          type="text"
+                          style={styles.input}
+                          placeholder="Enter Reference Number"
+                          value={referenceNumber}
+                          onChange={(e) => setReferenceNumber(e.target.value)}
+                        />
                       </div>
                       <textarea
                         style={styles.textarea}

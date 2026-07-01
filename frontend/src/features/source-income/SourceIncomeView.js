@@ -43,6 +43,7 @@ const SourceIncome = () => {
   const [receiptTarget, setReceiptTarget] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptError, setReceiptError] = useState('');
+  const [searchReferenceNumber, setSearchReferenceNumber] = useState('');
   const orderReferenceCacheRef = useRef(orderReferenceCache);
 
   useEffect(() => {
@@ -401,6 +402,29 @@ const SourceIncome = () => {
     setReceiptTarget(null);
     setReceiptError('');
     setReceiptLoading(false);
+  };
+
+  const filterEntriesByReferenceNumber = useCallback((entries) => {
+    if (!searchReferenceNumber.trim()) {
+      return entries;
+    }
+
+    const searchTerm = searchReferenceNumber.toLowerCase().trim();
+    return entries.filter((entry) => {
+      const referenceLabel = getPaymentLabel(entry) || orderReferenceCache[entry.jobOrderNo] || '';
+      const jobOrderNo = entry.jobOrderNo || '';
+      const checkNumber = entry.checkNumber || '';
+      
+      return (
+        referenceLabel.toLowerCase().includes(searchTerm) ||
+        jobOrderNo.toLowerCase().includes(searchTerm) ||
+        checkNumber.toLowerCase().includes(searchTerm)
+      );
+    });
+  }, [searchReferenceNumber, orderReferenceCache]);
+
+  const handleClearSearch = () => {
+    setSearchReferenceNumber('');
   };
 
   const getReceiptNumber = useCallback((order, entry) => {
@@ -924,6 +948,8 @@ const SourceIncome = () => {
   const currentReportEntries = getReportEntries(reportPeriod);
   const currentReportRange = getPeriodRange(reportPeriod);
   const currentReportTotal = getReportTotal(reportPeriod);
+  const filteredReportEntries = filterEntriesByReferenceNumber(currentReportEntries);
+  const filteredReportTotal = filteredReportEntries.reduce((total, entry) => total + getIncomeAmount(entry), 0);
 
   if (!canAccessIncome && !canAccessPayment) {
     return (
@@ -1104,23 +1130,48 @@ const SourceIncome = () => {
                     <h2 style={{ margin: 0 }}>Income Reporting</h2>
                   </div>
 
-                  <div className="report-filter-bar">
-                    {REPORT_PERIODS.map((period) => (
-                      <button
-                        key={period.key}
-                        type="button"
-                        className={`report-filter-btn ${reportPeriod === period.key ? 'active' : ''}`}
-                        onClick={() => setReportPeriod(period.key)}
-                      >
-                        {period.label}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    <div className="report-filter-bar">
+                      {REPORT_PERIODS.map((period) => (
+                        <button
+                          key={period.key}
+                          type="button"
+                          className={`report-filter-btn ${reportPeriod === period.key ? 'active' : ''}`}
+                          onClick={() => setReportPeriod(period.key)}
+                        >
+                          {period.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="finance-search-bar">
+                      <input
+                        type="text"
+                        placeholder="Search by reference number..."
+                        value={searchReferenceNumber}
+                        onChange={(e) => setSearchReferenceNumber(e.target.value)}
+                      />
+                      {searchReferenceNumber && (
+                        <button
+                          type="button"
+                          className="finance-search-clear-btn"
+                          onClick={handleClearSearch}
+                          title="Clear search"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
                     <div style={{ flex: '0 0 53%' }}>
                       <span className="income-details-label">Report Total</span>
-                      <strong>PHP {currentReportTotal.toFixed(2)}</strong>
+                      <strong>PHP {filteredReportTotal.toFixed(2)}</strong>
+                      {searchReferenceNumber && (
+                        <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                          Filtered from PHP {currentReportTotal.toFixed(2)}
+                        </div>
+                      )}
                     </div>
                     <div style={{ flex: '0 0 30%' }}>
                       <span className="income-details-label">Range</span>
@@ -1130,7 +1181,12 @@ const SourceIncome = () => {
                     </div>
                     <div style={{ flex: '0 0 15%' }}>
                       <span className="income-details-label">Entries</span>
-                      <strong>{currentReportEntries.length}</strong>
+                      <strong>{filteredReportEntries.length}</strong>
+                      {searchReferenceNumber && (
+                        <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                          of {currentReportEntries.length}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1138,8 +1194,8 @@ const SourceIncome = () => {
                     Transaction Histories
                   </h3>
                   <div className="income-details-list transaction-histories-grid" style={{ marginTop: '12px' }}>
-                    {currentReportEntries.length > 0 ? (
-                      currentReportEntries.map((entry) => (
+                    {filteredReportEntries.length > 0 ? (
+                      filteredReportEntries.map((entry) => (
                         <div key={entry.id} className="income-detail-row">
                           <div className="transaction-history-meta">
                             <div>
@@ -1172,7 +1228,11 @@ const SourceIncome = () => {
                         </div>
                       ))
                     ) : (
-                      <p className="income-details-empty">No transaction history found for this period.</p>
+                      <p className="income-details-empty">
+                        {searchReferenceNumber
+                          ? `No transactions found matching "${searchReferenceNumber}" for this period.`
+                          : 'No transaction history found for this period.'}
+                      </p>
                     )}
                   </div>
                 </section>
