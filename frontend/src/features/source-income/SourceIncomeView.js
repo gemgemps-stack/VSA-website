@@ -724,7 +724,8 @@ const SourceIncome = () => {
     const salesEntries = getSalesEntries(entries);
     const liquidationEntries = getLiquidationEntries(entries);
     const periodLabel = REPORT_PERIODS.find((item) => item.key === period)?.label || period;
-    const columns = ['Date', 'Type', 'Job Order No.', 'Reference Number', 'Check Number', 'Source/Method', 'Remarks', 'Amount'];
+    const salesColumns = ['Date', 'Type', 'Job Order No.', 'Reference Number', 'Check Number', 'Source/Method', 'Remarks', 'Amount'];
+    const liquidationColumns = ['Date', 'Type', 'Remarks', 'Amount'];
 
     const row = (cells, styleId = 'sCell') => `<Row>${cells.map((cell) => `<Cell${styleId ? ` ss:StyleID="${styleId}"` : ''}${cell.mergeAcross ? ` ss:MergeAcross="${cell.mergeAcross}"` : ''}><Data ss:Type="${cell.type || 'String'}">${escapeXml(cell.value)}</Data></Cell>`).join('')}</Row>`;
     const blankCell = (mergeAcross = 0) => ({ value: '', mergeAcross, type: 'String' });
@@ -732,18 +733,33 @@ const SourceIncome = () => {
     const buildTransactionRows = (transactionEntries, transactionType) => {
       if (transactionEntries.length === 0) {
         return [row([
-          { value: `No ${transactionType.toLowerCase()} entries found for this period.`, mergeAcross: 7 },
+          { value: `No ${transactionType.toLowerCase()} entries found for this period.`, mergeAcross: transactionType === 'LIQUIDATION' ? 3 : 7 },
         ], 'sNote')];
+      }
+
+      if (transactionType === 'LIQUIDATION') {
+        return transactionEntries.map((entry) => {
+          const amount = getIncomeAmount(entry);
+          const date = getIncomeDate(entry).toLocaleDateString();
+          const remarks = entry.remarks || 'No reason provided';
+
+          return row([
+            { value: date },
+            { value: 'Liquidation' },
+            { value: remarks },
+            { value: amount, type: 'Number' },
+          ]);
+        });
       }
 
       return transactionEntries.map((entry) => {
         const amount = getIncomeAmount(entry);
         const date = getIncomeDate(entry).toLocaleDateString();
-        const displayType = transactionType === 'SALE' ? 'Sale' : 'Liquidation';
+        const displayType = 'Sale';
         const referenceNumber = entry.referenceNumber || '';
         const checkNumber = entry.checkNumber || '';
         const sourceMethod = entry.shopType || entry.paymentMethod || 'N/A';
-        const remarks = entry.remarks || (transactionType === 'LIQUIDATION' ? 'No reason provided' : '');
+        const remarks = entry.remarks || '';
 
         return row([
           { value: date },
@@ -765,11 +781,11 @@ const SourceIncome = () => {
       row([{ value: `Date Range: ${range.start.toLocaleDateString()} - ${range.end.toLocaleDateString()}`, mergeAcross: 7 }], 'sMeta'),
       row([blankCell(7)], 'sBlank'),
       row([{ value: 'SALES', mergeAcross: 7 }], 'sSection'),
-      row(columns.map((column) => ({ value: column })), 'sHeader'),
+      row(salesColumns.map((column) => ({ value: column })), 'sHeader'),
       ...buildTransactionRows(salesEntries, 'SALE'),
       row([blankCell(7)], 'sBlank'),
       row([{ value: 'LIQUIDATIONS', mergeAcross: 7 }], 'sSection'),
-      row(columns.map((column) => ({ value: column })), 'sHeader'),
+      row(liquidationColumns.map((column) => ({ value: column })), 'sHeader'),
       ...buildTransactionRows(liquidationEntries, 'LIQUIDATION'),
       row([blankCell(7)], 'sBlank'),
       row([{ value: 'Sales Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: salesTotal, type: 'Number' }], 'sTotal'),
@@ -1440,23 +1456,23 @@ const SourceIncome = () => {
                   </div>
 
                   <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
-                    <div style={{ flex: '0 0 30%' }}>
+                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Sales Total</span>
                       <strong>PHP {currentSalesTotal.toFixed(2)}</strong>
                     </div>
-                    <div style={{ flex: '0 0 30%' }}>
+                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Report Total</span>
                       <strong style={{ color: currentReportTotal < 0 ? '#d32f2f' : undefined }}>
                         PHP {currentReportTotal.toFixed(2)}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 20%' }}>
+                    <div style={{ flex: '0 0 24%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Range</span>
                       <strong>
                         {currentReportRange.start.toLocaleDateString()} - {currentReportRange.end.toLocaleDateString()}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 20%' }}>
+                    <div style={{ flex: '0 0 14%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Entries</span>
                       <strong>{incomeReportingEntries.length}</strong>
                     </div>
@@ -1563,7 +1579,7 @@ const SourceIncome = () => {
                           onClick={handleClearSearch}
                           title="Clear search"
                         >
-                          ×
+                          Ã—
                         </button>
                       )}
                     </div>
@@ -1586,23 +1602,23 @@ const SourceIncome = () => {
                   </div>
 
                   <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
-                    <div style={{ flex: '0 0 28%' }}>
+                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Liquidation Total</span>
                       <strong>PHP {filteredLiquidationTotal.toFixed(2)}</strong>
                     </div>
-                    <div style={{ flex: '0 0 28%' }}>
+                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Report Total</span>
                       <strong style={{ color: filteredReportTotal < 0 ? '#d32f2f' : undefined }}>
                         PHP {filteredReportTotal.toFixed(2)}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 20%' }}>
+                    <div style={{ flex: '0 0 24%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Range</span>
                       <strong>
                         {currentReportRange.start.toLocaleDateString()} - {currentReportRange.end.toLocaleDateString()}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 20%' }}>
+                    <div style={{ flex: '0 0 14%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Entries</span>
                       <strong>{filteredLiquidationEntries.length}</strong>
                     </div>
