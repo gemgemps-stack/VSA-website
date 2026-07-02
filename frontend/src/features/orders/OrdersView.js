@@ -816,7 +816,7 @@ const Orders = () => {
             onClose={() => setModalOpen(false)}
             onSubmit={handleSubmit}
             submitText={editingOrder ? 'Update Order' : 'Create Order'}
-            size="large"
+            size="medium"
           >
             <div style={styles.modalContent}>
               <div style={styles.formGridWide}>

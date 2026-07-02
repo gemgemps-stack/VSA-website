@@ -39,6 +39,11 @@
   max-width: 1320px;
 }
 
+.modal-medium {
+  width: 75vw;
+  max-width: 1120px;
+}
+
 .modal-xlarge {
   width: 90vw;
   max-width: 1480px;
@@ -115,6 +120,11 @@
 }
 
 @media (max-width: 900px) {
+  .modal-medium {
+    width: 92%;
+    max-width: 92%;
+  }
+
   .modal-large {
     width: 92%;
     max-width: 92%;

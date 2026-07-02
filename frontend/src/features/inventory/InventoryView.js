@@ -366,7 +366,7 @@ const Inventory = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Size</label>
+                  <label>Size (Optional)</label>
                   <select
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
@@ -381,7 +381,7 @@ const Inventory = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Size Number</label>
+                  <label>Size Number (Optional )</label>
                   <input
                     type="number"
                     value={formData.number}
