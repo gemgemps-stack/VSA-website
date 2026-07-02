@@ -27,6 +27,7 @@ public class IncomeSourceDTO {
     private String referenceNumber;
     private String checkNumber;
     private String paymentCategory;
+    private String remarks;
     private LocalDateTime createdAt;
 
     public IncomeSourceDTO(IncomeSource incomeSource) {
@@ -42,6 +43,7 @@ public class IncomeSourceDTO {
         this.referenceNumber = incomeSource.getReferenceNumber();
         this.checkNumber = incomeSource.getCheckNumber();
         this.paymentCategory = incomeSource.getPaymentCategory();
+        this.remarks = incomeSource.getRemarks();
         this.createdAt = incomeSource.getCreatedAt();
     }
 }

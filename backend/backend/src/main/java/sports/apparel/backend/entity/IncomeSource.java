@@ -64,6 +64,9 @@ public class IncomeSource {
     @Column(name = "payment_category", length = 50)
     private String paymentCategory;
 
+    @Column(name = "remarks", length = 500)
+    private String remarks;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

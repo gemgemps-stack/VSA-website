@@ -42,4 +42,6 @@ public class CreateIncomeSourceRequest {
     private String checkNumber;
 
     private String paymentCategory;
+
+    private String remarks;
 }

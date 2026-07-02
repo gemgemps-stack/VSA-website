@@ -13,6 +13,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,9 +36,10 @@ public class IncomeSourceService {
         incomeSource.setIncomeDate(request.getIncomeDate());
         incomeSource.setJobOrderNo(request.getJobOrderNo());
         incomeSource.setAmount(request.getAmount());
-        incomeSource.setReferenceNumber(request.getReferenceNumber());
+        incomeSource.setReferenceNumber(resolveReferenceNumber(request));
         incomeSource.setCheckNumber(request.getCheckNumber());
         incomeSource.setPaymentCategory(request.getPaymentCategory());
+        incomeSource.setRemarks(request.getRemarks());
 
         // Set client relationship
         if (request.getClientId() != null) {
@@ -61,6 +64,57 @@ public class IncomeSourceService {
 
         IncomeSource savedIncomeSource = incomeSourceRepository.save(incomeSource);
         return new IncomeSourceDTO(savedIncomeSource);
+    }
+
+    private String resolveReferenceNumber(CreateIncomeSourceRequest request) {
+        if (request.getReferenceNumber() != null && !request.getReferenceNumber().isBlank()) {
+            return request.getReferenceNumber();
+        }
+
+        if (!isLiquidationRequest(request)) {
+            return request.getReferenceNumber();
+        }
+
+        LocalDate incomeDate = request.getIncomeDate() != null ? request.getIncomeDate() : LocalDate.now();
+        String prefix = "LIQ-" + incomeDate.toString().replace("-", "");
+
+        int nextSequence = incomeSourceRepository.findByIncomeDate(incomeDate).stream()
+                .map(IncomeSource::getReferenceNumber)
+                .filter(reference -> reference != null && reference.startsWith(prefix))
+                .map(IncomeSourceService::extractLiquidationSequence)
+                .filter(sequence -> sequence != null && sequence > 0)
+                .mapToInt(Integer::intValue)
+                .max()
+                .orElse(0) + 1;
+
+        return String.format("%s-%04d", prefix, nextSequence);
+    }
+
+    private boolean isLiquidationRequest(CreateIncomeSourceRequest request) {
+        if (request == null) {
+            return false;
+        }
+
+        String paymentCategory = request.getPaymentCategory() != null ? request.getPaymentCategory().trim() : "";
+        String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod().trim() : "";
+        return "LIQUIDATION".equalsIgnoreCase(paymentCategory) || "Liquidation".equalsIgnoreCase(paymentMethod);
+    }
+
+    private static Integer extractLiquidationSequence(String referenceNumber) {
+        if (referenceNumber == null || referenceNumber.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = Pattern.compile("-(\\d{4})$").matcher(referenceNumber.trim());
+        if (!matcher.find()) {
+          return null;
+        }
+
+        try {
+            return Integer.parseInt(matcher.group(1));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     public BigDecimal getTotalIncomeByJobOrderNo(String jobOrderNo) {
@@ -100,6 +154,7 @@ public class IncomeSourceService {
         existingPayment.setReferenceNumber(request.getReferenceNumber());
         existingPayment.setCheckNumber(request.getCheckNumber());
         existingPayment.setPaymentCategory(request.getPaymentCategory());
+        existingPayment.setRemarks(request.getRemarks());
 
         if (request.getClientId() != null) {
             Optional<Client> client = clientRepository.findById(request.getClientId());
@@ -178,6 +233,7 @@ public class IncomeSourceService {
         incomeSource.setAmount(request.getAmount());
         incomeSource.setReferenceNumber(request.getReferenceNumber());
         incomeSource.setCheckNumber(request.getCheckNumber());
+        incomeSource.setRemarks(request.getRemarks());
 
         // Update client relationship
         if (request.getClientId() != null) {

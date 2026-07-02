@@ -8,6 +8,7 @@ import orderService from '../../services/orderService';
 import customizedOrderService from '../../services/customizedOrderService';
 import { hasPermission } from '../../utils/permissions';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
+import { generateLiquidationReferenceNumber } from './liquidationUtils';
 
 const PAYMENT_METHODS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit', 'Cheques'];
 const LIQUIDATION_CATEGORY = 'LIQUIDATION';
@@ -33,6 +34,12 @@ const escapePdfText = (value) => toAscii(value)
   .replace(/\\/g, '\\\\')
   .replace(/\(/g, '\\(')
   .replace(/\)/g, '\\)');
+const escapeXml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;');
 
 const SourceIncome = () => {
   const navigate = useNavigate();
@@ -379,6 +386,13 @@ const SourceIncome = () => {
   };
 
   const openReceipt = useCallback(async (entry) => {
+    if (isLiquidationEntry(entry)) {
+      setReceiptTarget({ entry, order: null });
+      setReceiptLoading(false);
+      setReceiptError('');
+      return;
+    }
+
     if (!entry?.jobOrderNo) {
       setReceiptTarget(null);
       setReceiptError('No job order number is available for this transaction.');
@@ -405,7 +419,7 @@ const SourceIncome = () => {
     } finally {
       setReceiptLoading(false);
     }
-  }, [loadReceiptOrder]);
+  }, [isLiquidationEntry, loadReceiptOrder]);
 
   const closeCreditDetails = () => {
     setSelectedCreditOrder(null);
@@ -424,6 +438,8 @@ const SourceIncome = () => {
     setLiquidationModalOpen(true);
   };
 
+  const getLiquidationReferenceNumber = useCallback((incomeDate) => generateLiquidationReferenceNumber(incomeEntries, incomeDate), [incomeEntries]);
+
   const closeLiquidationModal = () => {
     setLiquidationModalOpen(false);
   };
@@ -441,6 +457,8 @@ const SourceIncome = () => {
     }
 
     try {
+      const referenceNumber = getLiquidationReferenceNumber(liquidationDate);
+
       await incomeService.createIncomeSource({
         shopType: LIQUIDATION_SHOP_TYPE,
         paymentMethod: LIQUIDATION_PAYMENT_METHOD,
@@ -449,6 +467,7 @@ const SourceIncome = () => {
         amount,
         paymentCategory: LIQUIDATION_CATEGORY,
         remarks: liquidationReason.trim(),
+        referenceNumber,
       });
 
       setLiquidationAmount('');
@@ -476,20 +495,20 @@ const SourceIncome = () => {
 
     const searchTerm = searchReferenceNumber.toLowerCase().trim();
     return entries.filter((entry) => {
-      const referenceLabel = getPaymentLabel(entry) || orderReferenceCache[entry.jobOrderNo] || '';
-      const jobOrderNo = entry.jobOrderNo || '';
-      const checkNumber = entry.checkNumber || '';
-      const remarks = entry.remarks || '';
-      const paymentCategory = entry.paymentCategory || '';
-      const paymentMethod = entry.paymentMethod || '';
-      
+      const referenceLabel = (entry.referenceNumber || getPaymentLabel(entry) || orderReferenceCache[entry.jobOrderNo] || '').toLowerCase();
+      const jobOrderNo = String(entry.jobOrderNo || '').toLowerCase();
+      const checkNumber = String(entry.checkNumber || '').toLowerCase();
+      const remarks = String(entry.remarks || '').toLowerCase();
+      const paymentCategory = String(entry.paymentCategory || '').toLowerCase();
+      const paymentMethod = String(entry.paymentMethod || '').toLowerCase();
+
       return (
-        referenceLabel.toLowerCase().includes(searchTerm) ||
-        jobOrderNo.toLowerCase().includes(searchTerm) ||
-        checkNumber.toLowerCase().includes(searchTerm) ||
-        remarks.toLowerCase().includes(searchTerm) ||
-        paymentCategory.toLowerCase().includes(searchTerm) ||
-        paymentMethod.toLowerCase().includes(searchTerm)
+        referenceLabel.includes(searchTerm) ||
+        jobOrderNo.includes(searchTerm) ||
+        checkNumber.includes(searchTerm) ||
+        remarks.includes(searchTerm) ||
+        paymentCategory.includes(searchTerm) ||
+        paymentMethod.includes(searchTerm)
       );
     });
   }, [searchReferenceNumber, orderReferenceCache, getPaymentLabel]);
@@ -515,7 +534,20 @@ const SourceIncome = () => {
     const order = receiptTarget?.order;
     const entry = receiptTarget?.entry;
 
-    if (!order || !entry || receiptLoading || receiptError) {
+    if (!entry || receiptLoading || receiptError) {
+      return null;
+    }
+
+    if (isLiquidationEntry(entry)) {
+      return {
+        order: null,
+        entry,
+        receiptNumber: entry.referenceNumber || 'N/A',
+        receiptDate: entry.createdAt || entry.incomeDate,
+      };
+    }
+
+    if (!order) {
       return null;
     }
 
@@ -528,7 +560,7 @@ const SourceIncome = () => {
       receiptNumber: getReceiptNumber(order, entry),
       receiptDate: entry.createdAt || entry.incomeDate || order.orderDate,
     };
-  }, [getOrderItems, getReceiptNumber, receiptError, receiptLoading, receiptTarget]);
+  }, [getOrderItems, getReceiptNumber, isLiquidationEntry, receiptError, receiptLoading, receiptTarget]);
 
   const buildReceiptPdfLines = useCallback((data) => {
     if (!data) return [];
@@ -545,19 +577,19 @@ const SourceIncome = () => {
       'VSA | Trusted by athletes, teams, and communities',
       '',
       `Receipt No.: ${receiptNumber || 'N/A'}`,
-      `Job Order No.: ${order.jobOrderNo || 'N/A'}`,
+      `Job Order No.: ${order?.jobOrderNo || 'N/A'}`,
       `Receipt Date: ${receiptDate ? new Date(receiptDate).toLocaleString() : 'No date available'}`,
-      `Source Type: ${order.sourceType || 'Order'}`,
-      `Shop: ${order.shop || 'Unknown shop'}`,
-      `Client: ${order.clientName || 'Walk-in Client'}`,
-      `Payment Method: ${order.modeOfPayment || entry.paymentMethod || 'N/A'}`,
-      `Reference Number: ${entry.referenceNumber || order.referenceNumber || 'N/A'}`,
+      `Source Type: ${order?.sourceType || 'Order'}`,
+      `Shop: ${order?.shop || 'Unknown shop'}`,
+      `Client: ${order?.clientName || 'Walk-in Client'}`,
+      `Payment Method: ${order?.modeOfPayment || entry.paymentMethod || 'N/A'}`,
+      `Reference Number: ${entry.referenceNumber || order?.referenceNumber || 'N/A'}`,
       `Payment Status: ${entry.checkNumber ? 'With Check' : 'Recorded Payment'}`,
       '',
       'Items',
     ];
 
-    if (order.items.length > 0) {
+    if (order?.items?.length > 0) {
       order.items.forEach((item) => {
         const subtotal = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
         lines.push(
@@ -570,10 +602,10 @@ const SourceIncome = () => {
 
     lines.push(
       '',
-      `Total Amount: ${formatMoney(order.total)}`,
-      `After Discount: ${formatMoney(order.afterDiscountTotal)}`,
-      `Paid: ${formatMoney(order.paidAmount)}`,
-      `Remaining Balance: ${formatMoney(order.remainingBalance)}`,
+      `Total Amount: ${formatMoney(order?.total || 0)}`,
+      `After Discount: ${formatMoney(order?.afterDiscountTotal || 0)}`,
+      `Paid: ${formatMoney(order?.paidAmount || 0)}`,
+      `Remaining Balance: ${formatMoney(order?.remainingBalance || 0)}`,
       '',
       'Transaction Entry',
       `Job Order No.: ${entry.jobOrderNo || 'N/A'}`,
@@ -627,11 +659,12 @@ const SourceIncome = () => {
     if (!data) return;
 
     const lines = buildReceiptPdfLines(data);
+    const receiptTitle = data.order?.jobOrderNo || data.entry?.referenceNumber || 'transaction';
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
-          <title>Receipt - ${data.order.jobOrderNo}</title>
+          <title>Receipt - ${receiptTitle}</title>
           <style>
             body { font-family: 'Courier New', Courier, monospace; padding: 40px; white-space: pre-wrap; line-height: 1.4; }
             @media print { body { padding: 0; } }
@@ -659,7 +692,7 @@ const SourceIncome = () => {
     const downloadUrl = window.URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = downloadUrl;
-    anchor.download = `receipt-${data.order.jobOrderNo || 'order'}.pdf`;
+    anchor.download = `receipt-${data.order?.jobOrderNo || data.entry?.referenceNumber || 'transaction'}.pdf`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -686,104 +719,129 @@ const SourceIncome = () => {
 
   const getReportNetTotal = useCallback((entries) => getSalesTotal(entries) - getLiquidationTotal(entries), [getLiquidationTotal, getSalesTotal]);
 
-  const chunkLines = useCallback((lines, size) => {
-    const chunks = [];
-    for (let index = 0; index < lines.length; index += size) {
-      chunks.push(lines.slice(index, index + size));
-    }
-    return chunks;
-  }, []);
-
-  const buildFinancePdfBlob = useCallback((pages) => {
-    const pdfObjects = [];
-    const addObject = (id, body) => {
-      pdfObjects.push(`${id} 0 obj ${body} endobj`);
-    };
-
-    const pageObjectIds = pages.map((_, index) => 4 + (index * 2));
-    const contentObjectIds = pages.map((_, index) => 5 + (index * 2));
-
-    addObject(1, '<< /Type /Catalog /Pages 2 0 R >>');
-    addObject(2, `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pages.length} >>`);
-    addObject(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>');
-
-    pages.forEach((pageLines, index) => {
-      const pageId = pageObjectIds[index];
-      const contentId = contentObjectIds[index];
-      const content = [
-        'BT /F1 10 Tf 50 800 Td 12 TL',
-        ...pageLines.map((line) => `(${escapePdfText(line)}) Tj T*`),
-        'ET',
-      ].join('\n');
-
-      addObject(pageId, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentId} 0 R >>`);
-      addObject(contentId, `<< /Length ${content.length} >> stream\n${content}\nendstream`);
-    });
-
-    let pdf = '%PDF-1.4\n';
-    const offsets = [0];
-
-    pdfObjects.forEach((object) => {
-      offsets.push(pdf.length);
-      pdf += `${object}\n`;
-    });
-
-    const xrefStart = pdf.length;
-    pdf += `xref\n0 ${pdfObjects.length + 1}\n`;
-    pdf += '0000000000 65535 f \n';
-    for (let index = 1; index < offsets.length; index += 1) {
-      pdf += `${String(offsets[index]).padStart(10, '0')} 00000 n \n`;
-    }
-    pdf += `trailer << /Size ${pdfObjects.length + 1} /Root 1 0 R >>\n`;
-    pdf += `startxref\n${xrefStart}\n%%EOF`;
-
-    return new Blob([pdf], { type: 'application/pdf' });
-  }, []);
-
-  const buildFinanceReportPdf = useCallback((period, entries, salesTotal, liquidationTotal, netTotal) => {
+  const buildFinanceReportSpreadsheet = useCallback((period, entries, salesTotal, liquidationTotal, netTotal) => {
     const range = getPeriodRange(period);
     const salesEntries = getSalesEntries(entries);
     const liquidationEntries = getLiquidationEntries(entries);
-    const headerLines = [
-      'VERDIDA SPORTS APPAREL',
-      'FINANCE REPORT',
-      '----------------------------------------',
-      `Period: ${REPORT_PERIODS.find((item) => item.key === period)?.label || period}`,
-      `Date Range: ${range.start.toLocaleDateString()} - ${range.end.toLocaleDateString()}`,
-      `Sales Total: ${formatMoney(salesTotal)}`,
-      `Liquidation Total: ${formatMoney(liquidationTotal)}`,
-      `Report Total: ${formatMoney(netTotal)}`,
-      '----------------------------------------',
+    const periodLabel = REPORT_PERIODS.find((item) => item.key === period)?.label || period;
+    const columns = ['Date', 'Type', 'Job Order No.', 'Reference Number', 'Check Number', 'Source/Method', 'Remarks', 'Amount'];
+
+    const row = (cells, styleId = 'sCell') => `<Row>${cells.map((cell) => `<Cell${styleId ? ` ss:StyleID="${styleId}"` : ''}${cell.mergeAcross ? ` ss:MergeAcross="${cell.mergeAcross}"` : ''}><Data ss:Type="${cell.type || 'String'}">${escapeXml(cell.value)}</Data></Cell>`).join('')}</Row>`;
+    const blankCell = (mergeAcross = 0) => ({ value: '', mergeAcross, type: 'String' });
+
+    const buildTransactionRows = (transactionEntries, transactionType) => {
+      if (transactionEntries.length === 0) {
+        return [row([
+          { value: `No ${transactionType.toLowerCase()} entries found for this period.`, mergeAcross: 7 },
+        ], 'sNote')];
+      }
+
+      return transactionEntries.map((entry) => {
+        const amount = getIncomeAmount(entry);
+        const date = getIncomeDate(entry).toLocaleDateString();
+        const displayType = transactionType === 'SALE' ? 'Sale' : 'Liquidation';
+        const referenceNumber = entry.referenceNumber || '';
+        const checkNumber = entry.checkNumber || '';
+        const sourceMethod = entry.shopType || entry.paymentMethod || 'N/A';
+        const remarks = entry.remarks || (transactionType === 'LIQUIDATION' ? 'No reason provided' : '');
+
+        return row([
+          { value: date },
+          { value: displayType },
+          { value: entry.jobOrderNo || 'No Job Order' },
+          { value: referenceNumber || 'N/A' },
+          { value: checkNumber || 'N/A' },
+          { value: sourceMethod },
+          { value: remarks || '' },
+          { value: amount, type: 'Number' },
+        ]);
+      });
+    };
+
+    const sheetRows = [
+      row([{ value: 'VERDIDA SPORTS APPAREL', mergeAcross: 7 }], 'sTitle'),
+      row([{ value: 'FINANCE REPORT', mergeAcross: 7 }], 'sHeading'),
+      row([{ value: `Period: ${periodLabel}`, mergeAcross: 7 }], 'sMeta'),
+      row([{ value: `Date Range: ${range.start.toLocaleDateString()} - ${range.end.toLocaleDateString()}`, mergeAcross: 7 }], 'sMeta'),
+      row([blankCell(7)], 'sBlank'),
+      row([{ value: 'SALES', mergeAcross: 7 }], 'sSection'),
+      row(columns.map((column) => ({ value: column })), 'sHeader'),
+      ...buildTransactionRows(salesEntries, 'SALE'),
+      row([blankCell(7)], 'sBlank'),
+      row([{ value: 'LIQUIDATIONS', mergeAcross: 7 }], 'sSection'),
+      row(columns.map((column) => ({ value: column })), 'sHeader'),
+      ...buildTransactionRows(liquidationEntries, 'LIQUIDATION'),
+      row([blankCell(7)], 'sBlank'),
+      row([{ value: 'Sales Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: salesTotal, type: 'Number' }], 'sTotal'),
+      row([{ value: 'Liquidation Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: liquidationTotal, type: 'Number' }], 'sTotal'),
+      row([{ value: 'Report Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: netTotal, type: 'Number' }], netTotal < 0 ? 'sTotalNegative' : 'sTotal'),
     ];
 
-    const bodyLines = [
-      'SALES',
-      ...(salesEntries.length > 0
-        ? salesEntries.flatMap((entry) => ([
-          `${getIncomeDate(entry).toLocaleDateString()} | ${entry.jobOrderNo || 'No Job Order'} | ${getPaymentLabel(entry) || 'N/A'} | ${formatMoney(getIncomeAmount(entry))}`,
-          `Source: ${entry.shopType || 'Unknown'} | Method: ${entry.paymentMethod || 'N/A'}`,
-          entry.remarks ? `Remarks: ${entry.remarks}` : '',
-          '',
-        ]))
-        : ['No sales entries found for this period.', '']),
-      'LIQUIDATIONS',
-      ...(liquidationEntries.length > 0
-        ? liquidationEntries.flatMap((entry) => ([
-          `${getIncomeDate(entry).toLocaleDateString()} | ${entry.jobOrderNo || 'No Job Order'} | ${formatMoney(getIncomeAmount(entry))}`,
-          `Reason: ${entry.remarks || 'No reason provided'}`,
-          '',
-        ]))
-        : ['No liquidation entries found for this period.', '']),
-    ];
+    const xmlRows = sheetRows
+      .map((rowMarkup) => rowMarkup)
+      .join('');
 
-    const pages = chunkLines(bodyLines, 34).map((pageLines, index) => [
-      ...headerLines,
-      ...(index > 0 ? ['CONTINUED', ''] : []),
-      ...pageLines,
-    ]);
+    const workbookXml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+  <Styles>
+    <Style ss:ID="sTitle"><Font ss:Bold="1" ss:Size="14"/><Alignment ss:Horizontal="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+    <Style ss:ID="sHeading"><Font ss:Bold="1" ss:Size="12"/><Alignment ss:Horizontal="Center"/></Style>
+    <Style ss:ID="sMeta"><Font ss:Italic="1"/><Alignment ss:Horizontal="Left"/></Style>
+    <Style ss:ID="sSection"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B6E6B" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="sHeader"><Font ss:Bold="1"/><Interior ss:Color="#D9EAF0" ss:Pattern="Solid"/><Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders></Style>
+    <Style ss:ID="sCell"><Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders></Style>
+    <Style ss:ID="sNote"><Font ss:Italic="1" ss:Color="#666666"/><Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders></Style>
+    <Style ss:ID="sTotal"><Font ss:Bold="1"/><Interior ss:Color="#E9F5EE" ss:Pattern="Solid"/><Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders></Style>
+    <Style ss:ID="sTotalNegative"><Font ss:Bold="1" ss:Color="#C62828"/><Interior ss:Color="#FDECEC" ss:Pattern="Solid"/><Borders>
+      <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+      <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+    </Borders></Style>
+    <Style ss:ID="sBlank"/>
+  </Styles>
+  <Worksheet ss:Name="Finance Report">
+    <Table>
+      <Column ss:Width="85"/>
+      <Column ss:Width="90"/>
+      <Column ss:Width="105"/>
+      <Column ss:Width="120"/>
+      <Column ss:Width="105"/>
+      <Column ss:Width="120"/>
+      <Column ss:Width="150"/>
+      <Column ss:Width="90"/>
+      ${xmlRows}
+    </Table>
+  </Worksheet>
+</Workbook>`;
 
-    return buildFinancePdfBlob(pages);
-  }, [buildFinancePdfBlob, chunkLines, getIncomeDate, getLiquidationEntries, getPaymentLabel, getSalesEntries]);
+    return new Blob([workbookXml], { type: 'application/vnd.ms-excel' });
+  }, [getIncomeDate, getLiquidationEntries, getSalesEntries]);
 
   const openDetails = (type, item) => {
     setDetailsTarget({ type, item });
@@ -829,9 +887,9 @@ const SourceIncome = () => {
         <div className="income-details-list">
           <div className="income-detail-row">
             <div>
-              <strong>{data.order?.clientName || 'Walk-in Client'}</strong>
+              <strong>{data.order?.clientName || (isLiquidationEntry(data.entry) ? 'Liquidation Withdrawal' : 'Walk-in Client')}</strong>
               <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
-                {data.order?.shop || 'Unknown shop'} • {data.order?.sourceType || 'Order'}
+                {data.order?.shop || (isLiquidationEntry(data.entry) ? 'Finance' : 'Unknown shop')} • {data.order?.sourceType || (isLiquidationEntry(data.entry) ? 'Liquidation' : 'Order')}
               </div>
             </div>
             <strong>{formatMoney(data.entry?.amount)}</strong>
@@ -850,7 +908,11 @@ const SourceIncome = () => {
               </div>
             ))
           ) : (
-            <div className="income-details-empty">No line items available for this receipt.</div>
+            <div className="income-details-empty">
+              {isLiquidationEntry(data.entry)
+                ? 'No order items available for this liquidation withdrawal.'
+                : 'No line items available for this receipt.'}
+            </div>
           )}
         </div>
 
@@ -1156,13 +1218,14 @@ const SourceIncome = () => {
   const currentSalesTotal = getSalesTotal(currentReportEntries);
   const currentLiquidationTotal = getLiquidationTotal(currentReportEntries);
   const currentReportTotal = getReportNetTotal(currentReportEntries);
-  const filteredReportEntries = filterEntriesByReferenceNumber(currentReportEntries);
-  const filteredSalesTotal = getSalesTotal(filteredReportEntries);
-  const filteredLiquidationTotal = getLiquidationTotal(filteredReportEntries);
-  const filteredReportTotal = getReportNetTotal(filteredReportEntries);
+  const incomeReportingEntries = currentReportEntries.filter((entry) => !isLiquidationEntry(entry));
+  const currentLiquidationEntries = getLiquidationEntries(currentReportEntries);
+  const filteredLiquidationEntries = filterEntriesByReferenceNumber(currentLiquidationEntries);
+  const filteredLiquidationTotal = getLiquidationTotal(filteredLiquidationEntries);
+  const filteredReportTotal = currentSalesTotal - filteredLiquidationTotal;
 
-  const handleDownloadFinanceReportPdf = useCallback(() => {
-    const blob = buildFinanceReportPdf(
+  const handleDownloadFinanceReportExcel = useCallback(() => {
+    const blob = buildFinanceReportSpreadsheet(
       reportPeriod,
       currentReportEntries,
       currentSalesTotal,
@@ -1173,14 +1236,14 @@ const SourceIncome = () => {
     const downloadUrl = window.URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = downloadUrl;
-    anchor.download = `finance-report-${reportPeriod.toLowerCase()}.pdf`;
+    anchor.download = `finance-report-${reportPeriod.toLowerCase()}.xls`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
     setTimeout(() => {
       window.URL.revokeObjectURL(downloadUrl);
     }, 1000);
-  }, [buildFinanceReportPdf, currentLiquidationTotal, currentReportEntries, currentReportTotal, currentSalesTotal, reportPeriod]);
+  }, [buildFinanceReportSpreadsheet, currentLiquidationTotal, currentReportEntries, currentReportTotal, currentSalesTotal, reportPeriod]);
 
   if (!canAccessIncome && !canAccessPayment) {
     return (
@@ -1374,76 +1437,28 @@ const SourceIncome = () => {
                         </button>
                       ))}
                     </div>
-                    <div className="finance-search-bar">
-                      <input
-                        type="text"
-                        placeholder="Search by reference number or liquidation reason..."
-                        value={searchReferenceNumber}
-                        onChange={(e) => setSearchReferenceNumber(e.target.value)}
-                      />
-                      {searchReferenceNumber && (
-                        <button
-                          type="button"
-                          className="finance-search-clear-btn"
-                          onClick={handleClearSearch}
-                          title="Clear search"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        className="income-details-btn"
-                        onClick={openLiquidationModal}
-                      >
-                        Liquidation / Withdraw Money
-                      </button>
-                      <button
-                        type="button"
-                        className="income-details-btn"
-                        onClick={handleDownloadFinanceReportPdf}
-                      >
-                        Download PDF
-                      </button>
-                    </div>
                   </div>
 
                   <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
-                    <div style={{ flex: '0 0 28%' }}>
+                    <div style={{ flex: '0 0 30%' }}>
                       <span className="income-details-label">Sales Total</span>
-                      <strong>PHP {filteredSalesTotal.toFixed(2)}</strong>
+                      <strong>PHP {currentSalesTotal.toFixed(2)}</strong>
                     </div>
-                    <div style={{ flex: '0 0 28%' }}>
-                      <span className="income-details-label">Liquidation Total</span>
-                      <strong>PHP {filteredLiquidationTotal.toFixed(2)}</strong>
-                    </div>
-                    <div style={{ flex: '0 0 28%' }}>
+                    <div style={{ flex: '0 0 30%' }}>
                       <span className="income-details-label">Report Total</span>
-                      <strong style={{ color: filteredReportTotal < 0 ? '#d32f2f' : undefined }}>
-                        PHP {filteredReportTotal.toFixed(2)}
+                      <strong style={{ color: currentReportTotal < 0 ? '#d32f2f' : undefined }}>
+                        PHP {currentReportTotal.toFixed(2)}
                       </strong>
-                      {searchReferenceNumber && (
-                        <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
-                          Filtered from PHP {currentReportTotal.toFixed(2)}
-                        </div>
-                      )}
                     </div>
-                    <div style={{ flex: '0 0 12%' }}>
+                    <div style={{ flex: '0 0 20%' }}>
                       <span className="income-details-label">Range</span>
                       <strong>
                         {currentReportRange.start.toLocaleDateString()} - {currentReportRange.end.toLocaleDateString()}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 12%' }}>
+                    <div style={{ flex: '0 0 20%' }}>
                       <span className="income-details-label">Entries</span>
-                      <strong>{filteredReportEntries.length}</strong>
-                      {searchReferenceNumber && (
-                        <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
-                          of {currentReportEntries.length}
-                        </div>
-                      )}
+                      <strong>{incomeReportingEntries.length}</strong>
                     </div>
                   </div>
 
@@ -1451,18 +1466,16 @@ const SourceIncome = () => {
                     Transaction Histories
                   </h3>
                   <div className="income-details-list transaction-histories-grid" style={{ marginTop: '12px' }}>
-                    {filteredReportEntries.length > 0 ? (
-                      filteredReportEntries.map((entry) => (
+                    {incomeReportingEntries.length > 0 ? (
+                      incomeReportingEntries.map((entry) => (
                         <div key={entry.id} className="income-detail-row">
                           <div className="transaction-history-meta">
                             <div>
                               <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>
-                                {isLiquidationEntry(entry) ? 'Liquidation:' : 'Reference Number:'}
+                                Reference Number:
                               </span>
                               <strong className="transaction-reference-number">
-                                {isLiquidationEntry(entry)
-                                  ? 'Withdrawal'
-                                  : (getPaymentLabel(entry) || orderReferenceCache[entry.jobOrderNo] || 'Loading...')}
+                                {getPaymentLabel(entry) || orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
                               </strong>
                             </div>
                             <span className="transaction-client-id">
@@ -1473,7 +1486,6 @@ const SourceIncome = () => {
                             </span>
                             <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
                               {entry.shopType || 'Unknown source'} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
-                              {isLiquidationEntry(entry) && entry.remarks ? ` - ${entry.remarks}` : ''}
                             </div>
                             <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
                               <button
@@ -1497,16 +1509,148 @@ const SourceIncome = () => {
                             </div>
                           </div>
                           <strong>
-                            {isLiquidationEntry(entry) ? '-' : ''}
                             PHP {getIncomeAmount(entry).toFixed(2)}
                           </strong>
                         </div>
                       ))
                     ) : (
                       <p className="income-details-empty">
+                        No income transaction history found for this period.
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                <section
+                  className="finance-panel finance-panel-full"
+                  style={{
+                    marginTop: '24px',
+                    borderTop: '4px solid #c62828',
+                    background: 'linear-gradient(180deg, #fffdfd 0%, #fff7f7 100%)',
+                    boxShadow: '0 10px 28px rgba(198, 40, 40, 0.06)',
+                  }}
+                >
+                  <div
+                    className="page-header"
+                    style={{
+                      marginBottom: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}
+                  >
+                    <div>
+                      <h2 style={{ margin: 0 }}>Liquidation</h2>
+                      <div style={{ fontSize: '12px', color: '#7a5a5a', marginTop: '4px' }}>
+                        Cash out records, liquidation totals, and withdrawal history
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    <div className="finance-search-bar">
+                      <input
+                        type="text"
+                        placeholder="Search by liquidation reference number..."
+                        value={searchReferenceNumber}
+                        onChange={(e) => setSearchReferenceNumber(e.target.value)}
+                      />
+                      {searchReferenceNumber && (
+                        <button
+                          type="button"
+                          className="finance-search-clear-btn"
+                          onClick={handleClearSearch}
+                          title="Clear search"
+                        >
+                          �
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="income-details-btn"
+                        onClick={openLiquidationModal}
+                      >
+                        Liquidation / Withdraw Money
+                      </button>
+                      <button
+                        type="button"
+                        className="income-details-btn"
+                        onClick={handleDownloadFinanceReportExcel}
+                      >
+                        Download Excel
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
+                    <div style={{ flex: '0 0 28%' }}>
+                      <span className="income-details-label">Liquidation Total</span>
+                      <strong>PHP {filteredLiquidationTotal.toFixed(2)}</strong>
+                    </div>
+                    <div style={{ flex: '0 0 28%' }}>
+                      <span className="income-details-label">Report Total</span>
+                      <strong style={{ color: filteredReportTotal < 0 ? '#d32f2f' : undefined }}>
+                        PHP {filteredReportTotal.toFixed(2)}
+                      </strong>
+                    </div>
+                    <div style={{ flex: '0 0 20%' }}>
+                      <span className="income-details-label">Range</span>
+                      <strong>
+                        {currentReportRange.start.toLocaleDateString()} - {currentReportRange.end.toLocaleDateString()}
+                      </strong>
+                    </div>
+                    <div style={{ flex: '0 0 20%' }}>
+                      <span className="income-details-label">Entries</span>
+                      <strong>{filteredLiquidationEntries.length}</strong>
+                    </div>
+                  </div>
+
+                  <h3 className="transaction-histories-title" style={{ marginTop: '18px' }}>
+                    Liquidation Histories
+                  </h3>
+                  <div className="income-details-list transaction-histories-grid" style={{ marginTop: '12px' }}>
+                    {filteredLiquidationEntries.length > 0 ? (
+                      filteredLiquidationEntries.map((entry) => (
+                        <div key={entry.id} className="income-detail-row">
+                          <div className="transaction-history-meta">
+                            <div>
+                              <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>
+                                Reference Number:
+                              </span>
+                              <strong className="transaction-reference-number">
+                                {entry.referenceNumber || 'Auto-generated on save'}
+                              </strong>
+                            </div>
+                            <span className="transaction-client-id">
+                              {getIncomeDate(entry).toLocaleDateString()}
+                            </span>
+                            <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                              {entry.remarks || 'No reason provided'}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                className="income-details-btn"
+                                onClick={() => openReceipt(entry)}
+                                style={{ padding: '8px 14px', fontSize: '12px' }}
+                              >
+                                View Receipt
+                              </button>
+                            </div>
+                          </div>
+                          <strong>
+                            - PHP {getIncomeAmount(entry).toFixed(2)}
+                          </strong>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="income-details-empty">
                         {searchReferenceNumber
-                          ? `No transactions found matching "${searchReferenceNumber}" for this period.`
-                          : 'No transaction history found for this period.'}
+                          ? `No liquidation history found matching "${searchReferenceNumber}" for this period.`
+                          : 'No liquidation history found for this period.'}
                       </p>
                     )}
                   </div>
