@@ -56,6 +56,7 @@ const SourceIncome = () => {
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptError, setReceiptError] = useState('');
   const [searchReferenceNumber, setSearchReferenceNumber] = useState('');
+  const [chequeSearchNumber, setChequeSearchNumber] = useState('');
   const [liquidationModalOpen, setLiquidationModalOpen] = useState(false);
   const [liquidationAmount, setLiquidationAmount] = useState('');
   const [liquidationReason, setLiquidationReason] = useState('');
@@ -337,6 +338,15 @@ const SourceIncome = () => {
       .sort((a, b) => getIncomeDate(b) - getIncomeDate(a));
   }, [incomeEntries, getIncomeDate]);
 
+  const filterChequeEntriesBySearch = useCallback((entries) => {
+    if (!chequeSearchNumber.trim()) {
+      return entries;
+    }
+
+    const searchTerm = chequeSearchNumber.toLowerCase().trim();
+    return entries.filter((entry) => String(entry.checkNumber || '').toLowerCase().includes(searchTerm));
+  }, [chequeSearchNumber]);
+
   const getTotalCheques = () =>
     getChequeEntries().reduce((total, entry) => total + getIncomeAmount(entry), 0);
 
@@ -517,9 +527,18 @@ const SourceIncome = () => {
     setSearchReferenceNumber('');
   };
 
-  const handleViewOrder = useCallback((jobOrderNo) => {
+  const handleViewOrder = useCallback(async (jobOrderNo) => {
     if (!jobOrderNo) return;
-    navigate('/orders', { state: { jobOrderNo } });
+
+    try {
+      await customizedOrderService.getOrderByJobOrderNo(jobOrderNo);
+      navigate('/customized-orders', { state: { jobOrderNo, openDetails: true } });
+      return;
+    } catch (customizedError) {
+      console.debug('No customized order found for View Order redirect, falling back to inventory order:', customizedError);
+    }
+
+    navigate('/orders', { state: { jobOrderNo, openDetails: true } });
   }, [navigate]);
 
   const getReceiptNumber = useCallback((order, entry) => {
@@ -861,10 +880,12 @@ const SourceIncome = () => {
 
   const openDetails = (type, item) => {
     setDetailsTarget({ type, item });
+    setChequeSearchNumber('');
   };
 
   const closeDetails = () => {
     setDetailsTarget(null);
+    setChequeSearchNumber('');
   };
 
   const renderReceiptContent = () => {
@@ -970,14 +991,23 @@ const SourceIncome = () => {
             </div>
             <div style={{ flex: '0 0 15%' }}>
               <span className="income-details-label">Entries</span>
-              <strong>{entries.length}</strong>
+              <strong>{filteredChequeEntries.length}</strong>
             </div>
+          </div>
+
+          <div className="order-search-bar" style={{ marginBottom: 0, maxWidth: '520px' }}>
+            <input
+              type="text"
+              value={chequeSearchNumber}
+              onChange={(e) => setChequeSearchNumber(e.target.value)}
+              placeholder="Search by check number..."
+            />
           </div>
 
           <h3 className="transaction-histories-title">Transaction Histories</h3>
           <div className="income-details-list transaction-histories-grid">
-            {entries.length > 0 ? (
-              entries.map((entry) => (
+            {filteredChequeEntries.length > 0 ? (
+              filteredChequeEntries.map((entry) => (
                 <div key={entry.id} className="income-detail-row">
                   <div className="transaction-history-meta">
                     <div>
@@ -1033,6 +1063,7 @@ const SourceIncome = () => {
     const isChequeMethod = method === 'Cheques';
     const entries = isChequeMethod ? getChequeEntries() : getIncomeEntriesByMethod(method);
     const total = isChequeMethod ? getTotalCheques() : getTotalByMethod(method);
+    const filteredChequeEntries = isChequeMethod ? filterChequeEntriesBySearch(entries) : entries;
 
     if (method === 'Credit') {
       return (
@@ -1091,6 +1122,8 @@ const SourceIncome = () => {
     }
 
     if (isChequeMethod) {
+      const filteredChequeTotal = filteredChequeEntries.reduce((sum, entry) => sum + getIncomeAmount(entry), 0);
+
       return (
         <div className="income-details-modal">
           <div
@@ -1103,24 +1136,30 @@ const SourceIncome = () => {
             </div>
             <div style={{ flex: '0 0 53%' }}>
               <span className="income-details-label">Total Received</span>
-              <strong>PHP {total.toFixed(2)}</strong>
+              <strong>PHP {filteredChequeTotal.toFixed(2)}</strong>
             </div>
             <div style={{ flex: '0 0 15%' }}>
               <span className="income-details-label">Entries</span>
-              <strong>{entries.length}</strong>
+              <strong>{filteredChequeEntries.length}</strong>
             </div>
           </div>
 
           <h3 className="transaction-histories-title">Transaction Histories</h3>
           <div className="income-details-list transaction-histories-grid">
-            {entries.length > 0 ? (
-              entries.map((entry) => (
+            {filteredChequeEntries.length > 0 ? (
+              filteredChequeEntries.map((entry) => (
                 <div key={entry.id} className="income-detail-row">
                   <div className="transaction-history-meta">
                     <div>
                       <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Check Number:</span>
                       <strong className="transaction-reference-number">
                         {getChequeLabel(entry) || orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Reference Number:</span>
+                      <strong className="transaction-reference-number">
+                        {entry.referenceNumber || orderReferenceCache[entry.jobOrderNo] || 'N/A'}
                       </strong>
                     </div>
                     <span className="transaction-client-id">
@@ -1159,7 +1198,11 @@ const SourceIncome = () => {
                 </div>
               ))
             ) : (
-              <p className="income-details-empty">No transaction history found for this payment method.</p>
+              <p className="income-details-empty">
+                {chequeSearchNumber
+                  ? `No cheque entries found matching "${chequeSearchNumber}".`
+                  : 'No transaction history found for this payment method.'}
+              </p>
             )}
           </div>
         </div>
@@ -1235,6 +1278,7 @@ const SourceIncome = () => {
   const currentLiquidationTotal = getLiquidationTotal(currentReportEntries);
   const currentReportTotal = getReportNetTotal(currentReportEntries);
   const incomeReportingEntries = currentReportEntries.filter((entry) => !isLiquidationEntry(entry));
+  const filteredIncomeReportingEntries = filterEntriesByReferenceNumber(incomeReportingEntries);
   const currentLiquidationEntries = getLiquidationEntries(currentReportEntries);
   const filteredLiquidationEntries = filterEntriesByReferenceNumber(currentLiquidationEntries);
   const filteredLiquidationTotal = getLiquidationTotal(filteredLiquidationEntries);
@@ -1453,6 +1497,15 @@ const SourceIncome = () => {
                         </button>
                       ))}
                     </div>
+
+                    <div className="order-search-bar" style={{ marginBottom: 0, flex: '1 1 320px', maxWidth: '520px' }}>
+                      <input
+                        type="text"
+                        value={searchReferenceNumber}
+                        onChange={(e) => setSearchReferenceNumber(e.target.value)}
+                        placeholder="Search by reference number..."
+                      />
+                    </div>
                   </div>
 
                   <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
@@ -1474,7 +1527,7 @@ const SourceIncome = () => {
                     </div>
                     <div style={{ flex: '0 0 14%', minWidth: 0, boxSizing: 'border-box' }}>
                       <span className="income-details-label">Entries</span>
-                      <strong>{incomeReportingEntries.length}</strong>
+                      <strong>{filteredIncomeReportingEntries.length}</strong>
                     </div>
                   </div>
 
@@ -1482,8 +1535,8 @@ const SourceIncome = () => {
                     Transaction Histories
                   </h3>
                   <div className="income-details-list transaction-histories-grid" style={{ marginTop: '12px' }}>
-                    {incomeReportingEntries.length > 0 ? (
-                      incomeReportingEntries.map((entry) => (
+                    {filteredIncomeReportingEntries.length > 0 ? (
+                      filteredIncomeReportingEntries.map((entry) => (
                         <div key={entry.id} className="income-detail-row">
                           <div className="transaction-history-meta">
                             <div>

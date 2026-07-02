@@ -192,26 +192,55 @@ const CustomizedOrders = () => {
     loadOrders();
   }, [loadOrders]);
 
+  const populateOrderDetails = useCallback((order) => {
+    if (!order) return;
+
+    setSelectedOrder(order);
+    setManufacturingNotes(order.remarks || '');
+    setReferenceNumber(order.referenceNumber || '');
+    setIsReferenceNumberEditing(false);
+    setPaymentUpdateAmount('');
+    setPaymentCheckNumber('');
+    setPaymentModeOfPayment(order.modeOfPayment || '');
+    setDownPaymentAmount('');
+    setDetailsOpen(true);
+  }, []);
+
   useEffect(() => {
     const targetJobOrderNo = location.state?.jobOrderNo;
-    if (!targetJobOrderNo || openedCreditJobOrderRef.current === targetJobOrderNo) {
+    const shouldOpenDetails = location.state?.openDetails !== false;
+    if (!targetJobOrderNo || !shouldOpenDetails || openedCreditJobOrderRef.current === targetJobOrderNo) {
       return;
     }
 
     const targetOrder = orders.find((order) => order.jobOrderNo === targetJobOrderNo);
     if (targetOrder) {
       openedCreditJobOrderRef.current = targetJobOrderNo;
-      setSelectedOrder(targetOrder);
-      setManufacturingNotes(targetOrder.remarks || '');
-      setReferenceNumber(targetOrder.referenceNumber || '');
-      setIsReferenceNumberEditing(false);
-      setPaymentUpdateAmount('');
-      setPaymentCheckNumber('');
-      setPaymentModeOfPayment(targetOrder.modeOfPayment || '');
-      setDownPaymentAmount('');
-      setDetailsOpen(true);
+      populateOrderDetails(targetOrder);
+      return;
     }
-  }, [location.state, orders]);
+
+    let cancelled = false;
+
+    const loadTargetOrder = async () => {
+      try {
+        const response = await customizedOrderService.getOrderByJobOrderNo(targetJobOrderNo);
+        const fetchedOrder = response?.data;
+        if (!cancelled && fetchedOrder) {
+          openedCreditJobOrderRef.current = targetJobOrderNo;
+          populateOrderDetails(fetchedOrder);
+        }
+      } catch (error) {
+        console.error(`Error loading customized order ${targetJobOrderNo} for details redirect:`, error);
+      }
+    };
+
+    loadTargetOrder();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state, orders, populateOrderDetails]);
 
   const getRecordedPaidAmount = useCallback((jobOrderNo, fallbackDownPayment = 0) => {
     const recordedAmount = incomeEntries
@@ -449,6 +478,10 @@ const CustomizedOrders = () => {
     setModalOpen(true);
   };
 
+  const handleView = (order) => {
+    populateOrderDetails(order);
+  };
+
   const handleDelete = async (id) => {
     try {
       await customizedOrderService.deleteOrder(id);
@@ -555,18 +588,6 @@ const CustomizedOrders = () => {
     }
   };
 
-  const handleView = (order) => {
-    setSelectedOrder(order);
-    setManufacturingNotes(order.remarks || '');
-    setReferenceNumber(order.referenceNumber || '');
-    setIsReferenceNumberEditing(false);
-    setPaymentUpdateAmount('');
-    setPaymentCheckNumber('');
-    setPaymentModeOfPayment(order.modeOfPayment || '');
-    setDownPaymentAmount('');
-    setDetailsOpen(true);
-  };
-
   const closeDetails = () => {
     setDetailsOpen(false);
     setSelectedOrder(null);
@@ -577,6 +598,7 @@ const CustomizedOrders = () => {
     setPaymentCheckNumber('');
     setPaymentModeOfPayment('');
     setDownPaymentAmount('');
+    openedCreditJobOrderRef.current = null;
   };
 
   const buildOrderPayload = (order, statusOverride) => ({

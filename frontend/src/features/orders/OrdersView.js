@@ -386,7 +386,9 @@ const Orders = () => {
     setFormData({ ...formData, downPayment: String(Math.min(numValue, maxDownPayment)) });
   };
 
-  const handleView = (order) => {
+  const populateOrderDetails = useCallback((order) => {
+    if (!order) return;
+
     setSelectedOrder(order);
     setReferenceNumber(order.referenceNumber || '');
     setRemarks(order.remarks || '');
@@ -395,27 +397,47 @@ const Orders = () => {
     setPaymentModeOfPayment(order.modeOfPayment || '');
     setDownPaymentAmount('');
     setDetailsOpen(true);
+  }, []);
+
+  const handleView = (order) => {
+    populateOrderDetails(order);
   };
 
   useEffect(() => {
     const targetJobOrderNo = location.state?.jobOrderNo;
-    if (!targetJobOrderNo || openedCreditJobOrderRef.current === targetJobOrderNo) {
+    const shouldOpenDetails = location.state?.openDetails !== false;
+    if (!targetJobOrderNo || !shouldOpenDetails || openedCreditJobOrderRef.current === targetJobOrderNo) {
       return;
     }
 
     const targetOrder = orders.find((order) => order.jobOrderNo === targetJobOrderNo);
     if (targetOrder) {
       openedCreditJobOrderRef.current = targetJobOrderNo;
-      setSelectedOrder(targetOrder);
-      setReferenceNumber(targetOrder.referenceNumber || '');
-      setRemarks(targetOrder.remarks || '');
-      setPaymentUpdateAmount('');
-      setPaymentCheckNumber('');
-      setPaymentModeOfPayment(targetOrder.modeOfPayment || '');
-      setDownPaymentAmount('');
-      setDetailsOpen(true);
+      populateOrderDetails(targetOrder);
+      return;
     }
-  }, [location.state, orders]);
+
+    let cancelled = false;
+
+    const loadTargetOrder = async () => {
+      try {
+        const response = await orderService.getOrderByJobOrderNo(targetJobOrderNo);
+        const fetchedOrder = response?.data;
+        if (!cancelled && fetchedOrder) {
+          openedCreditJobOrderRef.current = targetJobOrderNo;
+          populateOrderDetails(fetchedOrder);
+        }
+      } catch (error) {
+        console.error(`Error loading order ${targetJobOrderNo} for details redirect:`, error);
+      }
+    };
+
+    loadTargetOrder();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state, orders, populateOrderDetails]);
 
   const handleEdit = (order) => {
     if (order.status === ORDER_STATUS.FULLY_PAID) {
@@ -541,6 +563,7 @@ const Orders = () => {
     setPaymentCheckNumber('');
     setPaymentModeOfPayment('');
     setDownPaymentAmount('');
+    openedCreditJobOrderRef.current = null;
   };
 
   const updateSelectedOrderStatus = async (newStatus) => {
