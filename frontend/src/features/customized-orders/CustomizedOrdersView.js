@@ -205,6 +205,14 @@ const CustomizedOrders = () => {
   }, []);
 
   useEffect(() => {
+    if (selectedOrder?.status === ORDER_STATUS.DOWN_PAYMENT_PENDING) {
+      setDownPaymentAmount('');
+      setReferenceNumber('');
+      setPaymentCheckNumber('');
+    }
+  }, [selectedOrder?.id, selectedOrder?.status]);
+
+  useEffect(() => {
     const targetJobOrderNo = location.state?.jobOrderNo;
     const shouldOpenDetails = location.state?.openDetails !== false;
     if (!targetJobOrderNo || !shouldOpenDetails || openedCreditJobOrderRef.current === targetJobOrderNo) {
@@ -629,13 +637,14 @@ const CustomizedOrders = () => {
     status: statusOverride || order.status || ORDER_STATUS.FOR_CLIENT_APPROVAL,
   });
 
-  const updateSelectedOrderStatus = async (newStatus) => {
+  const updateSelectedOrderStatus = async (newStatus, options = {}) => {
     if (!selectedOrder) {
       return;
     }
 
+    const { skipModeValidation = false } = options;
     const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
-    if (requiresModeOfPayment(newStatus) && !effectiveModeOfPayment && !isApprovalToDownPaymentPendingTransition(selectedOrder.status, newStatus)) {
+    if (requiresModeOfPayment(newStatus) && !effectiveModeOfPayment && !skipModeValidation && !isApprovalToDownPaymentPendingTransition(selectedOrder.status, newStatus)) {
       alert('Please select a mode of payment before changing the order to this status.');
       return;
     }
@@ -733,8 +742,10 @@ const CustomizedOrders = () => {
     const remainingBalance = getRemainingBalance(selectedOrder);
     const existingDownPayment = Number(selectedOrder.downPayment || 0);
     const enteredAmount = Number(downPaymentAmount || 0);
+    const hasNewDownPayment = Number.isFinite(enteredAmount) && enteredAmount > 0;
+    const hasRecordedInitialPayment = existingDownPayment > 0;
 
-    if (existingDownPayment <= 0 && (!Number.isFinite(enteredAmount) || enteredAmount <= 0)) {
+    if (!hasNewDownPayment && !hasRecordedInitialPayment) {
       alert('Cannot proceed. Please enter a down payment amount.');
       return;
     }
@@ -746,12 +757,12 @@ const CustomizedOrders = () => {
 
     try {
       const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
-      if (!effectiveModeOfPayment) {
+      if (hasNewDownPayment && !effectiveModeOfPayment) {
         alert('Please select a mode of payment before recording this down payment.');
         return;
       }
 
-      if (enteredAmount > 0) {
+      if (hasNewDownPayment) {
         await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
           amount: enteredAmount,
           checkNumber: paymentCheckNumber.trim() || null,
@@ -761,7 +772,9 @@ const CustomizedOrders = () => {
         });
       }
 
-      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION);
+      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION, {
+        skipModeValidation: !hasNewDownPayment && hasRecordedInitialPayment,
+      });
       setDownPaymentAmount('');
       setPaymentCheckNumber('');
       setReferenceNumber('');

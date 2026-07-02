@@ -399,6 +399,14 @@ const Orders = () => {
     setDetailsOpen(true);
   }, []);
 
+  useEffect(() => {
+    if (selectedOrder?.status === ORDER_STATUS.DOWN_PAYMENT_PENDING) {
+      setDownPaymentAmount('');
+      setReferenceNumber('');
+      setPaymentCheckNumber('');
+    }
+  }, [selectedOrder?.id, selectedOrder?.status]);
+
   const handleView = (order) => {
     populateOrderDetails(order);
   };
@@ -576,10 +584,11 @@ const Orders = () => {
     openedCreditJobOrderRef.current = null;
   };
 
-  const updateSelectedOrderStatus = async (newStatus) => {
+  const updateSelectedOrderStatus = async (newStatus, options = {}) => {
     if (!selectedOrder) return;
+    const { skipModeValidation = false } = options;
     const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
-    if (requiresModeOfPayment(newStatus) && !effectiveModeOfPayment && !isApprovalToDownPaymentPendingTransition(selectedOrder.status, newStatus)) {
+    if (requiresModeOfPayment(newStatus) && !effectiveModeOfPayment && !skipModeValidation && !isApprovalToDownPaymentPendingTransition(selectedOrder.status, newStatus)) {
       alert('Please select a mode of payment before changing the order to this status.');
       return;
     }
@@ -655,19 +664,21 @@ const Orders = () => {
 
     const existingDownPayment = Number(selectedOrder.downPayment || 0);
     const enteredAmount = Number(downPaymentAmount || 0);
+    const hasNewDownPayment = Number.isFinite(enteredAmount) && enteredAmount > 0;
+    const hasRecordedInitialPayment = existingDownPayment > 0;
 
-    if (existingDownPayment <= 0 && (!Number.isFinite(enteredAmount) || enteredAmount <= 0)) {
+    if (!hasNewDownPayment && !hasRecordedInitialPayment) {
       alert('Cannot proceed. Please enter a down payment amount.');
       return;
     }
 
     try {
       const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
-      if (!effectiveModeOfPayment) {
+      if (hasNewDownPayment && !effectiveModeOfPayment) {
         alert('Please select a mode of payment before recording this down payment.');
         return;
       }
-      if (enteredAmount > 0) {
+      if (hasNewDownPayment) {
         await orderService.applyPaymentUpdate(selectedOrder.id, {
           amount: enteredAmount,
           checkNumber: paymentCheckNumber.trim() || null,
@@ -677,7 +688,9 @@ const Orders = () => {
         });
       }
 
-      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION);
+      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION, {
+        skipModeValidation: !hasNewDownPayment && hasRecordedInitialPayment,
+      });
       setDownPaymentAmount('');
       setPaymentCheckNumber('');
       setReferenceNumber('');
