@@ -991,23 +991,14 @@ const SourceIncome = () => {
             </div>
             <div style={{ flex: '0 0 15%' }}>
               <span className="income-details-label">Entries</span>
-              <strong>{filteredChequeEntries.length}</strong>
+              <strong>{entries.length}</strong>
             </div>
-          </div>
-
-          <div className="order-search-bar" style={{ marginBottom: 0, maxWidth: '520px' }}>
-            <input
-              type="text"
-              value={chequeSearchNumber}
-              onChange={(e) => setChequeSearchNumber(e.target.value)}
-              placeholder="Search by check number..."
-            />
           </div>
 
           <h3 className="transaction-histories-title">Transaction Histories</h3>
           <div className="income-details-list transaction-histories-grid">
-            {filteredChequeEntries.length > 0 ? (
-              filteredChequeEntries.map((entry) => (
+            {entries.length > 0 ? (
+              entries.map((entry) => (
                 <div key={entry.id} className="income-detail-row">
                   <div className="transaction-history-meta">
                     <div>
@@ -1142,6 +1133,15 @@ const SourceIncome = () => {
               <span className="income-details-label">Entries</span>
               <strong>{filteredChequeEntries.length}</strong>
             </div>
+          </div>
+
+          <div className="order-search-bar" style={{ marginBottom: 0, maxWidth: '520px' }}>
+            <input
+              type="text"
+              value={chequeSearchNumber}
+              onChange={(e) => setChequeSearchNumber(e.target.value)}
+              placeholder="Search by check number..."
+            />
           </div>
 
           <h3 className="transaction-histories-title">Transaction Histories</h3>
