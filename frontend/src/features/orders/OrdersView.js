@@ -233,6 +233,20 @@ const Orders = () => {
       }));
   }, [incomeEntries]);
 
+  const getStoredOrderPaymentMethod = useCallback((order) => {
+    if (!order?.jobOrderNo) return '';
+
+    const paymentEntry = incomeEntries.find((entry) => {
+      if (entry.jobOrderNo !== order.jobOrderNo) {
+        return false;
+      }
+      const category = String(entry.paymentCategory || '').toUpperCase();
+      return category === 'DOWN_PAYMENT' || category === 'FULL_PAYMENT' || category === 'PAYMENT_UPDATE';
+    });
+
+    return paymentEntry?.paymentMethod || '';
+  }, [incomeEntries]);
+
   const isVipClient = Boolean(clients.find((client) => client?.id === formData.clientId)?.vip);
 
   useEffect(() => {
@@ -587,7 +601,11 @@ const Orders = () => {
   const updateSelectedOrderStatus = async (newStatus, options = {}) => {
     if (!selectedOrder) return;
     const { skipModeValidation = false } = options;
-    const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+    const effectiveModeOfPayment =
+      paymentModeOfPayment.trim() ||
+      selectedOrder.modeOfPayment ||
+      getStoredOrderPaymentMethod(selectedOrder) ||
+      '';
     if (requiresModeOfPayment(newStatus) && !effectiveModeOfPayment && !skipModeValidation && !isApprovalToDownPaymentPendingTransition(selectedOrder.status, newStatus)) {
       alert('Please select a mode of payment before changing the order to this status.');
       return;
@@ -625,7 +643,11 @@ const Orders = () => {
 
     const trimmedReferenceNumber = referenceNumber.trim();
     const trimmedCheckNumber = paymentCheckNumber.trim();
-    const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+    const effectiveModeOfPayment =
+      paymentModeOfPayment.trim() ||
+      selectedOrder.modeOfPayment ||
+      getStoredOrderPaymentMethod(selectedOrder) ||
+      '';
     if (!trimmedReferenceNumber) {
       alert('Please provide a Reference Number.');
       return;
@@ -673,7 +695,11 @@ const Orders = () => {
     }
 
     try {
-      const effectiveModeOfPayment = paymentModeOfPayment.trim() || selectedOrder.modeOfPayment || '';
+      const effectiveModeOfPayment =
+        paymentModeOfPayment.trim() ||
+        selectedOrder.modeOfPayment ||
+        getStoredOrderPaymentMethod(selectedOrder) ||
+        '';
       if (hasNewDownPayment && !effectiveModeOfPayment) {
         alert('Please select a mode of payment before recording this down payment.');
         return;
