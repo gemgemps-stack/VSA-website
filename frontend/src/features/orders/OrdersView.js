@@ -515,7 +515,7 @@ const Orders = () => {
         ? ORDER_STATUS.FOR_CLIENT_APPROVAL
         : (editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL);
       const selectedModeOfPayment = formData.modeOfPayment.trim();
-      if (requiresModeOfPayment(statusToSave) && !selectedModeOfPayment) {
+      if ((downPaymentAmount > 0 || requiresModeOfPayment(statusToSave)) && !selectedModeOfPayment) {
         alert('Please select a mode of payment.');
         return;
       }
@@ -552,7 +552,7 @@ const Orders = () => {
           : null,
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
-        modeOfPayment: requiresModeOfPayment(statusToSave)
+        modeOfPayment: (downPaymentAmount > 0 || requiresModeOfPayment(statusToSave))
           ? selectedModeOfPayment
           : null,
         remarks: formData.notes.trim() || null,

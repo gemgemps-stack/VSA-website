@@ -545,7 +545,7 @@ const CustomizedOrders = () => {
       }
       const statusToSave = editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL;
       const selectedModeOfPayment = formData.modeOfPayment.trim();
-      if (requiresModeOfPayment(statusToSave) && !selectedModeOfPayment) {
+      if ((downPaymentAmount > 0 || requiresModeOfPayment(statusToSave)) && !selectedModeOfPayment) {
         alert('Please select a mode of payment.');
         return;
       }
@@ -576,7 +576,9 @@ const CustomizedOrders = () => {
         checkNumber: isChequePayment(selectedModeOfPayment) ? trimmedCheckNumber || null : null,
         shop: formData.shop.trim() || null,
         orderDate: formData.orderDate,
-        modeOfPayment: requiresModeOfPayment(statusToSave) ? selectedModeOfPayment : null,
+        modeOfPayment: (Number.isFinite(downPaymentAmount) && downPaymentAmount > 0) || requiresModeOfPayment(statusToSave)
+          ? selectedModeOfPayment
+          : null,
         remarks: formData.notes.trim() || null,
         freebie: formData.freebie.trim() || null,
         status: statusToSave,
