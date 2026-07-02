@@ -1330,18 +1330,6 @@ const Orders = () => {
                     <h4 style={{ margin: '0 0 10px 0' }}>Order Payment Information</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div style={styles.formGroup}>
-                        <label style={styles.label}>Reference Number</label>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                          <input
-                            type="text"
-                            style={{ ...styles.input, flex: 1 }}
-                            value={referenceNumber}
-                            onChange={(e) => setReferenceNumber(e.target.value)}
-                          />
-                          <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID)}>Save</button>
-                        </div>
-                      </div>
-                      <div style={styles.formGroup}>
                         <label style={styles.label}>Remarks</label>
                         <div style={{ display: 'flex', gap: '10px' }}>
                           <textarea

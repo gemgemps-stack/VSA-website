@@ -119,7 +119,6 @@ const CustomizedOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
-  const [isReferenceNumberEditing, setIsReferenceNumberEditing] = useState(false);
   const [paymentUpdateAmount, setPaymentUpdateAmount] = useState('');
   const [paymentCheckNumber, setPaymentCheckNumber] = useState('');
   const [paymentModeOfPayment, setPaymentModeOfPayment] = useState('');
@@ -198,7 +197,6 @@ const CustomizedOrders = () => {
     setSelectedOrder(order);
     setManufacturingNotes(order.remarks || '');
     setReferenceNumber(order.referenceNumber || '');
-    setIsReferenceNumberEditing(false);
     setPaymentUpdateAmount('');
     setPaymentCheckNumber('');
     setPaymentModeOfPayment(order.modeOfPayment || '');
@@ -593,7 +591,6 @@ const CustomizedOrders = () => {
     setSelectedOrder(null);
     setManufacturingNotes('');
     setReferenceNumber('');
-    setIsReferenceNumberEditing(false);
     setPaymentUpdateAmount('');
     setPaymentCheckNumber('');
     setPaymentModeOfPayment('');
@@ -790,20 +787,6 @@ const CustomizedOrders = () => {
     } catch (error) {
       // updateSelectedOrderStatus already shows the error message
     }
-  };
-
-  const handleSaveReferenceNumber = async () => {
-    if (!selectedOrder) {
-      return;
-    }
-
-    await updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID);
-    setIsReferenceNumberEditing(false);
-  };
-
-  const handleCancelReferenceNumberEdit = () => {
-    setReferenceNumber(selectedOrder?.referenceNumber || '');
-    setIsReferenceNumberEditing(false);
   };
 
   const columns = [
@@ -1500,73 +1483,6 @@ const CustomizedOrders = () => {
                           >
                             Save Payment Update
                           </button>
-                        </div>
-                      </div>
-                    )}
-                    {selectedOrder?.status === ORDER_STATUS.FULLY_PAID && (
-                      <div style={styles.formGroup}>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          <input
-                            type="text"
-                            value={referenceNumber}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setReferenceNumber(value);
-                              setSelectedOrder((prev) =>
-                                prev ? { ...prev, referenceNumber: value } : prev
-                              );
-                            }}
-                            placeholder="Enter reference number"
-                            readOnly={
-                              selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                              !isReferenceNumberEditing
-                            }
-                            style={{
-                              ...styles.input,
-                              ...(selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                              !isReferenceNumberEditing
-                                ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' }
-                                : {}),
-                            }}
-                          />
-                          {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                            !isReferenceNumberEditing && (
-                              <button
-                                type="button"
-                                style={{
-                                  ...styles.button,
-                                  ...styles.buttonSecondary,
-                                }}
-                                onClick={() => setIsReferenceNumberEditing(true)}
-                              >
-                                Edit
-                              </button>
-                            )}
-                          {selectedOrder?.status === ORDER_STATUS.FULLY_PAID &&
-                            isReferenceNumberEditing && (
-                              <>
-                                <button
-                                  type="button"
-                                  style={{
-                                    ...styles.button,
-                                    ...styles.buttonPrimary,
-                                  }}
-                                  onClick={handleSaveReferenceNumber}
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{
-                                    ...styles.button,
-                                    ...styles.buttonSecondary,
-                                  }}
-                                  onClick={handleCancelReferenceNumberEdit}
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            )}
                         </div>
                       </div>
                     )}

@@ -1642,7 +1642,7 @@ const SourceIncome = () => {
                         className="income-details-btn"
                         onClick={openLiquidationModal}
                       >
-                        Liquidation / Withdraw Money
+                        Liquidate / Withdraw Money
                       </button>
                       <button
                         type="button"
