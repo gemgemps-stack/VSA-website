@@ -938,7 +938,7 @@ const CustomizedOrders = () => {
             onClose={handleCloseModal}
             onSubmit={handleSubmitOrder}
             submitText={editingOrder ? 'Update Order' : 'Create Order'}
-            size="large"
+            size="medium"
           >
             <div style={styles.formSection}>
                   {/* Row 1: Client and Team */}

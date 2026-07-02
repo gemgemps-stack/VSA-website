@@ -327,7 +327,7 @@ const Inventory = () => {
             onClose={() => setModalOpen(false)}
             onSubmit={handleSubmit}
             submitText={editingItem ? 'Update' : 'Add'}
-            size="xlarge"
+            size="medium"
           >
             <form className="inventory-modal-form">
               <div className="inventory-modal-grid inventory-modal-grid-row-2">
