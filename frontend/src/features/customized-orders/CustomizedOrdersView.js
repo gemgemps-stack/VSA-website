@@ -565,7 +565,7 @@ const CustomizedOrders = () => {
       }
       const trimmedReferenceNumber = formData.referenceNumber.trim();
       const trimmedCheckNumber = formData.checkNumber.trim();
-      if (!trimmedReferenceNumber) {
+      if ((downPaymentAmount > 0 || requiresModeOfPayment(statusToSave)) && !trimmedReferenceNumber) {
         alert('Please provide a Reference Number.');
         return;
       }
