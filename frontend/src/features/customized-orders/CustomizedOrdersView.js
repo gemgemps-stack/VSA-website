@@ -541,6 +541,16 @@ const CustomizedOrders = () => {
         alert('Please select a mode of payment.');
         return;
       }
+      const trimmedReferenceNumber = formData.referenceNumber.trim();
+      const trimmedCheckNumber = formData.checkNumber.trim();
+      if (!trimmedReferenceNumber) {
+        alert('Please provide a Reference Number.');
+        return;
+      }
+      if (isChequePayment(selectedModeOfPayment) && !trimmedCheckNumber) {
+        alert('Please provide a Check Number for cheque payments.');
+        return;
+      }
 
       const payload = {
         clientId: formData.clientId || null,
@@ -554,8 +564,8 @@ const CustomizedOrders = () => {
         })),
         discount: Number.isFinite(discount) ? discount : 0,
         downPayment: Number.isFinite(downPaymentAmount) ? downPaymentAmount : 0,
-        referenceNumber: formData.referenceNumber.trim() || null,
-        checkNumber: isChequePayment(selectedModeOfPayment) ? formData.checkNumber.trim() || null : null,
+        referenceNumber: trimmedReferenceNumber || null,
+        checkNumber: isChequePayment(selectedModeOfPayment) ? trimmedCheckNumber || null : null,
         shop: formData.shop.trim() || null,
         orderDate: formData.orderDate,
         modeOfPayment: requiresModeOfPayment(statusToSave) ? selectedModeOfPayment : null,

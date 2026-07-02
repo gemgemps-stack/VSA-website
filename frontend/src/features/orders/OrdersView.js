@@ -511,6 +511,16 @@ const Orders = () => {
         alert('Please select a mode of payment.');
         return;
       }
+      const trimmedReferenceNumber = formData.referenceNumber.trim();
+      const trimmedCheckNumber = formData.checkNumber.trim();
+      if (!trimmedReferenceNumber) {
+        alert('Please provide a Reference Number.');
+        return;
+      }
+      if (isChequePayment(selectedModeOfPayment) && !trimmedCheckNumber) {
+        alert('Please provide a Check Number for cheque payments.');
+        return;
+      }
       const discountedTotal = getDiscountedTotal();
       if (downPaymentAmount > discountedTotal) {
         alert(`Down payment cannot exceed the total discounted amount (${formatMoney(discountedTotal)}).`);
@@ -528,9 +538,9 @@ const Orders = () => {
         })),
         discount: discount,
         downPayment: downPaymentAmount,
-        referenceNumber: downPaymentAmount > 0 ? formData.referenceNumber.trim() || null : null,
-        checkNumber: downPaymentAmount > 0 && isChequePayment(selectedModeOfPayment)
-          ? formData.checkNumber.trim() || null
+        referenceNumber: trimmedReferenceNumber || null,
+        checkNumber: isChequePayment(selectedModeOfPayment)
+          ? trimmedCheckNumber || null
           : null,
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
