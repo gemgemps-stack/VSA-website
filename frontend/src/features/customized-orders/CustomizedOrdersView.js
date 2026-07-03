@@ -181,6 +181,14 @@ const CustomizedOrders = () => {
     }
   }, []);
 
+  const resetPaymentInputFields = useCallback(() => {
+    setReferenceNumber('');
+    setPaymentCheckNumber('');
+    setPaymentModeOfPayment('');
+    setDownPaymentAmount('');
+    setPaymentUpdateAmount('');
+  }, []);
+
   useEffect(() => {
     loadTeams();
     loadClients();
