@@ -744,7 +744,7 @@ const SourceIncome = () => {
     const liquidationEntries = getLiquidationEntries(entries);
     const periodLabel = REPORT_PERIODS.find((item) => item.key === period)?.label || period;
     const salesColumns = ['Date', 'Type', 'Job Order No.', 'Reference Number', 'Check Number', 'Source/Method', 'Remarks', 'Amount'];
-    const liquidationColumns = ['Date', 'Type', 'Remarks', 'Amount'];
+    const liquidationColumns = ['Date', 'Type', 'Reference Number', 'Remarks', 'Amount'];
 
     const row = (cells, styleId = 'sCell') => `<Row>${cells.map((cell) => `<Cell${styleId ? ` ss:StyleID="${styleId}"` : ''}${cell.mergeAcross ? ` ss:MergeAcross="${cell.mergeAcross}"` : ''}><Data ss:Type="${cell.type || 'String'}">${escapeXml(cell.value)}</Data></Cell>`).join('')}</Row>`;
     const blankCell = (mergeAcross = 0) => ({ value: '', mergeAcross, type: 'String' });
@@ -752,7 +752,7 @@ const SourceIncome = () => {
     const buildTransactionRows = (transactionEntries, transactionType) => {
       if (transactionEntries.length === 0) {
         return [row([
-          { value: `No ${transactionType.toLowerCase()} entries found for this period.`, mergeAcross: transactionType === 'LIQUIDATION' ? 3 : 7 },
+          { value: `No ${transactionType.toLowerCase()} entries found for this period.`, mergeAcross: transactionType === 'LIQUIDATION' ? 4 : 7 },
         ], 'sNote')];
       }
 
@@ -760,11 +760,13 @@ const SourceIncome = () => {
         return transactionEntries.map((entry) => {
           const amount = getIncomeAmount(entry);
           const date = getIncomeDate(entry).toLocaleDateString();
+          const referenceNumber = entry.referenceNumber || 'N/A';
           const remarks = entry.remarks || 'No reason provided';
 
           return row([
             { value: date },
             { value: 'Liquidation' },
+            { value: referenceNumber },
             { value: remarks },
             { value: amount, type: 'Number' },
           ]);
