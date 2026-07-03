@@ -559,17 +559,17 @@ const CustomizedOrders = () => {
       }
       const statusToSave = editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL;
       const selectedModeOfPayment = formData.modeOfPayment.trim();
-      if ((downPaymentAmount > 0 || requiresModeOfPayment(statusToSave)) && !selectedModeOfPayment) {
+      if (downPaymentAmount > 0 && !selectedModeOfPayment) {
         alert('Please select a mode of payment.');
         return;
       }
       const trimmedReferenceNumber = formData.referenceNumber.trim();
       const trimmedCheckNumber = formData.checkNumber.trim();
-      if ((downPaymentAmount > 0 || requiresModeOfPayment(statusToSave)) && !trimmedReferenceNumber) {
+      if (downPaymentAmount > 0 && !trimmedReferenceNumber) {
         alert('Please provide a Reference Number.');
         return;
       }
-      if (isChequePayment(selectedModeOfPayment) && !trimmedCheckNumber) {
+      if (downPaymentAmount > 0 && isChequePayment(selectedModeOfPayment) && !trimmedCheckNumber) {
         alert('Please provide a Check Number for cheque payments.');
         return;
       }
@@ -590,7 +590,7 @@ const CustomizedOrders = () => {
         checkNumber: isChequePayment(selectedModeOfPayment) ? trimmedCheckNumber || null : null,
         shop: formData.shop.trim() || null,
         orderDate: formData.orderDate,
-        modeOfPayment: (Number.isFinite(downPaymentAmount) && downPaymentAmount > 0) || requiresModeOfPayment(statusToSave)
+        modeOfPayment: Number.isFinite(downPaymentAmount) && downPaymentAmount > 0
           ? selectedModeOfPayment
           : null,
         remarks: formData.notes.trim() || null,
@@ -624,11 +624,7 @@ const CustomizedOrders = () => {
     setDetailsOpen(false);
     setSelectedOrder(null);
     setManufacturingNotes('');
-    setReferenceNumber('');
-    setPaymentUpdateAmount('');
-    setPaymentCheckNumber('');
-    setPaymentModeOfPayment('');
-    setDownPaymentAmount('');
+    resetPaymentInputFields();
     openedCreditJobOrderRef.current = null;
   };
 
@@ -680,6 +676,7 @@ const CustomizedOrders = () => {
         status: newStatus,
       }));
 
+      resetPaymentInputFields();
       loadOrders();
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -739,10 +736,7 @@ const CustomizedOrders = () => {
         modeOfPayment: effectiveModeOfPayment,
         remarks: manufacturingNotes.trim() || null,
       });
-      setPaymentUpdateAmount('');
-      setPaymentCheckNumber('');
-      setReferenceNumber('');
-      setPaymentModeOfPayment('');
+      resetPaymentInputFields();
       loadOrders();
       loadIncomeEntries();
       alert('Payment update saved successfully.');
@@ -767,7 +761,7 @@ const CustomizedOrders = () => {
     const existingDownPayment = Number(selectedOrder.downPayment || 0);
     const enteredAmount = Number(downPaymentAmount || 0);
     const hasNewDownPayment = Number.isFinite(enteredAmount) && enteredAmount > 0;
-    const hasRecordedInitialPayment = existingDownPayment > 0;
+    const hasRecordedInitialPayment = getOrderPaymentHistory(selectedOrder).length > 0 || existingDownPayment > 0;
 
     if (!hasNewDownPayment && !hasRecordedInitialPayment) {
       alert('Cannot proceed. Please enter a down payment amount.');
@@ -791,6 +785,14 @@ const CustomizedOrders = () => {
       }
 
       if (hasNewDownPayment) {
+        if (!referenceNumber.trim()) {
+          alert('Please provide a Reference Number.');
+          return;
+        }
+        if (isChequePayment(effectiveModeOfPayment) && !paymentCheckNumber.trim()) {
+          alert('Please provide a Check Number for cheque payments.');
+          return;
+        }
         await customizedOrderService.applyPaymentUpdate(selectedOrder.id, {
           amount: enteredAmount,
           checkNumber: paymentCheckNumber.trim() || null,
@@ -803,10 +805,7 @@ const CustomizedOrders = () => {
       await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION, {
         skipModeValidation: !hasNewDownPayment && hasRecordedInitialPayment,
       });
-      setDownPaymentAmount('');
-      setPaymentCheckNumber('');
-      setReferenceNumber('');
-      setPaymentModeOfPayment('');
+      resetPaymentInputFields();
       loadIncomeEntries();
     } catch (error) {
       console.error('Error recording down payment:', error);
