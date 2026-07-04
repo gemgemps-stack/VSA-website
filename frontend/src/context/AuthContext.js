@@ -23,6 +23,9 @@ export const AuthProvider = ({ children }) => {
     const bootstrap = async () => {
       const sequence = ++authSequenceRef.current;
       try {
+        await authService.refreshCsrfToken().catch((error) => {
+          console.warn('Unable to refresh CSRF token during auth bootstrap:', error);
+        });
         const currentUser = await authService.refreshCurrentUser();
         if (sequence !== authSequenceRef.current) {
           return;
@@ -52,6 +55,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authService.login(email, password);
+    await authService.refreshCsrfToken().catch((error) => {
+      console.warn('Unable to refresh CSRF token after login:', error);
+    });
     authSequenceRef.current += 1;
     const nextUser = response.user || authService.getCurrentUser();
     setUser(nextUser);
@@ -62,6 +68,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await authService.logout();
+    await authService.refreshCsrfToken().catch((error) => {
+      console.warn('Unable to refresh CSRF token after logout:', error);
+    });
     authSequenceRef.current += 1;
     setUser(null);
     setIsAuthenticated(false);

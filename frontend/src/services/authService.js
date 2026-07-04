@@ -4,6 +4,11 @@ import { hasPermission } from '../utils/permissions';
 let currentUser = null;
 
 const authService = {
+  refreshCsrfToken: async () => {
+    const response = await api.get('/api/auth/csrf');
+    return response.data;
+  },
+
   login: async (email, password) => {
     const response = await api.post('/api/auth/login', { email, password });
     currentUser = response.data.user || null;

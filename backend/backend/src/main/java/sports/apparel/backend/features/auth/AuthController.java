@@ -9,6 +9,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 import sports.apparel.backend.security.JwtAuthenticationFilter;
 
@@ -53,6 +54,13 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Auth service is healthy");
+    }
+
+    @GetMapping("/csrf")
+    public ResponseEntity<CsrfTokenResponse> csrf(CsrfToken csrfToken) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(new CsrfTokenResponse(csrfToken.getToken()));
     }
 
     @GetMapping("/me")
@@ -102,4 +110,6 @@ public class AuthController {
 
         return request.getRemoteAddr();
     }
+
+    public record CsrfTokenResponse(String token) {}
 }

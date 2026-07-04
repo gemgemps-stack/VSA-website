@@ -24,11 +24,11 @@ describe('LoginView', () => {
     const passwordInput = screen.getByLabelText(/password/i);
     const form = screen.getByRole('button', { name: /sign in/i }).closest('form');
 
-    emailInput.value = 'admin@verdida.local';
-    passwordInput.value = 'Admin123!';
+    emailInput.value = 'tester@example.com';
+    passwordInput.value = 'Example123!';
 
     fireEvent.submit(form);
 
-    expect(login).toHaveBeenCalledWith('admin@verdida.local', 'Admin123!');
+    expect(login).toHaveBeenCalledWith('tester@example.com', 'Example123!');
   });
 });

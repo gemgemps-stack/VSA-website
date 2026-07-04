@@ -76,6 +76,8 @@ const discoverApiBaseUrl = async () => {
 
 const api = axios.create({
   withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
   headers: {
     'Content-Type': 'application/json',
   },

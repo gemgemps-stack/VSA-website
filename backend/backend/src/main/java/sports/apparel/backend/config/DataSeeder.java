@@ -17,10 +17,6 @@ import java.util.Arrays;
 @Configuration
 public class DataSeeder {
 
-    private static final String LOCAL_BOOTSTRAP_ADMIN_EMAIL = "admin@verdida.local";
-    private static final String LOCAL_BOOTSTRAP_ADMIN_PASSWORD = "Admin123!";
-    private static final String LOCAL_BOOTSTRAP_ADMIN_USERNAME = "admin";
-
     private static final String[] DEFAULT_ADMIN_PERMISSIONS = {
             "INVENTORY_ORDERS",
             "CUSTOMIZED_ORDERS",
@@ -52,20 +48,18 @@ public class DataSeeder {
                 return;
             }
 
-            String email = StringUtils.hasText(bootstrapAdminEmail)
-                    ? bootstrapAdminEmail.trim()
-                    : (localProfile ? LOCAL_BOOTSTRAP_ADMIN_EMAIL : "");
-            String username = StringUtils.hasText(bootstrapAdminUsername)
-                    ? bootstrapAdminUsername.trim()
-                    : (localProfile ? LOCAL_BOOTSTRAP_ADMIN_USERNAME : "");
-            String password = StringUtils.hasText(bootstrapAdminPassword)
-                    ? bootstrapAdminPassword
-                    : (localProfile ? LOCAL_BOOTSTRAP_ADMIN_PASSWORD : "");
+            String email = StringUtils.hasText(bootstrapAdminEmail) ? bootstrapAdminEmail.trim() : "";
+            String username = StringUtils.hasText(bootstrapAdminUsername) ? bootstrapAdminUsername.trim() : "";
+            String password = StringUtils.hasText(bootstrapAdminPassword) ? bootstrapAdminPassword : "";
 
             if (!StringUtils.hasText(email) || !StringUtils.hasText(password) || !StringUtils.hasText(username)) {
-                throw new IllegalStateException(
-                        "Bootstrap admin is enabled, but app.bootstrap-admin.email/username/password are missing."
-                );
+                if (bootstrapAdminEnabled) {
+                    throw new IllegalStateException(
+                            "Bootstrap admin is enabled, but app.bootstrap-admin.email/username/password are missing."
+                    );
+                }
+
+                return;
             }
 
             if (userRepository.existsByEmail(email) || userRepository.existsByUsername(username)) {
