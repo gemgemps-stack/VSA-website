@@ -16,7 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -83,9 +82,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/api/auth/login"),
-                                new AntPathRequestMatcher("/api/auth/health"),
-                                new AntPathRequestMatcher("/api/auth/csrf")
+                                "/api/auth/login",
+                                "/api/auth/health",
+                                "/api/auth/csrf"
                         )
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
