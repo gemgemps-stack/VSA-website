@@ -1142,7 +1142,7 @@ const SourceIncome = () => {
               type="text"
               value={chequeSearchNumber}
               onChange={(e) => setChequeSearchNumber(e.target.value)}
-              placeholder="Search by check number..."
+              placeholder="🔎 Search by check number..."
             />
           </div>
 
@@ -1505,7 +1505,7 @@ const SourceIncome = () => {
                         type="text"
                         value={searchReferenceNumber}
                         onChange={(e) => setSearchReferenceNumber(e.target.value)}
-                        placeholder="Search by reference number..."
+                        placeholder="🔎 Search by reference number..."
                       />
                     </div>
                   </div>
@@ -1623,7 +1623,7 @@ const SourceIncome = () => {
                     <div className="finance-search-bar">
                       <input
                         type="text"
-                        placeholder="Search by liquidation reference number..."
+                        placeholder="🔎 Search by liquidation reference number..."
                         value={searchReferenceNumber}
                         onChange={(e) => setSearchReferenceNumber(e.target.value)}
                       />

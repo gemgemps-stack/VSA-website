@@ -834,7 +834,7 @@ const CustomizedOrders = () => {
           <div style={styles.searchSection}>
             <input
               type="text"
-              placeholder="Search by Job Order No, Client, Product, etc..."
+              placeholder="🔎 Search by Job Order No, Client, Product, etc..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -1515,7 +1515,7 @@ const CustomizedOrders = () => {
 
                 {selectedOrder?.status === ORDER_STATUS.DOWN_PAYMENT_PENDING && (
                   <div style={styles.statusActions}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginBottom: '15px' }}>
+                    <div style={{ width: '60%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Enter Down Payment Amount</label>
                         <input
@@ -1538,32 +1538,18 @@ const CustomizedOrders = () => {
                         />
                       </div>
                       {(Number(downPaymentAmount) > 0) && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                          <div style={styles.formGroup}>
-                            <label style={styles.label}>Reference Number</label>
-                            <input
-                              type="text"
-                              value={referenceNumber}
-                              onChange={(e) => setReferenceNumber(e.target.value)}
-                              placeholder="Enter reference number"
-                              style={styles.input}
-                            />
-                          </div>
-                          <div style={styles.formGroup}>
-                            <label style={styles.label}>Check Number</label>
-                            <input
-                              type="text"
-                              value={paymentCheckNumber}
-                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                              placeholder="Enter check number"
-                              style={styles.input}
-                            />
-                          </div>
+                        <>
                           <div style={styles.formGroup}>
                             <label style={styles.label}>Mode of Payment</label>
                             <select
                               value={paymentModeOfPayment}
-                              onChange={(e) => setPaymentModeOfPayment(e.target.value)}
+                              onChange={(e) => {
+                                const nextMode = e.target.value;
+                                setPaymentModeOfPayment(nextMode);
+                                if (!isChequePayment(nextMode)) {
+                                  setPaymentCheckNumber('');
+                                }
+                              }}
                               style={styles.input}
                             >
                               <option value="">Select Payment Method</option>
@@ -1574,7 +1560,29 @@ const CustomizedOrders = () => {
                               ))}
                             </select>
                           </div>
-                        </div>
+                          {isChequePayment(paymentModeOfPayment) && (
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>Check Number</label>
+                              <input
+                                type="text"
+                                value={paymentCheckNumber}
+                                onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                                placeholder="Enter check number"
+                                style={styles.input}
+                              />
+                            </div>
+                          )}
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Reference Number</label>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={(e) => setReferenceNumber(e.target.value)}
+                              placeholder="Enter reference number"
+                              style={styles.input}
+                            />
+                          </div>
+                        </>
                       )}
                     </div>
                     <p style={styles.statusPrompt}>Down Payment Paid?</p>

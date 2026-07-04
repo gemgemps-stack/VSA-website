@@ -275,37 +275,37 @@ const Inventory = () => {
               type="text"
               value={searchFilters.itemType}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, itemType: e.target.value }))}
-              placeholder="Search item type"
+              placeholder="🔎 Search item type"
             />
             <input
               type="text"
               value={searchFilters.name}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Search name"
+              placeholder="🔎 Search name"
             />
             <input
               type="text"
               value={searchFilters.jerseyType}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
-              placeholder="Search version"
+              placeholder="🔎 Search version"
             />
             <input
               type="text"
               value={searchFilters.size}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, size: e.target.value }))}
-              placeholder="Search size"
+              placeholder="🔎 Search size"
             />
             <input
               type="text"
               value={searchFilters.shop}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, shop: e.target.value }))}
-              placeholder="Search shop"
+              placeholder="🔎 Search shop"
             />
             <input
               type="text"
               value={searchFilters.createdAt}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, createdAt: e.target.value }))}
-              placeholder="Search date created"
+              placeholder="🔎 Search date created"
             />
           </div>
 

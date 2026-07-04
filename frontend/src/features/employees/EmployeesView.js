@@ -291,7 +291,7 @@ const Employees = () => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search employees by name, email, or role"
+                placeholder="🔎 Search employees by name, email, or role"
               />
             </div>
 

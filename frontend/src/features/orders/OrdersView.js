@@ -1189,7 +1189,7 @@ const Orders = () => {
 
                 {selectedOrder.status === ORDER_STATUS.DOWN_PAYMENT_PENDING && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                    <div style={{ width: '60%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Enter Down Payment Amount</label>
                         <input
@@ -1212,32 +1212,18 @@ const Orders = () => {
                         />
                       </div>
                       {(Number(downPaymentAmount) > 0) && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                          <div style={styles.formGroup}>
-                            <label style={styles.label}>Reference Number</label>
-                            <input
-                              type="text"
-                              value={referenceNumber}
-                              onChange={(e) => setReferenceNumber(e.target.value)}
-                              placeholder="Enter reference number"
-                              style={styles.input}
-                            />
-                          </div>
-                          <div style={styles.formGroup}>
-                            <label style={styles.label}>Check Number</label>
-                            <input
-                              type="text"
-                              value={paymentCheckNumber}
-                              onChange={(e) => setPaymentCheckNumber(e.target.value)}
-                              placeholder="Enter check number"
-                              style={styles.input}
-                            />
-                          </div>
+                        <>
                           <div style={styles.formGroup}>
                             <label style={styles.label}>Mode of Payment</label>
                             <select
                               value={paymentModeOfPayment}
-                              onChange={(e) => setPaymentModeOfPayment(e.target.value)}
+                              onChange={(e) => {
+                                const nextMode = e.target.value;
+                                setPaymentModeOfPayment(nextMode);
+                                if (!isChequePayment(nextMode)) {
+                                  setPaymentCheckNumber('');
+                                }
+                              }}
                               style={styles.input}
                             >
                               <option value="">Select Payment Method</option>
@@ -1248,7 +1234,29 @@ const Orders = () => {
                               ))}
                             </select>
                           </div>
-                        </div>
+                          {isChequePayment(paymentModeOfPayment) && (
+                            <div style={styles.formGroup}>
+                              <label style={styles.label}>Check Number</label>
+                              <input
+                                type="text"
+                                value={paymentCheckNumber}
+                                onChange={(e) => setPaymentCheckNumber(e.target.value)}
+                                placeholder="Enter check number"
+                                style={styles.input}
+                              />
+                            </div>
+                          )}
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Reference Number</label>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={(e) => setReferenceNumber(e.target.value)}
+                              placeholder="Enter reference number"
+                              style={styles.input}
+                            />
+                          </div>
+                        </>
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: '10px' }}>
