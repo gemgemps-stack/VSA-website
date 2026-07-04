@@ -7,7 +7,6 @@ import Login from './features/auth/LoginView';
 import Dashboard from './features/dashboard/DashboardView';
 import Orders from './features/orders/OrdersView';
 import CustomizedOrders from './features/customized-orders/CustomizedOrdersView';
-import Teams from './features/teams/TeamsView';
 import Inventory from './features/inventory/InventoryView';
 import Clients from './features/clients/ClientsView';
 import SourceIncome from './features/source-income/SourceIncomeView';
@@ -49,16 +48,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/teams"
-            element={
-              <ProtectedRoute>
-                <PermissionGuard permission="TEAMS">
-                  <Teams />
-                </PermissionGuard>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/teams" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/inventory"
             element={

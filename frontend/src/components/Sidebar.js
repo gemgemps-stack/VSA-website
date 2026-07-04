@@ -9,18 +9,17 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/inventory', label: 'Inventory', icon: '📦', permission: 'INVENTORY' },
-    { path: '/orders', label: 'Inventory Orders', icon: '📋', permission: 'INVENTORY_ORDERS' },
-    { path: '/customized-orders', label: 'Customized Orders', icon: '🏭', permission: 'CUSTOMIZED_ORDERS' },
-    { path: '/teams', label: 'Teams', icon: '👥', permission: 'TEAMS' },
-    { path: '/clients', label: 'Clients', icon: '👤', permission: 'CLIENTS' },
-    { path: '/attendance', label: 'Attendance', icon: '✓', permission: 'ATTENDANCE' },
+    { path: '/dashboard', label: 'Dashboard', icon: '\u{1F4CA}' },
+    { path: '/inventory', label: 'Inventory', icon: '\u{1F4E6}', permission: 'INVENTORY' },
+    { path: '/orders', label: 'Inventory Orders', icon: '\u{1F4CB}', permission: 'INVENTORY_ORDERS' },
+    { path: '/customized-orders', label: 'Customized Orders', icon: '\u{1F3ED}', permission: 'CUSTOMIZED_ORDERS' },
+    { path: '/clients', label: 'Clients', icon: '\u{1F464}', permission: 'CLIENTS' },
+    { path: '/attendance', label: 'Attendance', icon: '\u2713', permission: 'ATTENDANCE' },
   ];
 
   const managementItems = [
-    { path: '/income', label: 'Finance', icon: '💰', permission: 'SOURCE_OF_INCOME' },
-    { path: '/employees', label: 'Employees', icon: '👨‍💼', permission: 'EMPLOYEES' },
+    { path: '/income', label: 'Finance', icon: '\u{1F4B0}', permission: 'SOURCE_OF_INCOME' },
+    { path: '/employees', label: 'Employees', icon: '\u{1F468}\u200D\u{1F4BC}', permission: 'EMPLOYEES' },
   ];
 
   const canAccess = (permission) => {

@@ -38,7 +38,6 @@ const Employees = () => {
     { key: 'INVENTORY', label: 'Inventory' },
     { key: 'INVENTORY_ORDERS', label: 'Inventory Orders' },
     { key: 'CUSTOMIZED_ORDERS', label: 'Customized Orders' },
-    { key: 'TEAMS', label: 'Teams' },
     { key: 'CLIENTS', label: 'Clients' },
     { key: 'ATTENDANCE', label: 'Attendance' },
     { key: 'SOURCE_OF_INCOME', label: 'Finance' },

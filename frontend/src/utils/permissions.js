@@ -3,7 +3,6 @@ const normalizePermission = (value) => String(value || '').trim().toUpperCase();
 const LEGACY_PERMISSION_ALIASES = {
   INVENTORY_ORDERS: ['INVENTORY_ORDERS', 'ORDERS'],
   CUSTOMIZED_ORDERS: ['CUSTOMIZED_ORDERS', 'ORDERS'],
-  TEAMS: ['TEAMS', 'ORDERS'],
   PAYMENT_METHODS: ['PAYMENT_METHODS', 'SOURCE_OF_INCOME'],
   SOURCE_OF_INCOME: ['SOURCE_OF_INCOME', 'PAYMENT_METHODS'],
 };
@@ -25,7 +24,7 @@ export const expandPermissions = (permissions) => {
     const value = normalizePermission(permission);
 
     if (value === 'ORDERS') {
-      ['INVENTORY_ORDERS', 'CUSTOMIZED_ORDERS', 'TEAMS'].forEach((alias) => normalized.add(alias));
+      ['INVENTORY_ORDERS', 'CUSTOMIZED_ORDERS'].forEach((alias) => normalized.add(alias));
       return;
     }
 

@@ -6,7 +6,6 @@ import PermissionGuard from '../../components/PermissionGuard';
 import { useLocation } from 'react-router-dom';
 import incomeService from '../../services/incomeService';
 import customizedOrderService from '../../services/customizedOrderService';
-import teamService from '../../services/teamService';
 import clientService from '../../services/clientService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
@@ -94,7 +93,6 @@ const getOrderFinancials = (order) => {
 
 const createInitialFormData = () => ({
   clientId: null,
-  teamId: '',
   teamName: '',
   items: [{ productName: '', unitPrice: '', quantity: '' }],
   freebie: '',
@@ -110,7 +108,6 @@ const createInitialFormData = () => ({
 
 const CustomizedOrders = () => {
   const [orders, setOrders] = useState([]);
-  const [teams, setTeams] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -130,22 +127,8 @@ const CustomizedOrders = () => {
   const [formData, setFormData] = useState(createInitialFormData());
   const [clientSearch, setClientSearch] = useState('');
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
-  const [teamSearch, setTeamSearch] = useState('');
-  const [teamSuggestionsOpen, setTeamSuggestionsOpen] = useState(false);
   const location = useLocation();
   const openedCreditJobOrderRef = useRef(null);
-
-  const loadTeams = useCallback(async () => {
-    try {
-      const response = await teamService.getAllTeams();
-      setTeams(cleanArray(response.data));
-    } catch (error) {
-      console.error('Error loading teams:', error);
-      if (isAuthOrPermissionError(error)) {
-        return;
-      }
-    }
-  }, []);
 
   const loadClients = useCallback(async () => {
     try {
@@ -190,10 +173,9 @@ const CustomizedOrders = () => {
   }, []);
 
   useEffect(() => {
-    loadTeams();
     loadClients();
     loadIncomeEntries();
-  }, [loadTeams, loadClients, loadIncomeEntries]);
+  }, [loadClients, loadIncomeEntries]);
 
   useEffect(() => {
     loadOrders();
@@ -326,12 +308,6 @@ const CustomizedOrders = () => {
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);
 
-  const filteredTeams = teams
-    .filter(Boolean)
-    .filter((team) =>
-      String(team?.teamName ?? '').toLowerCase().includes(teamSearch.trim().toLowerCase())
-    );
-
   const filteredClients = clients
     .filter(Boolean)
     .filter((client) =>
@@ -358,34 +334,6 @@ const CustomizedOrders = () => {
 
   const handleClientInputBlur = () => {
     window.setTimeout(() => setClientSuggestionsOpen(false), 150);
-  };
-
-  const handleTeamSelect = (teamId) => {
-    const selectedTeam = teams.find((team) => team?.id === teamId);
-    const fallbackDate = new Date().toISOString().split('T')[0];
-
-    setFormData((prev) => ({
-      ...prev,
-      teamId,
-      teamName: selectedTeam?.teamName || '',
-      orderDate: selectedTeam?.transitDate || fallbackDate,
-    }));
-    setTeamSearch(selectedTeam?.teamName || '');
-    setTeamSuggestionsOpen(false);
-  };
-
-  const handleTeamInputChange = (value) => {
-    setTeamSearch(value);
-    setTeamSuggestionsOpen(true);
-    setFormData((prev) => ({
-      ...prev,
-      teamId: '',
-      teamName: value,
-    }));
-  };
-
-  const handleTeamInputBlur = () => {
-    window.setTimeout(() => setTeamSuggestionsOpen(false), 150);
   };
 
   const handleAddItem = () => {
@@ -461,8 +409,6 @@ const CustomizedOrders = () => {
     setFormData(createInitialFormData());
     setClientSearch('');
     setClientSuggestionsOpen(false);
-    setTeamSearch('');
-    setTeamSuggestionsOpen(false);
     setModalOpen(true);
   };
 
@@ -472,15 +418,12 @@ const CustomizedOrders = () => {
     setFormData(createInitialFormData());
     setClientSearch('');
     setClientSuggestionsOpen(false);
-    setTeamSearch('');
-    setTeamSuggestionsOpen(false);
   };
 
   const handleEdit = (order) => {
     setEditingOrder(order);
     setFormData({
       clientId: order?.clientId || null,
-      teamId: '',
       teamName: order?.teamName || '',
       items: (order?.items || []).map(item => ({
         id: item.id,
@@ -501,8 +444,6 @@ const CustomizedOrders = () => {
     }
     setClientSearch(order?.clientName || '');
     setClientSuggestionsOpen(false);
-    setTeamSearch(order?.teamName || '');
-    setTeamSuggestionsOpen(false);
     setModalOpen(true);
   };
 
@@ -1022,30 +963,14 @@ const CustomizedOrders = () => {
 
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Team (Optional)</label>
-                      <div style={styles.autocompleteContainer}>
-                        <input
-                          type="text"
-                          placeholder="Search team..."
-                          value={teamSearch}
-                          onChange={(e) => handleTeamInputChange(e.target.value)}
-                          onFocus={() => setTeamSuggestionsOpen(true)}
-                          onBlur={handleTeamInputBlur}
-                          style={styles.input}
-                        />
-                        {teamSuggestionsOpen && filteredTeams.length > 0 && (
-                          <div style={styles.suggestionsList}>
-                            {filteredTeams.map((team) => (
-                              <div
-                                key={team.id}
-                                onClick={() => handleTeamSelect(team.id)}
-                                style={styles.suggestionItem}
-                              >
-                                {team?.teamName || ''}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Enter team name"
+                        value={formData.teamName}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, teamName: e.target.value }))}
+                        style={styles.input}
+                        autoComplete="off"
+                      />
                     </div>
                   </div>
 

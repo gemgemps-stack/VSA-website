@@ -8,7 +8,6 @@ import inventoryService from '../../services/inventoryService';
 import clientService from '../../services/clientService';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
-import teamService from '../../services/teamService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
@@ -104,7 +103,6 @@ const getOrderFinancials = (order) => {
 
 const createInitialFormData = () => ({
   clientId: null,
-  teamId: '',
   teamName: '',
   items: [{ productName: '', unitPrice: '', quantity: '' }],
   freebie: '',
@@ -122,7 +120,6 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
   const [inventoryItems, setInventoryItems] = useState([]);
-  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -141,8 +138,6 @@ const Orders = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
-  const [teamSearch, setTeamSearch] = useState('');
-  const [teamSuggestionsOpen, setTeamSuggestionsOpen] = useState(false);
   const [retailSearchIndex, setRetailSearchIndex] = useState(null);
   const [retailSearchText, setRetailSearchText] = useState('');
   const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
@@ -164,15 +159,6 @@ const Orders = () => {
       setInventoryItems(cleanArray(response.data.content));
     } catch (error) {
       console.error('Error loading inventory:', error);
-    }
-  }, []);
-
-  const loadTeams = useCallback(async () => {
-    try {
-      const response = await teamService.getAllTeams();
-      setTeams(cleanArray(response.data));
-    } catch (error) {
-      console.error('Error loading teams:', error);
     }
   }, []);
 
@@ -208,10 +194,9 @@ const Orders = () => {
   useEffect(() => {
     loadClients();
     loadInventory();
-    loadTeams();
     loadOrders();
     loadIncomeEntries();
-  }, [loadClients, loadInventory, loadTeams, loadOrders, loadIncomeEntries]);
+  }, [loadClients, loadInventory, loadOrders, loadIncomeEntries]);
 
   const getRecordedPaidAmount = useCallback((jobOrderNo, fallbackDownPayment = 0) => {
     const recordedAmount = incomeEntries
@@ -290,10 +275,6 @@ const Orders = () => {
     String(client.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
   );
 
-  const filteredTeams = teams.filter((team) =>
-    String(team.teamName ?? '').toLowerCase().includes(teamSearch.trim().toLowerCase())
-  );
-
   const filteredInventory = inventoryItems.filter((item) => {
     const label = getInventoryLabel(item);
     
@@ -312,18 +293,6 @@ const Orders = () => {
     setFormData((prev) => ({ ...prev, clientId: client.id, downPayment: client.vip ? '0' : prev.downPayment }));
     setClientSearch(client.clientName || '');
     setClientSuggestionsOpen(false);
-  };
-
-  const handleTeamSelect = (team) => {
-    const fallbackDate = new Date().toISOString().split('T')[0];
-    setFormData((prev) => ({
-      ...prev,
-      teamId: team.id,
-      teamName: team.teamName || '',
-      orderDate: team.transitDate || fallbackDate,
-    }));
-    setTeamSearch(team.teamName || '');
-    setTeamSuggestionsOpen(false);
   };
 
   const handleAddItem = () => {
@@ -477,7 +446,6 @@ const Orders = () => {
     setEditingOrder(order);
     setFormData({
       clientId: order.clientId || null,
-      teamId: '',
       teamName: order.teamName || '',
       items: (order.items || []).map(item => ({
         productName: item.productName || '',
@@ -498,7 +466,6 @@ const Orders = () => {
       setFormData(prev => ({ ...prev, items: [{ productName: order.orderRetail || '', unitPrice: String(order.price || ''), quantity: String(order.quantity || '') }] }));
     }
     setClientSearch(order.clientName || '');
-    setTeamSearch(order.teamName || '');
     setModalOpen(true);
   };
 
@@ -788,7 +755,7 @@ const Orders = () => {
         <div style={styles.pageContainer}>
           <div style={styles.pageHeader}>
             <h1 style={{ margin: 0, fontSize: '1.8rem', color: '#1a1a1a' }}>Inventory Orders</h1>
-            <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => { setEditingOrder(null); setFormData(createInitialFormData()); setClientSearch(''); setTeamSearch(''); setModalOpen(true); }}>
+            <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => { setEditingOrder(null); setFormData(createInitialFormData()); setClientSearch(''); setModalOpen(true); }}>
               + New Inventory Order
             </button>
           </div>
@@ -895,27 +862,14 @@ const Orders = () => {
 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Team (Optional)</label>
-                  <div style={styles.autocompleteContainer}>
-                    <input
-                      type="text"
-                      style={styles.input}
-                      value={teamSearch}
-                      onChange={(e) => { setTeamSearch(e.target.value); setTeamSuggestionsOpen(true); setFormData(p => ({ ...p, teamName: e.target.value })); }}
-                      onFocus={() => setTeamSuggestionsOpen(true)}
-                      onBlur={() => setTimeout(() => setTeamSuggestionsOpen(false), 200)}
-                      placeholder="Search team..."
-                      autoComplete="off"
-                    />
-                    {teamSuggestionsOpen && filteredTeams.length > 0 && (
-                      <div style={styles.suggestionsList}>
-                        {filteredTeams.map(t => (
-                          <div key={t.id} style={styles.suggestionItem} onMouseDown={() => handleTeamSelect(t)}>
-                            {t.teamName}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    value={formData.teamName}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, teamName: e.target.value }))}
+                    placeholder="Enter team name"
+                    autoComplete="off"
+                  />
                 </div>
               </div>
 
