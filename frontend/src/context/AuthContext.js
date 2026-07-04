@@ -6,8 +6,8 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => authService.getCurrentUser());
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!authService.getCurrentUser());
   const authSequenceRef = useRef(0);
 
   useEffect(() => {
@@ -22,27 +22,37 @@ export const AuthProvider = ({ children }) => {
 
     const bootstrap = async () => {
       const sequence = ++authSequenceRef.current;
+
       try {
-        await authService.refreshCsrfToken().catch((error) => {
+        void authService.refreshCsrfToken().catch((error) => {
           console.warn('Unable to refresh CSRF token during auth bootstrap:', error);
         });
-        const currentUser = await authService.refreshCurrentUser();
-        if (sequence !== authSequenceRef.current) {
-          return;
-        }
-        setUser(currentUser);
-        setIsAuthenticated(!!currentUser);
+
+        authService.refreshCurrentUser()
+          .then((currentUser) => {
+            if (sequence !== authSequenceRef.current) {
+              return;
+            }
+            setUser(currentUser);
+            setIsAuthenticated(!!currentUser);
+          })
+          .catch((error) => {
+            if (sequence !== authSequenceRef.current) {
+              return;
+            }
+            if (error.response?.status === 401) {
+              setUser(null);
+              setIsAuthenticated(false);
+            } else {
+              console.warn('Auth bootstrap could not restore the current user:', error);
+            }
+          });
       } catch (error) {
         if (sequence !== authSequenceRef.current) {
           return;
         }
         setUser(null);
         setIsAuthenticated(false);
-      } finally {
-        if (sequence !== authSequenceRef.current) {
-          return;
-        }
-        setLoading(false);
       }
     };
 
