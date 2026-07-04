@@ -654,6 +654,7 @@ const Orders = () => {
   const handleDownPaymentPaid = async () => {
     if (!selectedOrder) return;
 
+    const remainingBalance = getRemainingBalance(selectedOrder);
     const existingDownPayment = Number(selectedOrder.downPayment || 0);
     const enteredAmount = Number(downPaymentAmount || 0);
     const hasNewDownPayment = Number.isFinite(enteredAmount) && enteredAmount > 0;
@@ -661,6 +662,11 @@ const Orders = () => {
 
     if (!hasNewDownPayment && !hasRecordedInitialPayment) {
       alert('Cannot proceed. Please enter a down payment amount.');
+      return;
+    }
+
+    if (enteredAmount > remainingBalance) {
+      alert(`Down payment cannot exceed the remaining balance of ${formatMoney(remainingBalance)}.`);
       return;
     }
 
@@ -692,7 +698,11 @@ const Orders = () => {
         });
       }
 
-      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION, {
+      const nextStatus = hasNewDownPayment && Math.abs(enteredAmount - remainingBalance) < 0.01
+        ? ORDER_STATUS.FULLY_PAID
+        : ORDER_STATUS.IN_PRODUCTION;
+
+      await updateSelectedOrderStatus(nextStatus, {
         skipModeValidation: !hasNewDownPayment && hasRecordedInitialPayment,
       });
       resetPaymentInputFields();

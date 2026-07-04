@@ -751,7 +751,11 @@ const CustomizedOrders = () => {
         });
       }
 
-      await updateSelectedOrderStatus(ORDER_STATUS.IN_PRODUCTION, {
+      const nextStatus = hasNewDownPayment && Math.abs(enteredAmount - remainingBalance) < 0.01
+        ? ORDER_STATUS.FULLY_PAID
+        : ORDER_STATUS.IN_PRODUCTION;
+
+      await updateSelectedOrderStatus(nextStatus, {
         skipModeValidation: !hasNewDownPayment && hasRecordedInitialPayment,
       });
       resetPaymentInputFields();
