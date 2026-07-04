@@ -792,11 +792,6 @@ const CustomizedOrders = () => {
     { key: 'jobOrderNo', label: 'Job Order No' },
     { key: 'clientName', label: 'Client Name' },
     { key: 'teamName', label: 'Team Name' },
-    { 
-      key: 'items', 
-      label: 'Products', 
-      render: (items) => (items || []).map(i => `${i.productName} (x${i.quantity})`).join(', ') 
-    },
     { key: 'status', label: 'Status', render: (value) => getStatusLabel(value) },
     { key: 'orderDate', label: 'Date' },
   ];
