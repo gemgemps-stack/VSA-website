@@ -55,7 +55,7 @@ const Dashboard = () => {
             <div className="stat-card" onClick={() => navigate('/clients')}>
               <div className="stat-icon">👤</div>
               <div className="stat-content">
-                <h3>Clients</h3>
+                <h3>Registered Clients</h3>
                 <p className="stat-value">{stats.totalClients}</p>
               </div>
             </div>

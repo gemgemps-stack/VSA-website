@@ -1428,7 +1428,7 @@ const SourceIncome = () => {
                         className={`payment-method-card ${data.isActive ? 'active' : 'inactive'}`}
                       >
                         <div className="payment-method-header">
-                          <h3>{method}</h3>
+                          <h3>{method}ed Orders</h3>
                           <button
                             type="button"
                             className="payment-header-details-btn"
