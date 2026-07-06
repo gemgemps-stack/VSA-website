@@ -871,7 +871,7 @@ const Orders = () => {
                 </div>
 
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Team (Optional)</label>
+                  <label style={styles.label}>Team Name (Optional)</label>
                   <input
                     type="text"
                     style={styles.input}

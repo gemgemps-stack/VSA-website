@@ -961,7 +961,7 @@ const CustomizedOrders = () => {
                     </div>
 
                     <div style={styles.formGroup}>
-                      <label style={styles.label}>Team (Optional)</label>
+                      <label style={styles.label}>Team Name (Optional)</label>
                       <input
                         type="text"
                         placeholder="Enter team name"
