@@ -57,6 +57,8 @@ const SourceIncome = () => {
   const [receiptError, setReceiptError] = useState('');
   const [searchReferenceNumber, setSearchReferenceNumber] = useState('');
   const [chequeSearchNumber, setChequeSearchNumber] = useState('');
+  const [performanceReportOpen, setPerformanceReportOpen] = useState(false);
+  const [performanceReportPeriod, setPerformanceReportPeriod] = useState('MONTHLY');
   const [liquidationModalOpen, setLiquidationModalOpen] = useState(false);
   const [liquidationAmount, setLiquidationAmount] = useState('');
   const [liquidationReason, setLiquidationReason] = useState('');
@@ -247,6 +249,74 @@ const SourceIncome = () => {
   };
 
   const isWithinRange = (date, range) => date >= range.start && date <= range.end;
+
+  const getPerformanceTimelineBuckets = useCallback((period) => {
+    const range = getPeriodRange(period);
+    const buckets = [];
+    const bucketMap = new Map();
+    const start = new Date(range.start);
+    const end = new Date(range.end);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    const buildDayBucket = (date) => {
+      const bucketKey = date.toISOString().slice(0, 10);
+      return {
+        key: bucketKey,
+        label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        sales: 0,
+        liquidation: 0,
+      };
+    };
+
+    const buildMonthBucket = (date) => {
+      const bucketKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      return {
+        key: bucketKey,
+        label: date.toLocaleDateString(undefined, { month: 'short', year: period === 'ANNUALLY' ? 'numeric' : undefined }),
+        sales: 0,
+        liquidation: 0,
+      };
+    };
+
+    if (period === 'WEEKLY' || period === 'MONTHLY') {
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        const bucket = buildDayBucket(cursor);
+        buckets.push(bucket);
+        bucketMap.set(bucket.key, bucket);
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    } else {
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      while (cursor <= end) {
+        const bucket = buildMonthBucket(cursor);
+        buckets.push(bucket);
+        bucketMap.set(bucket.key, bucket);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
+
+    incomeEntries.forEach((entry) => {
+      const entryDate = getIncomeDate(entry);
+      if (!isWithinRange(entryDate, range)) return;
+
+      const bucketKey = period === 'WEEKLY' || period === 'MONTHLY'
+        ? entryDate.toISOString().slice(0, 10)
+        : `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = bucketMap.get(bucketKey);
+      if (!bucket) return;
+
+      const amount = getIncomeAmount(entry);
+      if (isLiquidationEntry(entry)) {
+        bucket.liquidation += amount;
+      } else {
+        bucket.sales += amount;
+      }
+    });
+
+    return buckets;
+  }, [getIncomeDate, incomeEntries, isLiquidationEntry]);
 
   const getIncomeEntriesByShop = useCallback((shopLabel) =>
     shopLabel === 'All Sources'
@@ -448,10 +518,19 @@ const SourceIncome = () => {
     setLiquidationModalOpen(true);
   };
 
+  const openPerformanceReportModal = () => {
+    setPerformanceReportPeriod(reportPeriod);
+    setPerformanceReportOpen(true);
+  };
+
   const getLiquidationReferenceNumber = useCallback((incomeDate) => generateLiquidationReferenceNumber(incomeEntries, incomeDate), [incomeEntries]);
 
   const closeLiquidationModal = () => {
     setLiquidationModalOpen(false);
+  };
+
+  const closePerformanceReportModal = () => {
+    setPerformanceReportOpen(false);
   };
 
   const handleRecordLiquidation = async () => {
@@ -1285,6 +1364,126 @@ const SourceIncome = () => {
   const filteredLiquidationEntries = filterEntriesByReferenceNumber(currentLiquidationEntries);
   const filteredLiquidationTotal = getLiquidationTotal(filteredLiquidationEntries);
   const filteredReportTotal = currentSalesTotal - filteredLiquidationTotal;
+  const performanceTimelineData = getPerformanceTimelineBuckets(performanceReportPeriod).map((bucket) => ({
+    ...bucket,
+    net: bucket.sales - bucket.liquidation,
+  }));
+  const performanceSalesTotal = performanceTimelineData.reduce((sum, bucket) => sum + bucket.sales, 0);
+  const performanceLiquidationTotal = performanceTimelineData.reduce((sum, bucket) => sum + bucket.liquidation, 0);
+  const performanceNetTotal = performanceSalesTotal - performanceLiquidationTotal;
+
+  const renderPerformanceLineChart = () => {
+    if (performanceTimelineData.length === 0) {
+      return <div className="income-details-empty">No performance data found for this period.</div>;
+    }
+
+    const width = 940;
+    const height = 280;
+    const padding = { top: 24, right: 22, bottom: 50, left: 58 };
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
+    const values = performanceTimelineData.flatMap((bucket) => [bucket.sales, bucket.liquidation]);
+    const maxValue = Math.max(1, ...values);
+    const yScale = (value) => padding.top + (innerHeight - ((value / maxValue) * innerHeight));
+    const xScale = (index) => padding.left + (performanceTimelineData.length === 1 ? innerWidth / 2 : (index * innerWidth) / (performanceTimelineData.length - 1));
+    const buildPath = (getter) => performanceTimelineData
+      .map((bucket, index) => `${index === 0 ? 'M' : 'L'} ${xScale(index)} ${yScale(getter(bucket))}`)
+      .join(' ');
+    const salesPath = buildPath((bucket) => bucket.sales);
+    const liquidationPath = buildPath((bucket) => bucket.liquidation);
+    const gridLines = Array.from({ length: 5 }, (_, index) => {
+      const value = (maxValue / 4) * index;
+      const y = yScale(value);
+      return { value, y };
+    });
+
+    return (
+      <div className="performance-chart-shell">
+        <svg viewBox={`0 0 ${width} ${height}`} className="performance-chart-svg" role="img" aria-label="Revenue versus expenses line chart">
+          {gridLines.map((line) => (
+            <g key={line.value}>
+              <line x1={padding.left} y1={line.y} x2={width - padding.right} y2={line.y} stroke="#dfe7e3" strokeWidth="1" />
+              <text x="12" y={line.y + 4} fill="#6e645a" fontSize="11">
+                PHP {Math.round(line.value).toLocaleString()}
+              </text>
+            </g>
+          ))}
+          <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#9fb7b2" strokeWidth="1.2" />
+          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="#9fb7b2" strokeWidth="1.2" />
+          <path d={salesPath} fill="none" stroke="#016667" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={liquidationPath} fill="none" stroke="#c62828" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />
+          {performanceTimelineData.map((bucket, index) => {
+            const x = xScale(index);
+            return (
+              <g key={bucket.key}>
+                <circle cx={x} cy={yScale(bucket.sales)} r="4.5" fill="#016667" />
+                <circle cx={x} cy={yScale(bucket.liquidation)} r="4.5" fill="#c62828" />
+                <text
+                  x={x}
+                  y={height - 18}
+                  fill="#6e645a"
+                  fontSize="11"
+                  textAnchor="middle"
+                >
+                  {bucket.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    );
+  };
+
+  const renderPerformanceBarChart = () => {
+    if (performanceTimelineData.length === 0) {
+      return <div className="income-details-empty">No performance data found for this period.</div>;
+    }
+
+    const width = 940;
+    const height = 280;
+    const padding = { top: 24, right: 18, bottom: 52, left: 58 };
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
+    const maxAbs = Math.max(1, ...performanceTimelineData.map((bucket) => Math.abs(bucket.net)));
+    const valueScale = (value) => (value / maxAbs) * (innerHeight / 2);
+    const baseline = padding.top + innerHeight / 2;
+    const barWidth = Math.max(10, Math.min(42, innerWidth / Math.max(performanceTimelineData.length * 1.5, 1)));
+    const step = performanceTimelineData.length > 1 ? innerWidth / (performanceTimelineData.length - 1) : 0;
+
+    return (
+      <div className="performance-chart-shell">
+        <svg viewBox={`0 0 ${width} ${height}`} className="performance-chart-svg" role="img" aria-label="Net profit bar chart">
+          <line x1={padding.left} y1={baseline} x2={width - padding.right} y2={baseline} stroke="#7f8f8a" strokeWidth="1.3" />
+          <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="#9fb7b2" strokeWidth="1.2" />
+          {performanceTimelineData.map((bucket, index) => {
+            const xCenter = padding.left + (performanceTimelineData.length === 1 ? innerWidth / 2 : index * step);
+            const barHeight = Math.abs(valueScale(bucket.net));
+            const y = bucket.net >= 0 ? baseline - barHeight : baseline;
+            const fill = bucket.net >= 0 ? '#1b8f4b' : '#c62828';
+            return (
+              <g key={bucket.key}>
+                <rect
+                  x={xCenter - barWidth / 2}
+                  y={y}
+                  width={barWidth}
+                  height={Math.max(1, barHeight)}
+                  rx="8"
+                  fill={fill}
+                />
+                <text x={xCenter} y={height - 18} fill="#6e645a" fontSize="11" textAnchor="middle">
+                  {bucket.label}
+                </text>
+                <text x={xCenter} y={bucket.net >= 0 ? y - 8 : y + Math.max(14, barHeight + 14)} fill="#20150d" fontSize="11" textAnchor="middle">
+                  PHP {Math.abs(bucket.net).toFixed(0)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    );
+  };
 
   const handleDownloadFinanceReportExcel = useCallback(() => {
     const blob = buildFinanceReportSpreadsheet(
@@ -1649,6 +1848,13 @@ const SourceIncome = () => {
                       <button
                         type="button"
                         className="income-details-btn"
+                        onClick={openPerformanceReportModal}
+                      >
+                        Performance Report
+                      </button>
+                      <button
+                        type="button"
+                        className="income-details-btn"
                         onClick={handleDownloadFinanceReportExcel}
                       >
                         Download Excel
@@ -1810,6 +2016,92 @@ const SourceIncome = () => {
               ) : (
                 <p className="income-details-empty">No payment history found. Initial down payment might not be recorded as a separate income entry.</p>
               )}
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          isOpen={performanceReportOpen}
+          onClose={closePerformanceReportModal}
+          title="Performance Report"
+          size="finance"
+        >
+          <div className="income-details-modal">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <div>
+                  <h3 className="transaction-histories-title" style={{ margin: 0 }}>Timeline</h3>
+                  <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                    Compare sales income against liquidation withdrawals.
+                  </div>
+                </div>
+                <div className="report-filter-bar" style={{ marginTop: 0 }}>
+                  {REPORT_PERIODS.map((period) => (
+                    <button
+                      key={period.key}
+                      type="button"
+                      className={`report-filter-btn ${performanceReportPeriod === period.key ? 'active' : ''}`}
+                      onClick={() => setPerformanceReportPeriod(period.key)}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="income-details-summary income-reporting-summary" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                  <span className="income-details-label">Sales Income</span>
+                  <strong>PHP {performanceSalesTotal.toFixed(2)}</strong>
+                </div>
+                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                  <span className="income-details-label">Withdrawals</span>
+                  <strong>PHP {performanceLiquidationTotal.toFixed(2)}</strong>
+                </div>
+                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                  <span className="income-details-label">Net Result</span>
+                  <strong style={{ color: performanceNetTotal < 0 ? '#c62828' : '#1b8f4b' }}>
+                    PHP {performanceNetTotal.toFixed(2)}
+                  </strong>
+                </div>
+              </div>
+
+              <section style={{ border: '1px solid #dfe7e3', borderRadius: '16px', padding: '16px', background: 'linear-gradient(180deg, #fff, #f8fbfa)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  <div>
+                    <h3 className="transaction-histories-title" style={{ margin: 0 }}>Revenue vs. Expenses</h3>
+                    <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                      Line chart showing sales income and liquidation withdrawals over time.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: '#6e645a' }}>
+                    <span><strong style={{ color: '#016667' }}>●</strong> Sales Income</span>
+                    <span><strong style={{ color: '#c62828' }}>●</strong> Withdrawals</span>
+                  </div>
+                </div>
+                {renderPerformanceLineChart()}
+              </section>
+
+              <section style={{ border: '1px solid #dfe7e3', borderRadius: '16px', padding: '16px', background: 'linear-gradient(180deg, #fff, #f8fbfa)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  <div>
+                    <h3 className="transaction-histories-title" style={{ margin: 0 }}>Net Profit</h3>
+                    <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                      Green bars indicate profit. Red bars indicate a loss.
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6e645a' }}>
+                    {performanceReportPeriod === 'WEEKLY'
+                      ? 'Daily performance'
+                      : performanceReportPeriod === 'MONTHLY'
+                        ? 'Daily performance for the month'
+                        : performanceReportPeriod === 'QUARTERLY'
+                          ? 'Monthly performance for the quarter'
+                          : 'Monthly performance for the year'}
+                  </div>
+                </div>
+                {renderPerformanceBarChart()}
+              </section>
             </div>
           </div>
         </Modal>
