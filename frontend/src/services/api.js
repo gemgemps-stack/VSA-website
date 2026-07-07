@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { readAccessToken } from './authTokenStorage';
+import { readAccessToken, writeAccessToken } from './authTokenStorage';
 
 const EXPLICIT_API_BASE_URL = process.env.REACT_APP_API_URL || '';
 const LOCAL_API_PORTS = [8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089, 8090];
@@ -53,6 +53,25 @@ const shouldAutoLogoutOn401 = (config) => {
   } catch (error) {
     return requestUrl === '/api/auth/me';
   }
+};
+
+const shouldRetryWithoutBearer = (config) => {
+  if (config?.__retryWithoutBearer) {
+    return false;
+  }
+
+  return !shouldAutoLogoutOn401(config);
+};
+
+const stripAuthorizationHeader = (headers) => {
+  if (!headers) {
+    return headers;
+  }
+
+  const nextHeaders = { ...headers };
+  delete nextHeaders.Authorization;
+  delete nextHeaders.authorization;
+  return nextHeaders;
 };
 
 const discoverApiBaseUrl = async () => {
@@ -113,10 +132,29 @@ api.interceptors.request.use(async (config) => {
 // Handle unauthorized responses
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const accessToken = readAccessToken();
+
+    if (error.response?.status === 401 && accessToken && shouldRetryWithoutBearer(error.config)) {
+      writeAccessToken(null);
+
+      const retryConfig = {
+        ...error.config,
+        __retryWithoutBearer: true,
+        headers: stripAuthorizationHeader(error.config?.headers),
+      };
+
+      try {
+        return await api(retryConfig);
+      } catch (retryError) {
+        return Promise.reject(retryError);
+      }
+    }
+
     if (error.response?.status === 401 && shouldAutoLogoutOn401(error.config)) {
       window.dispatchEvent(new Event('auth:logout'));
     }
+
     return Promise.reject(error);
   }
 );

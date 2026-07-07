@@ -73,6 +73,7 @@ const authService = {
     } catch (error) {
       if (error.response?.status === 401) {
         currentUser = null;
+        writeAccessToken(null);
         writeStoredCurrentUser(null);
       }
       throw error;
