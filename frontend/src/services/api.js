@@ -81,6 +81,24 @@ const api = axios.create({
   },
 });
 
+// Enable short-lived debug logging to help diagnose 401s on write requests.
+// Remove or set to false when issue is resolved.
+const DEBUG_API_REQUESTS = true;
+
+let cachedCsrfToken = null;
+
+const fetchCsrfToken = async () => {
+  try {
+    const response = await api.get('/api/auth/csrf');
+    if (response?.data?.token) {
+      cachedCsrfToken = response.data.token;
+    }
+    return cachedCsrfToken;
+  } catch (error) {
+    return null;
+  }
+};
+
 const hasCsrfCookie = () => {
   if (typeof document === 'undefined' || !document.cookie) {
     return false;
@@ -97,9 +115,15 @@ api.interceptors.request.use(async (config) => {
   }
 
   const method = (config.method || 'get').toLowerCase();
-  if (!['get', 'head', 'options'].includes(method) && !hasCsrfCookie()) {
+  const isUnsafeMethod = !['get', 'head', 'options'].includes(method);
+
+  if (isUnsafeMethod) {
     try {
-      await api.get('/api/auth/csrf');
+      const csrfToken = await fetchCsrfToken();
+      if (csrfToken) {
+        config.headers = config.headers || {};
+        config.headers['X-XSRF-TOKEN'] = csrfToken;
+      }
     } catch (err) {
       // Continue, the request may still fail if CSRF is required.
     }
@@ -116,12 +140,34 @@ api.interceptors.request.use(async (config) => {
     // ignore storage errors
   }
 
+  if (DEBUG_API_REQUESTS) {
+    try {
+      const method = (config.method || 'get').toUpperCase();
+      const url = `${config.baseURL || ''}${config.url || ''}`;
+      const hasAuth = Boolean(config.headers && (config.headers.Authorization || config.headers.authorization));
+      const hasXSRF = typeof document !== 'undefined' && document.cookie && document.cookie.split(';').some(c => c.trim().startsWith('XSRF-TOKEN='));
+      console.debug('[API DEBUG] Request', { method, url, hasAuth, hasXSRF });
+    } catch (e) {
+      // swallow debug errors
+    }
+  }
+
   return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
-  async (error) => Promise.reject(error)
+  async (error) => {
+    if (DEBUG_API_REQUESTS && error?.config) {
+      console.debug('[API DEBUG] Response error', {
+        url: `${error.config.baseURL || ''}${error.config.url || ''}`,
+        status: error.response?.status,
+        data: error.response?.data,
+        requestHeaders: error.config.headers,
+      });
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default api;
