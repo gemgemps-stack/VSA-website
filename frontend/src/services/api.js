@@ -43,6 +43,18 @@ const probeBaseUrl = async (baseUrl) => {
   }
 };
 
+const shouldAutoLogoutOn401 = (config) => {
+  const requestUrl = String(config?.url || '');
+  const baseUrl = String(config?.baseURL || '');
+
+  try {
+    const resolvedPath = new URL(requestUrl, baseUrl || 'http://localhost').pathname;
+    return resolvedPath === '/api/auth/me';
+  } catch (error) {
+    return requestUrl === '/api/auth/me';
+  }
+};
+
 const discoverApiBaseUrl = async () => {
   // If we already have a resolved URL from EXPLICIT_API_BASE_URL, use it immediately
   if (EXPLICIT_API_BASE_URL && isLocalUrl(EXPLICIT_API_BASE_URL)) {
@@ -102,7 +114,7 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && shouldAutoLogoutOn401(error.config)) {
       window.dispatchEvent(new Event('auth:logout'));
     }
     return Promise.reject(error);
