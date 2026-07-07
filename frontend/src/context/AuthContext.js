@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       const sequence = ++authSequenceRef.current;
 
       try {
-        void authService.refreshCsrfToken().catch((error) => {
+        await authService.refreshCsrfToken().catch((error) => {
           console.warn('Unable to refresh CSRF token during auth bootstrap:', error);
         });
 

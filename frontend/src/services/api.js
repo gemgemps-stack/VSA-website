@@ -81,9 +81,28 @@ const api = axios.create({
   },
 });
 
+const hasCsrfCookie = () => {
+  if (typeof document === 'undefined' || !document.cookie) {
+    return false;
+  }
+
+  return document.cookie
+    .split(';')
+    .some((cookie) => cookie.trim().startsWith('XSRF-TOKEN='));
+};
+
 api.interceptors.request.use(async (config) => {
   if (!config.baseURL) {
     config.baseURL = await discoverApiBaseUrl();
+  }
+
+  const method = (config.method || 'get').toLowerCase();
+  if (!['get', 'head', 'options'].includes(method) && !hasCsrfCookie()) {
+    try {
+      await api.get('/api/auth/csrf');
+    } catch (err) {
+      // Continue, the request may still fail if CSRF is required.
+    }
   }
 
   // Attach bearer token from storage if present so backend can authorize requests

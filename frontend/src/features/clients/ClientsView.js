@@ -87,7 +87,8 @@ const Clients = () => {
       loadClients();
     } catch (error) {
       console.error('Error saving client:', error);
-      alert('Failed to save client');
+      const errorMsg = getApiErrorMessage(error, 'Failed to save client');
+      alert(errorMsg);
     }
   };
 

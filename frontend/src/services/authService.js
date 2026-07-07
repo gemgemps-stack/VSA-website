@@ -47,6 +47,9 @@ const authService = {
     currentUser = response.data.user || null;
     writeAccessToken(response.data.accessToken || null);
     writeStoredCurrentUser(currentUser);
+    await authService.refreshCsrfToken().catch((error) => {
+      console.warn('Unable to refresh CSRF token after login:', error);
+    });
     return response.data;
   },
 

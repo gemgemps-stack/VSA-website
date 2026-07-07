@@ -207,7 +207,8 @@ const Employees = () => {
       loadUsers();
     } catch (error) {
       console.error('Error registering employee:', error);
-      alert(error.response?.data?.message || 'Failed to register employee');
+      const errorMsg = getApiErrorMessage(error, 'Failed to register employee');
+      alert(errorMsg);
     } finally {
       setFormLoading(false);
     }
