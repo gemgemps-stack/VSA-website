@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { readAccessToken } from './authTokenStorage';
 
 const EXPLICIT_API_BASE_URL = process.env.REACT_APP_API_URL || '';
 const LOCAL_API_PORTS = [8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089, 8090];
@@ -83,6 +84,17 @@ const api = axios.create({
 api.interceptors.request.use(async (config) => {
   if (!config.baseURL) {
     config.baseURL = await discoverApiBaseUrl();
+  }
+
+  // Attach bearer token from storage if present so backend can authorize requests
+  try {
+    const accessToken = readAccessToken();
+    if (accessToken) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+  } catch (err) {
+    // ignore storage errors
   }
 
   return config;

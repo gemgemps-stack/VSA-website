@@ -7,6 +7,7 @@ import { useLocation } from 'react-router-dom';
 import incomeService from '../../services/incomeService';
 import customizedOrderService from '../../services/customizedOrderService';
 import clientService from '../../services/clientService';
+import authService from '../../services/authService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
@@ -546,6 +547,8 @@ const CustomizedOrders = () => {
         freebie: formData.freebie.trim() || null,
         status: statusToSave,
       };
+
+      await authService.refreshCsrfToken().catch(() => {});
 
       if (editingOrder) {
         await customizedOrderService.updateOrder(editingOrder.id, payload);
