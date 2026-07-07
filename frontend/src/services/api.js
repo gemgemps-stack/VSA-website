@@ -64,7 +64,7 @@ const discoverApiBaseUrl = async () => {
         }
       }
 
-      resolvedApiBaseUrl = EXPLICIT_API_BASE_URL || 'http://localhost:8080';
+      resolvedApiBaseUrl = EXPLICIT_API_BASE_URL || '';
       return resolvedApiBaseUrl;
     })();
   }
