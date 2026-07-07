@@ -8,7 +8,6 @@ import inventoryService from '../../services/inventoryService';
 import clientService from '../../services/clientService';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
-import authService from '../../services/authService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
@@ -549,8 +548,6 @@ const Orders = () => {
         freebie: formData.freebie.trim() || null,
         status: statusToSave,
       };
-
-      await authService.refreshCsrfToken().catch(() => {});
 
       if (editingOrder) {
         await orderService.updateOrder(editingOrder.id, payload);
