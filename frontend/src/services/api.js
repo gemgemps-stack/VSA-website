@@ -2,6 +2,8 @@ import axios from 'axios';
 import { readAccessToken, writeAccessToken } from './authTokenStorage';
 
 const EXPLICIT_API_BASE_URL = process.env.REACT_APP_API_URL || '';
+const AUTH_COOKIE_NAME = 'VSA_AUTH';
+const CSRF_COOKIE_NAME = 'XSRF-TOKEN';
 const LOCAL_API_PORTS = [8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089, 8090];
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1']);
 const isBrowserLocalhost =
@@ -53,6 +55,44 @@ const shouldAutoLogoutOn401 = (config) => {
   } catch (error) {
     return requestUrl === '/api/auth/me';
   }
+};
+
+const getCookieValue = (name) => {
+  if (typeof document === 'undefined') {
+    return '';
+  }
+
+  const cookies = document.cookie ? document.cookie.split(';') : [];
+  const match = cookies.find((cookie) => cookie.trim().startsWith(`${name}=`));
+  if (!match) {
+    return '';
+  }
+
+  return decodeURIComponent(match.split('=').slice(1).join('=').trim());
+};
+
+const readAuthCookieToken = () => getCookieValue(AUTH_COOKIE_NAME);
+
+export const buildRequestConfig = (config = {}) => {
+  const nextConfig = {
+    ...config,
+    headers: {
+      ...(config.headers || {}),
+    },
+  };
+
+  const accessToken = readAccessToken() || readAuthCookieToken();
+  const csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+
+  if (accessToken) {
+    nextConfig.headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  if (csrfToken && !nextConfig.headers['X-XSRF-TOKEN']) {
+    nextConfig.headers['X-XSRF-TOKEN'] = csrfToken;
+  }
+
+  return nextConfig;
 };
 
 const shouldRetryWithoutBearer = (config) => {
@@ -120,20 +160,14 @@ api.interceptors.request.use(async (config) => {
     config.baseURL = await discoverApiBaseUrl();
   }
 
-  const accessToken = readAccessToken();
-  if (accessToken) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${accessToken}`;
-  }
-
-  return config;
+  return buildRequestConfig(config);
 });
 
 // Handle unauthorized responses
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const accessToken = readAccessToken();
+    const accessToken = readAccessToken() || readAuthCookieToken();
 
     if (error.response?.status === 401 && accessToken && shouldRetryWithoutBearer(error.config)) {
       writeAccessToken(null);
