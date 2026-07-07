@@ -1,5 +1,6 @@
 import api from './api';
 import { hasPermission } from '../utils/permissions';
+import { readAccessToken, writeAccessToken } from './authTokenStorage';
 
 const CURRENT_USER_STORAGE_KEY = 'verdida:currentUser';
 let currentUser = null;
@@ -44,6 +45,7 @@ const authService = {
   login: async (email, password) => {
     const response = await api.post('/api/auth/login', { email, password });
     currentUser = response.data.user || null;
+    writeAccessToken(response.data.accessToken || null);
     writeStoredCurrentUser(currentUser);
     return response.data;
   },
@@ -56,6 +58,7 @@ const authService = {
       console.warn('Logout request failed, continuing with local sign-out:', error);
     } finally {
       currentUser = null;
+      writeAccessToken(null);
       writeStoredCurrentUser(null);
       window.dispatchEvent(new Event('auth:logout'));
     }
@@ -77,6 +80,8 @@ const authService = {
   },
 
   getCurrentUser: () => currentUser,
+
+  getAccessToken: () => readAccessToken(),
 
   hasRole: (role) => {
     return currentUser && currentUser.role === role;

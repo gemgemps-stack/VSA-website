@@ -48,7 +48,7 @@ public class AuthController {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
                 .header("Set-Cookie", cookie.toString())
-                .body(new LoginResponse(session.user()));
+                .body(new LoginResponse(session.accessToken(), session.user()));
     }
 
     @GetMapping("/health")
