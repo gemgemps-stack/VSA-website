@@ -99,16 +99,6 @@ const fetchCsrfToken = async () => {
   }
 };
 
-const hasCsrfCookie = () => {
-  if (typeof document === 'undefined' || !document.cookie) {
-    return false;
-  }
-
-  return document.cookie
-    .split(';')
-    .some((cookie) => cookie.trim().startsWith('XSRF-TOKEN='));
-};
-
 api.interceptors.request.use(async (config) => {
   if (!config.baseURL) {
     config.baseURL = await discoverApiBaseUrl();
