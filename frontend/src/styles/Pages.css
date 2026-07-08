@@ -823,6 +823,10 @@
   gap: 12px;
 }
 
+.credit-payment-summary {
+  grid-template-columns: 16% 27% 27% 27%;
+}
+
 .income-details-summary > div {
   padding: 14px 16px;
   border-radius: 12px;

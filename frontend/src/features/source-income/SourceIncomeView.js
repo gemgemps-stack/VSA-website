@@ -1953,7 +1953,7 @@ const SourceIncome = () => {
           size="finance"
         >
           <div className="income-details-modal">
-            <div className="income-details-summary">
+            <div className="income-details-summary credit-payment-summary">
               <div>
                 <span className="income-details-label">Job Order No.</span>
                 <strong>{selectedCreditOrder?.jobOrderNo}</strong>
