@@ -167,20 +167,23 @@ const Employees = () => {
         return;
       }
 
-      if (isAdminRegistration && !String(formData.email || '').trim()) {
+      const email = String(formData.email || '').trim();
+      const password = String(formData.password || '').trim();
+
+      if (isAdminRegistration && !email) {
         alert('Please enter the email address before saving.');
         return;
       }
 
-      if (isAdminRegistration && !String(formData.password || '').trim()) {
+      if (isAdminRegistration && !password) {
         alert('Please enter the password before saving.');
         return;
       }
 
       const payload = {
         username: trimmedUsername,
-        email: isAdminRegistration ? String(formData.email || '').trim() : null,
-        password: isAdminRegistration ? String(formData.password || '') : null,
+        email: email || null,
+        password: password || null,
         role: selectedTeam.toUpperCase(),
       };
 
@@ -347,24 +350,22 @@ const Employees = () => {
                 {registerMode === 'admin' ? (
                   <>
                     <div className="form-group">
-                      <label>Email</label>
+                      <label>Email (Optional)</label>
                       <input
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="Enter email address"
-                        required
                       />
                     </div>
 
                     <div className="form-group">
-                      <label>Password</label>
+                      <label>Password (Optional)</label>
                       <input
                         type="password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         placeholder="Create a password"
-                        required
                       />
                     </div>
 
@@ -380,23 +381,25 @@ const Employees = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="form-group">
-                    <label>Team</label>
-                    <select
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>
-                        Select Team
-                      </option>
-                      {TEAM_OPTIONS.map((team) => (
-                        <option key={team} value={team}>
-                          {team}
+                  <>
+                    <div className="form-group">
+                      <label>Team</label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>
+                          Select Team
                         </option>
-                      ))}
-                    </select>
-                  </div>
+                        {TEAM_OPTIONS.map((team) => (
+                          <option key={team} value={team}>
+                            {team}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 )}
               </div>
 

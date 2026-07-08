@@ -40,22 +40,27 @@ public class UserService {
         String email = request.getEmail() == null ? null : request.getEmail().trim();
         String password = request.getPassword() == null ? null : request.getPassword().trim();
 
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email is required");
+        if (isAdmin) {
+            if (email == null || email.isBlank()) {
+                throw new IllegalArgumentException("Email is required for admin accounts");
+            }
+            if (password == null || password.isBlank()) {
+                throw new IllegalArgumentException("Password is required for admin accounts");
+            }
         }
 
-        if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("Password is required");
-        }
-
-        if (userRepository.existsByEmail(email)) {
+        if (email != null && !email.isBlank() && userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists");
         }
 
         User user = new User();
         user.setUsername(request.getUsername());
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
+        user.setEmail((email == null || email.isBlank()) ? null : email);
+        if (password != null && !password.isBlank()) {
+            user.setPassword(passwordEncoder.encode(password));
+        } else {
+            user.setPassword(null);
+        }
         user.setRole(role);
         user.setSalary(request.getSalary());
 
