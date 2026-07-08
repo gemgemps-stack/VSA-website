@@ -10,6 +10,7 @@ import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import authService from '../../services/authService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
+import { useNotification } from '../../context/NotificationContext';
 
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 const ORDER_STATUS = {
@@ -138,12 +139,23 @@ const Orders = () => {
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchQuery, setSearchQuery] = useState('');
   const [clientSearch, setClientSearch] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({
+    clientName: '',
+    items: '',
+    shop: '',
+    discount: '',
+    downPayment: '',
+    modeOfPayment: '',
+    referenceNumber: '',
+    checkNumber: '',
+  });
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
   const [retailSearchIndex, setRetailSearchIndex] = useState(null);
   const [retailSearchText, setRetailSearchText] = useState('');
   const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
   const location = useLocation();
   const openedCreditJobOrderRef = useRef(null);
+  const { success: notifySuccess, error: notifyError } = useNotification();
 
   const loadClients = useCallback(async () => {
     try {
@@ -439,6 +451,19 @@ const Orders = () => {
     };
   }, [location.state, orders, populateOrderDetails]);
 
+  const clearFieldErrors = useCallback(() => {
+    setFieldErrors({
+      clientName: '',
+      items: '',
+      shop: '',
+      discount: '',
+      downPayment: '',
+      modeOfPayment: '',
+      referenceNumber: '',
+      checkNumber: '',
+    });
+  }, []);
+
   const handleEdit = (order) => {
     if (order.status === ORDER_STATUS.FULLY_PAID) {
       alert('Fully Paid orders cannot be edited.');
@@ -467,6 +492,7 @@ const Orders = () => {
       setFormData(prev => ({ ...prev, items: [{ productName: order.orderRetail || '', unitPrice: String(order.price || ''), quantity: String(order.quantity || '') }] }));
     }
     setClientSearch(order.clientName || '');
+    clearFieldErrors();
     setModalOpen(true);
   };
 
@@ -488,40 +514,68 @@ const Orders = () => {
 
   const handleSubmit = async () => {
     try {
-      if (!clientSearch.trim()) { alert('Please enter a client name.'); return; }
+      setFieldErrors({
+        clientName: '',
+        items: '',
+        shop: '',
+        discount: '',
+        downPayment: '',
+        modeOfPayment: '',
+        referenceNumber: '',
+        checkNumber: '',
+      });
+
+      if (!clientSearch.trim()) {
+        setFieldErrors((prev) => ({ ...prev, clientName: 'Please enter a client name.' }));
+        return;
+      }
       const invalidItem = formData.items.find(item => !item.productName.trim() || !item.unitPrice || !item.quantity);
-      if (invalidItem) { alert('Please fill in all product details.'); return; }
-      if (!formData.shop) { alert('Please select a shop.'); return; }
-      // Validate non-negative discount, quantities, and down payment
+      if (invalidItem) {
+        setFieldErrors((prev) => ({ ...prev, items: 'Please fill in all product details.' }));
+        return;
+      }
+      if (!formData.shop) {
+        setFieldErrors((prev) => ({ ...prev, shop: 'Please select a shop.' }));
+        return;
+      }
       const discount = Number(formData.discount || 0);
-      if (discount < 0) { alert('Discount cannot be less than zero.'); return; }
+      if (discount < 0) {
+        setFieldErrors((prev) => ({ ...prev, discount: 'Discount cannot be less than zero.' }));
+        return;
+      }
 
       const negativeQty = formData.items.find(item => Number(item.quantity) < 0);
-      if (negativeQty) { alert('Item quantity cannot be less than zero.'); return; }
+      if (negativeQty) {
+        setFieldErrors((prev) => ({ ...prev, items: 'Item quantity cannot be less than zero.' }));
+        return;
+      }
 
       const downPaymentAmount = Number(formData.downPayment || 0);
-      if (downPaymentAmount < 0) { alert('Down payment cannot be less than zero.'); return; }
+      if (downPaymentAmount < 0) {
+        setFieldErrors((prev) => ({ ...prev, downPayment: 'Down payment cannot be less than zero.' }));
+        return;
+      }
       const statusToSave = (editingOrder?.status === ORDER_STATUS.NOT_APPROVED)
         ? ORDER_STATUS.FOR_CLIENT_APPROVAL
         : (editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL);
       const selectedModeOfPayment = formData.modeOfPayment.trim();
       if (downPaymentAmount > 0 && !selectedModeOfPayment) {
-        alert('Please select a mode of payment.');
+        setFieldErrors((prev) => ({ ...prev, modeOfPayment: 'Please select a mode of payment.' }));
         return;
       }
       const trimmedReferenceNumber = formData.referenceNumber.trim();
       const trimmedCheckNumber = formData.checkNumber.trim();
       if (downPaymentAmount > 0 && !trimmedReferenceNumber) {
-        alert('Please provide a Reference Number.');
+        setFieldErrors((prev) => ({ ...prev, referenceNumber: 'Please provide a Reference Number.' }));
         return;
       }
       if (downPaymentAmount > 0 && isChequePayment(selectedModeOfPayment) && !trimmedCheckNumber) {
-        alert('Please provide a Check Number for cheque payments.');
+        setFieldErrors((prev) => ({ ...prev, checkNumber: 'Please provide a Check Number for cheque payments.' }));
         return;
       }
       const discountedTotal = getDiscountedTotal();
       if (downPaymentAmount > discountedTotal) {
-        alert(`Down payment cannot exceed the total discounted amount (${formatMoney(discountedTotal)}).`);
+        setFieldErrors((prev) => ({ ...prev, downPayment: `Down payment cannot exceed the total discounted amount (${formatMoney(discountedTotal)}).` }));
         return;
       }
 
@@ -554,15 +608,15 @@ const Orders = () => {
 
       if (editingOrder) {
         await orderService.updateOrder(editingOrder.id, payload);
-        alert('Order updated successfully');
+        notifySuccess('Order updated successfully');
       } else {
         await orderService.createOrder(payload);
-        alert('Order created successfully');
+        notifySuccess('Order created successfully');
       }
       setModalOpen(false);
       loadOrders();
     } catch (error) {
-      alert(`Failed to save order: ${getApiErrorMessage(error)}`);
+      notifyError(`Failed to save order: ${getApiErrorMessage(error)}`);
     }
   };
 
@@ -726,6 +780,7 @@ const Orders = () => {
     formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
     label: { fontWeight: '600', color: '#333', fontSize: '0.9rem' },
     input: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', width: '100%', boxSizing: 'border-box' },
+    fieldError: { color: '#d9534f', fontSize: '0.8rem', marginTop: '-2px' },
     textarea: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', minHeight: '80px', resize: 'vertical' },
     autocompleteContainer: { position: 'relative', width: '100%' },
     suggestionsList: { position: 'absolute', top: '100%', left: '0', right: '0', backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '0 0 6px 6px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: '1000', maxHeight: '200px', overflowY: 'auto' },
@@ -959,6 +1014,7 @@ const Orders = () => {
               <div style={{ ...styles.formGrid, gridTemplateColumns: '0.5fr 1fr 1fr 1.5fr' }}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Discount %</label>
+                  {fieldErrors.discount ? <div style={styles.fieldError}>{fieldErrors.discount}</div> : null}
                   <input
                     type="number"
                     min="0"
@@ -976,6 +1032,7 @@ const Orders = () => {
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Down Payment</label>
+                  {fieldErrors.downPayment ? <div style={styles.fieldError}>{fieldErrors.downPayment}</div> : null}
                   <input type="number" style={styles.input} value={formData.downPayment} onChange={handleDownPaymentChange} disabled={isVipClient} placeholder="0" />
                 </div>
                 <div style={styles.formGroup}>
@@ -992,6 +1049,7 @@ const Orders = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                   <div style={styles.formGroup}>
                     <label style={styles.label}>Mode of Payment</label>
+                    {fieldErrors.modeOfPayment ? <div style={styles.fieldError}>{fieldErrors.modeOfPayment}</div> : null}
                     <select
                       style={styles.input}
                       value={formData.modeOfPayment}
@@ -1012,6 +1070,7 @@ const Orders = () => {
                     {isChequePayment(formData.modeOfPayment) && (
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Check Number</label>
+                        {fieldErrors.checkNumber ? <div style={styles.fieldError}>{fieldErrors.checkNumber}</div> : null}
                         <input
                           type="text"
                           style={styles.input}
@@ -1023,6 +1082,7 @@ const Orders = () => {
                     )}
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Reference Number</label>
+                      {fieldErrors.referenceNumber ? <div style={styles.fieldError}>{fieldErrors.referenceNumber}</div> : null}
                       <input
                         type="text"
                         style={styles.input}
@@ -1038,6 +1098,7 @@ const Orders = () => {
               <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr' }}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Shop *</label>
+                  {fieldErrors.shop ? <div style={styles.fieldError}>{fieldErrors.shop}</div> : null}
                   <input
                     type="text"
                     style={{ ...styles.input, backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
