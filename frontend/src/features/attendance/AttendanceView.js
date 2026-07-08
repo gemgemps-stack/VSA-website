@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import userService from '../../services/userService';
 import attendanceService from '../../services/attendanceService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
@@ -81,6 +82,7 @@ const extractUsers = (payload) => {
 
 const AttendanceView = () => {
   const { user } = useAuth();
+  const { error: notifyError, success: notifySuccess, info: notifyInfo } = useNotification();
   const [users, setUsers] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -121,14 +123,14 @@ const AttendanceView = () => {
           return;
         }
         const errorMsg = getApiErrorMessage(error, 'Failed to load attendance data');
-        alert(`Failed to load attendance data: ${errorMsg}`);
+        notifyError(`Failed to load attendance data: ${errorMsg}`);
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [loadAttendance, loadUsers]);
+  }, [loadAttendance, loadUsers, notifyError]);
 
   const filteredRecords = useMemo(() => {
     const normalizedEmployeeQuery = employeeNameQuery.trim().toLowerCase();
@@ -382,18 +384,18 @@ const calculateDayType = (hours) => {
   const handleDelete = async (id) => {
     try {
       await attendanceService.deleteAttendance(id);
-      alert('Attendance record deleted successfully');
+      notifySuccess('Attendance record deleted successfully');
       loadAttendance();
     } catch (error) {
       console.error('Error deleting attendance:', error);
-      alert(error.response?.data?.message || 'Failed to delete attendance record');
+      notifyError(error.response?.data?.message || 'Failed to delete attendance record');
     }
   };
 
   const handleSubmit = async () => {
     try {
       if (!formData.userId || !formData.attendanceDate || !formData.status) {
-        alert('Please fill in the required fields.');
+        notifyInfo('Please fill in the required fields.');
         return;
       }
 
@@ -409,10 +411,10 @@ const calculateDayType = (hours) => {
 
       if (editingRecord) {
         await attendanceService.updateAttendance(editingRecord.id, payload);
-        alert('Attendance updated successfully');
+        notifySuccess('Attendance updated successfully');
       } else {
         await attendanceService.createAttendance(payload);
-        alert('Attendance created successfully');
+        notifySuccess('Attendance created successfully');
       }
 
       closeModal();
@@ -424,7 +426,7 @@ const calculateDayType = (hours) => {
         error.response?.data?.error ||
         error.message ||
         'Failed to save attendance';
-      alert(message);
+      notifyInfo(message);
     } finally {
       setFormLoading(false);
     }

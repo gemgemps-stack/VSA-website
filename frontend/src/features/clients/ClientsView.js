@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
+import { useNotification } from '../../context/NotificationContext';
 import clientService from '../../services/clientService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
@@ -15,6 +16,7 @@ const formatPhoneNumber = (value) => {
 };
 
 const Clients = () => {
+  const { error: notifyError, success: notifySuccess } = useNotification();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,11 +43,11 @@ const Clients = () => {
         return;
       }
       const errorMsg = getApiErrorMessage(error, 'Failed to load clients');
-      alert(`Failed to load clients: ${errorMsg}`);
+      notifyError(`Failed to load clients: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
-  }, [currentPage]);
+  }, [currentPage, notifyError]);
 
   useEffect(() => {
     loadClients();
@@ -65,11 +67,11 @@ const Clients = () => {
   const handleDelete = async (id) => {
     try {
       await clientService.deleteClient(id);
-      alert('Client deleted successfully');
+      notifySuccess('Client deleted successfully');
       loadClients();
     } catch (error) {
       console.error('Error deleting client:', error);
-      alert('Failed to delete client');
+      notifyError('Failed to delete client');
     }
   };
 
@@ -77,10 +79,10 @@ const Clients = () => {
     try {
       if (editingClient) {
         await clientService.updateClient(editingClient.id, formData);
-        alert('Client updated successfully');
+        notifySuccess('Client updated successfully');
       } else {
         await clientService.createClient(formData);
-        alert('Client created successfully');
+        notifySuccess('Client created successfully');
       }
       setModalOpen(false);
       setEditingClient(null);
@@ -88,7 +90,7 @@ const Clients = () => {
     } catch (error) {
       console.error('Error saving client:', error);
       const errorMsg = getApiErrorMessage(error, 'Failed to save client');
-      alert(errorMsg);
+      notifyError(errorMsg);
     }
   };
 

@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
+import { useNotification } from '../../context/NotificationContext';
 import inventoryService from '../../services/inventoryService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopppee', 'Verdida Sports Apparel'];
@@ -95,6 +96,7 @@ const createInitialSearchFilters = () => ({
 });
 
 const Inventory = () => {
+  const { error: notifyError, success: notifySuccess, info: notifyInfo } = useNotification();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,11 +106,7 @@ const Inventory = () => {
   const [formData, setFormData] = useState(createInitialFormData());
   const [searchFilters, setSearchFilters] = useState(createInitialSearchFilters());
 
-  useEffect(() => {
-    loadInventory();
-  }, []);
-
-  const loadInventory = async () => {
+  const loadInventory = React.useCallback(async () => {
     try {
       setLoading(true);
       const response = await inventoryService.getAllInventory(0, INITIAL_PAGE_SIZE);
@@ -119,11 +117,15 @@ const Inventory = () => {
         return;
       }
       const errorMsg = getApiErrorMessage(error, 'Failed to load inventory');
-      alert(`Failed to load inventory: ${errorMsg}`);
+      notifyError(`Failed to load inventory: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [notifyError]);
+
+  useEffect(() => {
+    loadInventory();
+  }, [loadInventory]);
 
   const filteredInventory = inventory.filter((item) =>
     matchesText(item.itemType, searchFilters.itemType) &&
@@ -170,24 +172,24 @@ const Inventory = () => {
   const handleDelete = async (id) => {
     try {
       await inventoryService.deleteInventory(id);
-      alert('Item deleted successfully');
+      notifySuccess('Item deleted successfully');
       loadInventory();
     } catch (error) {
       console.error('Error deleting item:', error);
-      alert('Failed to delete item');
+      notifyError('Failed to delete item');
     }
   };
 
   const handleSubmit = async () => {
     try {
       if (!formData.itemType || !formData.name || !formData.quantity || !formData.price) {
-        alert('Please fill in all required fields');
+        notifyInfo('Please fill in all required fields');
         return;
       }
 
       const parsedQty = Number.parseInt(formData.quantity, 10);
       if (!Number.isFinite(parsedQty) || parsedQty < 0) {
-        alert('Quantity cannot be less than zero');
+        notifyInfo('Quantity cannot be less than zero');
         return;
       }
 
@@ -205,10 +207,10 @@ const Inventory = () => {
 
       if (editingItem) {
         await inventoryService.updateInventory(editingItem.id, payload);
-        alert('Item updated successfully');
+        notifySuccess('Item updated successfully');
       } else {
         await inventoryService.createInventory(payload);
-        alert('Item created successfully');
+        notifySuccess('Item created successfully');
       }
 
       setModalOpen(false);
@@ -218,7 +220,7 @@ const Inventory = () => {
     } catch (error) {
       console.error('Error saving item:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to save item';
-      alert(`Failed to save item: ${errorMessage}`);
+      notifyError(`Failed to save item: ${errorMessage}`);
     }
   };
 

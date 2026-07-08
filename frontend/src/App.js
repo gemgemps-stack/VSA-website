@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import PermissionGuard from './components/PermissionGuard';
 import Login from './features/auth/LoginView';
@@ -18,6 +19,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+        <NotificationProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -106,6 +108,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </Router>
   );

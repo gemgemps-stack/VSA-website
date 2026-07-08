@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import customizedOrderService from '../../services/customizedOrderService';
@@ -49,6 +50,7 @@ const escapeXml = (value) => String(value ?? '')
 const SourceIncome = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { error: notifyError, success: notifySuccess, info: notifyInfo } = useNotification();
   const [incomeEntries, setIncomeEntries] = useState([]);
   const [paymentData, setPaymentData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -172,14 +174,14 @@ const SourceIncome = () => {
           return;
         }
         const errorMsg = getApiErrorMessage(error, 'Failed to load finance data');
-        alert(`Failed to load finance data: ${errorMsg}`);
+        notifyError(`Failed to load finance data: ${errorMsg}`);
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [loadPaymentMethods, loadIncomeEntries, loadCreditOrders]);
+  }, [loadPaymentMethods, loadIncomeEntries, loadCreditOrders, notifyError]);
 
   const getOrderItems = useCallback((order) => {
     if (Array.isArray(order?.items) && order.items.length > 0) {
@@ -543,12 +545,12 @@ const SourceIncome = () => {
   const handleRecordLiquidation = async () => {
     const amount = Number(liquidationAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      alert('Please enter a valid liquidation amount.');
+      notifyInfo('Please enter a valid liquidation amount.');
       return;
     }
 
     if (!liquidationReason.trim()) {
-      alert('Please enter a reason for the liquidation.');
+      notifyInfo('Please enter a reason for the liquidation.');
       return;
     }
 
@@ -571,7 +573,7 @@ const SourceIncome = () => {
       setLiquidationDate(new Date().toISOString().slice(0, 10));
       setLiquidationModalOpen(false);
       await loadIncomeEntries();
-      alert('Liquidation recorded successfully.');
+      notifySuccess('Liquidation recorded successfully.');
     } catch (error) {
       console.error('Error recording liquidation:', error);
       const apiMessage =
@@ -580,7 +582,7 @@ const SourceIncome = () => {
         error.response?.data?.detail ||
         error.message ||
         'Unknown error';
-      alert(`Failed to record liquidation: ${apiMessage}`);
+      notifyError(`Failed to record liquidation: ${apiMessage}`);
     }
   };
 
