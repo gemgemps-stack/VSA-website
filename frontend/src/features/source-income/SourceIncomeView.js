@@ -27,6 +27,11 @@ const SOURCE_GRIDS = [
   { key: 'sportsApparelShop', label: 'Verdida Sports Apparel', color: '#2d6a4f' },
 ];
 
+const isCancelledOrder = (order) => {
+  const normalizedStatus = String(order?.status || '').trim().toUpperCase();
+  return normalizedStatus === 'CANCELLED' || normalizedStatus === 'CANCELED' || normalizedStatus.includes('CANCEL');
+};
+
 const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
 const getIncomeAmount = (entry) => Number.parseFloat(entry.amount) || 0;
 const toAscii = (value) => String(value ?? '').replace(/[^\x20-\x7E]/g, '?');
@@ -146,9 +151,9 @@ const SourceIncome = () => {
     ]);
 
     const inventoryOrders = (inventoryResponse.data.content || [])
-      .filter((order) => String(order?.status || '').toUpperCase() !== 'CANCELLED');
+      .filter((order) => !isCancelledOrder(order));
     const customizedOrders = (customizedResponse.data.content || [])
-      .filter((order) => String(order?.status || '').toUpperCase() !== 'CANCELLED');
+      .filter((order) => !isCancelledOrder(order));
 
     setCreditOrders([
       ...inventoryOrders.map((order) => ({ ...order, sourceType: 'Inventory Order' })),
@@ -451,7 +456,7 @@ const SourceIncome = () => {
         ...financials,
       };
     })
-    .filter((order) => String(order?.status || '').toUpperCase() !== 'CANCELLED' && order.remainingBalance > 0)
+    .filter((order) => !isCancelledOrder(order) && order.remainingBalance > 0)
     .sort((a, b) => b.remainingBalance - a.remainingBalance);
 
   const getTotalCredit = () =>
