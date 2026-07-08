@@ -145,8 +145,10 @@ const SourceIncome = () => {
       customizedOrderService.getAllOrders(0, 1000),
     ]);
 
-    const inventoryOrders = inventoryResponse.data.content || [];
-    const customizedOrders = customizedResponse.data.content || [];
+    const inventoryOrders = (inventoryResponse.data.content || [])
+      .filter((order) => String(order?.status || '').toUpperCase() !== 'CANCELLED');
+    const customizedOrders = (customizedResponse.data.content || [])
+      .filter((order) => String(order?.status || '').toUpperCase() !== 'CANCELLED');
 
     setCreditOrders([
       ...inventoryOrders.map((order) => ({ ...order, sourceType: 'Inventory Order' })),
@@ -449,7 +451,7 @@ const SourceIncome = () => {
         ...financials,
       };
     })
-    .filter((order) => order.remainingBalance > 0)
+    .filter((order) => String(order?.status || '').toUpperCase() !== 'CANCELLED' && order.remainingBalance > 0)
     .sort((a, b) => b.remainingBalance - a.remainingBalance);
 
   const getTotalCredit = () =>
