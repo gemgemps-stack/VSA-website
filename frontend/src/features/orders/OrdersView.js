@@ -630,6 +630,7 @@ const Orders = () => {
   const updateSelectedOrderStatus = async (newStatus, options = {}) => {
     if (!selectedOrder) return;
     const { skipModeValidation = false } = options;
+    const previousStatus = selectedOrder.status;
     const effectiveModeOfPayment =
       paymentModeOfPayment.trim() ||
       selectedOrder.modeOfPayment ||
@@ -649,6 +650,9 @@ const Orders = () => {
       };
       await orderService.updateOrder(selectedOrder.id, payload);
       setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+      if (previousStatus !== newStatus) {
+        alert(`Order's status changed to "${getStatusLabel(newStatus)}".`);
+      }
       resetPaymentInputFields();
       loadOrders();
     } catch (error) {
@@ -699,10 +703,10 @@ const Orders = () => {
         modeOfPayment: effectiveModeOfPayment,
         remarks: remarks.trim() || null,
       });
+      alert('Down payment saved successfully.');
       resetPaymentInputFields();
       loadOrders();
       loadIncomeEntries();
-      alert('Payment update saved successfully.');
     } catch (error) {
       alert(`Failed to save payment update: ${getApiErrorMessage(error)}`);
     }
@@ -753,6 +757,7 @@ const Orders = () => {
           modeOfPayment: effectiveModeOfPayment,
           remarks: remarks.trim() || null,
         });
+        alert('Down payment saved successfully.');
       }
 
       const nextStatus = hasNewDownPayment && Math.abs(enteredAmount - remainingBalance) < 0.01

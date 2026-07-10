@@ -607,6 +607,7 @@ const CustomizedOrders = () => {
     }
 
     const { skipModeValidation = false } = options;
+    const previousStatus = selectedOrder.status;
     const effectiveModeOfPayment =
       paymentModeOfPayment.trim() ||
       selectedOrder.modeOfPayment ||
@@ -627,6 +628,9 @@ const CustomizedOrders = () => {
         ...(updatedOrder || {}),
         status: newStatus,
       }));
+      if (previousStatus !== newStatus) {
+        alert(`Order's status changed to "${getStatusLabel(newStatus)}".`);
+      }
 
       resetPaymentInputFields();
       loadOrders();
@@ -688,10 +692,10 @@ const CustomizedOrders = () => {
         modeOfPayment: effectiveModeOfPayment,
         remarks: manufacturingNotes.trim() || null,
       });
+      alert('Down payment saved successfully.');
       resetPaymentInputFields();
       loadOrders();
       loadIncomeEntries();
-      alert('Payment update saved successfully.');
     } catch (error) {
       console.error('Error saving payment update:', error);
       const apiMessage =
@@ -752,6 +756,7 @@ const CustomizedOrders = () => {
           modeOfPayment: effectiveModeOfPayment,
           remarks: manufacturingNotes.trim() || null,
         });
+        alert('Down payment saved successfully.');
       }
 
       const nextStatus = hasNewDownPayment && Math.abs(enteredAmount - remainingBalance) < 0.01
