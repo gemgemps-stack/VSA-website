@@ -1981,7 +1981,7 @@ const SourceIncome = () => {
               </div>
             </div>
 
-            <h3 className="transaction-histories-title">Payment History</h3>
+            <h3 className="transaction-histories-title">Payment History </h3>
             <div className="income-details-list transaction-histories-grid">
               {getCreditPaymentHistory(selectedCreditOrder).length > 0 ? (
                 getCreditPaymentHistory(selectedCreditOrder).map((entry) => (
