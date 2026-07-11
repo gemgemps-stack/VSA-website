@@ -20,7 +20,7 @@ const Navbar = ({ toggleSidebar }) => {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-left">
-          <button className="toggle-btn" onClick={toggleSidebar}>
+          <button className="toggle-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
             ☰
           </button>
           <img
@@ -28,7 +28,10 @@ const Navbar = ({ toggleSidebar }) => {
             src="/verdida-logo.png"
             alt="Verdida Sports Apparel logo"
           />
-          <h1 className="navbar-title"><i>Verdida Sports Apparel</i></h1>
+          <div className="navbar-brand">
+            <h1 className="navbar-title"><i>Verdida Sports Apparel</i></h1>
+            <span className="navbar-tagline">Operations dashboard</span>
+          </div>
         </div>
         <div className="navbar-right">
           <div className="user-menu">
@@ -36,7 +39,7 @@ const Navbar = ({ toggleSidebar }) => {
               className="user-btn"
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
-              {user?.username} ▼
+              {user?.username} ▾
             </button>
             {dropdownOpen && (
               <div className="dropdown-menu">

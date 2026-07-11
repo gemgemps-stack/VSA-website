@@ -1346,6 +1346,34 @@
   flex-wrap: wrap;
 }
 
+.finance-text-right {
+  text-align: right;
+}
+
+.finance-no-margin {
+  margin: 0;
+}
+
+.finance-value-negative {
+  color: #c62828;
+}
+
+.finance-value-net {
+  color: #1b8f4b;
+}
+
+.finance-legend-dot {
+  font-style: normal;
+}
+
+.finance-legend-dot.income {
+  color: #016667;
+}
+
+.finance-legend-dot.withdrawal {
+  color: #c62828;
+}
+
 .finance-performance-stack {
   display: flex;
   flex-direction: column;
