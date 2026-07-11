@@ -1149,48 +1149,44 @@ const SourceIncome = () => {
     if (method === 'Credit') {
       return (
         <div className="income-details-modal">
-          <div
-            className="income-details-summary credit-summary"
-            style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'nowrap', width: '100%' }}
-          >
-            <div style={{ flex: '0 0 23%' }}>
+          <div className="income-details-summary credit-summary finance-summary-grid finance-summary-grid-three">
+            <div className="finance-summary-card">
               <span className="income-details-label">Payment Method</span>
               <strong>{method}</strong>
             </div>
-            <div style={{ flex: '0 0 49%' }}>
+            <div className="finance-summary-card">
               <span className="income-details-label">Outstanding Credit Balance</span>
               <strong>PHP {getTotalCredit().toFixed(2)}</strong>
             </div>
-            <div style={{ flex: '0 0 25%' }}>
+            <div className="finance-summary-card">
               <span className="income-details-label">Orders With Balance</span>
               <strong>{creditEntries.length}</strong>
             </div>
           </div>
 
-          <h3 className="transaction-histories-title">Outstanding Credit Orders</h3>
-          <div className="income-details-list transaction-histories-grid">
+          <h3 className="transaction-histories-title finance-section-title">Outstanding Credit Orders</h3>
+          <div className="income-details-list transaction-histories-grid finance-history-grid">
             {creditEntries.length > 0 ? (
               creditEntries.map((order) => (
                 <div
                   key={`${order.sourceType}-${order.id}`}
                   className="income-detail-row"
                   onClick={() => openCreditDetails(order)}
-                  style={{ cursor: 'pointer' }}
                 >
                   <div className="transaction-history-meta">
-                    <div>
-                      <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Job Order No.:</span>
+                    <div className="finance-reference-block">
+                      <span className="transaction-client-id finance-ref-label">Job Order No.:</span>
                       <strong className="transaction-reference-number">{order.jobOrderNo}</strong>
                     </div>
                     <span className="transaction-client-id">{order.sourceType}</span>
                     <span className="transaction-client-id">{order.clientName || 'Walk-in Client'}</span>
-                    <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                    <div className="finance-entry-subtext">
                       {order.shop || 'Unknown shop'} - {order.orderDate || 'No date'}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <strong>PHP {order.remainingBalance.toFixed(2)}</strong>
-                    <div style={{ fontSize: '12px', color: '#6e645a' }}>Click to view history</div>
+                    <div className="finance-entry-subtext">Click to view history</div>
                   </div>
                 </div>
               ))
@@ -1206,48 +1202,45 @@ const SourceIncome = () => {
       const filteredChequeTotal = filteredChequeEntries.reduce((sum, entry) => sum + getIncomeAmount(entry), 0);
 
       return (
-        <div className="income-details-modal">
-          <div
-            className="income-details-summary"
-            style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'nowrap', width: '100%' }}
-          >
-            <div style={{ flex: '0 0 29%' }}>
+          <div className="income-details-modal">
+          <div className="income-details-summary finance-summary-grid finance-summary-grid-three">
+            <div className="finance-summary-card">
               <span className="income-details-label">Payment Method</span>
               <strong>{method}</strong>
             </div>
-            <div style={{ flex: '0 0 53%' }}>
+            <div className="finance-summary-card">
               <span className="income-details-label">Total Received</span>
               <strong>PHP {filteredChequeTotal.toFixed(2)}</strong>
             </div>
-            <div style={{ flex: '0 0 15%' }}>
+            <div className="finance-summary-card">
               <span className="income-details-label">Entries</span>
               <strong>{filteredChequeEntries.length}</strong>
             </div>
           </div>
 
-          <div className="order-search-bar" style={{ marginBottom: 0, maxWidth: '520px' }}>
+          <div className="order-search-bar finance-search-field">
             <input
               type="text"
               value={chequeSearchNumber}
               onChange={(e) => setChequeSearchNumber(e.target.value)}
-              placeholder="🔎 Search by check number..."
+              placeholder="Search by check number..."
             />
           </div>
 
-          <h3 className="transaction-histories-title">Transaction Histories</h3>
-          <div className="income-details-list transaction-histories-grid">
+          <h3 className="transaction-histories-title finance-section-title">Transaction Histories</h3>
+          <div className="income-details-list transaction-histories-grid finance-history-grid">
             {filteredChequeEntries.length > 0 ? (
               filteredChequeEntries.map((entry) => (
                 <div key={entry.id} className="income-detail-row">
                   <div className="transaction-history-meta">
-                    <div>
-                      <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Check Number:</span>
+                    <div className="finance-reference-block">
+                      <span className="transaction-client-id finance-ref-label">Check Number:</span>
                       <strong className="transaction-reference-number">
                         {getChequeLabel(entry) || orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
                       </strong>
                     </div>
-                    <div>
-                      <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Reference Number:</span>
+                    <div className="finance-reference-block">
+                      <span className="transaction-client-id finance-ref-label">Reference Number:</span>
                       <strong className="transaction-reference-number">
                         {entry.referenceNumber || orderReferenceCache[entry.jobOrderNo] || 'N/A'}
                       </strong>
@@ -1258,15 +1251,14 @@ const SourceIncome = () => {
                     <span className="transaction-client-id">
                       {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
                     </span>
-                    <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                    <div className="finance-entry-subtext">
                       {entry.shopType || 'Unknown source'} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                    <div className="finance-entry-actions">
                       <button
                         type="button"
                         className="income-details-btn"
                         onClick={() => openReceipt(entry)}
-                        style={{ padding: '8px 14px', fontSize: '12px' }}
                       >
                         View Receipt
                       </button>
@@ -1275,7 +1267,6 @@ const SourceIncome = () => {
                           type="button"
                           className="income-details-btn"
                           onClick={() => handleViewOrder(entry.jobOrderNo)}
-                          style={{ padding: '8px 14px', fontSize: '12px' }}
                         >
                           View Order
                         </button>
@@ -1515,6 +1506,10 @@ const SourceIncome = () => {
     }, 1000);
   }, [buildFinanceReportSpreadsheet, currentLiquidationTotal, currentReportEntries, currentReportTotal, currentSalesTotal, reportPeriod]);
 
+  const totalIncome = getTotalIncome();
+  const totalCreditExposure = getTotalCredit();
+  const totalIncomeEntries = incomeEntries.length;
+
   if (!canAccessIncome && !canAccessPayment) {
     return (
       <DashboardLayout>
@@ -1528,8 +1523,56 @@ const SourceIncome = () => {
   return (
     <DashboardLayout>
       <div className="page-container">
-        <div className="page-header">
-          <h1>Finance</h1>
+        <div className="finance-hero">
+          <div className="finance-hero-copy">
+            <span className="finance-hero-kicker">Finance control center</span>
+            <h1>Finance</h1>
+            <p>
+              Track income sources, payment methods, and liquidation activity in one clean workspace.
+            </p>
+            <div className="finance-hero-chips" aria-label="Finance coverage">
+              <span>Income by shop</span>
+              <span>Payment methods</span>
+              <span>Liquidation reports</span>
+            </div>
+          </div>
+
+          <div className="finance-hero-panel">
+            <div className="finance-hero-stat">
+              <span>Total Income</span>
+              <strong>PHP {totalIncome.toFixed(2)}</strong>
+            </div>
+            <div className="finance-hero-stat">
+              <span>Outstanding Credit</span>
+              <strong>PHP {totalCreditExposure.toFixed(2)}</strong>
+            </div>
+            <div className="finance-hero-stat">
+              <span>Tracked Entries</span>
+              <strong>{totalIncomeEntries}</strong>
+            </div>
+            {(canAccessIncome || canAccessPayment) && (
+              <div className="finance-hero-actions">
+                {canAccessIncome && (
+                  <button
+                    type="button"
+                    className="finance-hero-action primary"
+                    onClick={openLiquidationModal}
+                  >
+                    Record Liquidation
+                  </button>
+                )}
+                {canAccessIncome && (
+                  <button
+                    type="button"
+                    className="finance-hero-action"
+                    onClick={openPerformanceReportModal}
+                  >
+                    Performance Report
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -1689,12 +1732,15 @@ const SourceIncome = () => {
 
             {canAccessIncome && (
               <div className="finance-bottom-grid">
-                <section className="finance-panel finance-panel-full">
-                  <div className="page-header" style={{ marginBottom: '16px' }}>
-                    <h2 style={{ margin: 0 }}>Income Reporting</h2>
+                <section className="finance-panel finance-panel-full finance-report-section">
+                  <div className="finance-section-header">
+                    <div>
+                      <h2>Income Reporting</h2>
+                      <p>Review sales income by period and trace each recorded transaction.</p>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  <div className="finance-toolbar">
                     <div className="report-filter-bar">
                       {REPORT_PERIODS.map((period) => (
                         <button
@@ -1713,44 +1759,44 @@ const SourceIncome = () => {
                         type="text"
                         value={searchReferenceNumber}
                         onChange={(e) => setSearchReferenceNumber(e.target.value)}
-                        placeholder="🔎 Search by reference number..."
+                        placeholder="Search by reference number..."
                       />
                     </div>
                   </div>
 
-                  <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
-                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
+                  <div className="income-details-summary finance-summary-grid">
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Sales Total</span>
                       <strong>PHP {currentSalesTotal.toFixed(2)}</strong>
                     </div>
-                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Report Total</span>
                       <strong style={{ color: currentReportTotal < 0 ? '#d32f2f' : undefined }}>
                         PHP {currentReportTotal.toFixed(2)}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 24%', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Range</span>
                       <strong>
                         {currentReportRange.start.toLocaleDateString()} - {currentReportRange.end.toLocaleDateString()}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 14%', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Entries</span>
                       <strong>{filteredIncomeReportingEntries.length}</strong>
                     </div>
                   </div>
 
-                  <h3 className="transaction-histories-title" style={{ marginTop: '18px' }}>
+                  <h3 className="transaction-histories-title finance-section-title">
                     Transaction Histories
                   </h3>
-                  <div className="income-details-list transaction-histories-grid" style={{ marginTop: '12px' }}>
+                  <div className="income-details-list transaction-histories-grid finance-history-grid">
                     {filteredIncomeReportingEntries.length > 0 ? (
                       filteredIncomeReportingEntries.map((entry) => (
                         <div key={entry.id} className="income-detail-row">
                           <div className="transaction-history-meta">
-                            <div>
-                              <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>
+                            <div className="finance-reference-block">
+                              <span className="transaction-client-id finance-ref-label">
                                 Reference Number:
                               </span>
                               <strong className="transaction-reference-number">
@@ -1763,15 +1809,14 @@ const SourceIncome = () => {
                             <span className="transaction-client-id">
                               {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
                             </span>
-                            <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                            <div className="finance-entry-subtext">
                               {entry.shopType || 'Unknown source'} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
                             </div>
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                            <div className="finance-entry-actions">
                               <button
                                 type="button"
                                 className="income-details-btn"
                                 onClick={() => openReceipt(entry)}
-                                style={{ padding: '8px 14px', fontSize: '12px' }}
                               >
                                 View Receipt
                               </button>
@@ -1780,7 +1825,6 @@ const SourceIncome = () => {
                                   type="button"
                                   className="income-details-btn"
                                   onClick={() => handleViewOrder(entry.jobOrderNo)}
-                                  style={{ padding: '8px 14px', fontSize: '12px' }}
                                 >
                                   View Order
                                 </button>
@@ -1800,38 +1844,19 @@ const SourceIncome = () => {
                   </div>
                 </section>
 
-                <section
-                  className="finance-panel finance-panel-full"
-                  style={{
-                    marginTop: '24px',
-                    borderTop: '4px solid #c62828',
-                    background: 'linear-gradient(180deg, #fffdfd 0%, #fff7f7 100%)',
-                    boxShadow: '0 10px 28px rgba(198, 40, 40, 0.06)',
-                  }}
-                >
-                  <div
-                    className="page-header"
-                    style={{
-                      marginBottom: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                    }}
-                  >
+                <section className="finance-panel finance-panel-full finance-report-section finance-liquidation-section">
+                  <div className="finance-section-header">
                     <div>
-                      <h2 style={{ margin: 0 }}>Liquidation</h2>
-                      <div style={{ fontSize: '12px', color: '#7a5a5a', marginTop: '4px' }}>
-                        Cash out records, liquidation totals, and withdrawal history
-                      </div>
+                      <h2>Liquidation</h2>
+                      <p>Cash out records, liquidation totals, and withdrawal history.</p>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  <div className="finance-toolbar">
                     <div className="finance-search-bar">
                       <input
                         type="text"
-                        placeholder="🔎 Search by liquidation reference number..."
+                        placeholder="Search by liquidation reference number..."
                         value={searchReferenceNumber}
                         onChange={(e) => setSearchReferenceNumber(e.target.value)}
                       />
@@ -1846,7 +1871,7 @@ const SourceIncome = () => {
                         </button>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div className="finance-action-row">
                       <button
                         type="button"
                         className="income-details-btn"
@@ -1871,39 +1896,39 @@ const SourceIncome = () => {
                     </div>
                   </div>
 
-                  <div className="income-details-summary income-reporting-summary" style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'nowrap', width: '100%' }}>
-                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
+                  <div className="income-details-summary finance-summary-grid">
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Liquidation Total</span>
                       <strong>PHP {filteredLiquidationTotal.toFixed(2)}</strong>
                     </div>
-                    <div style={{ flex: '0 0 28%', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Report Total</span>
                       <strong style={{ color: filteredReportTotal < 0 ? '#d32f2f' : undefined }}>
                         PHP {filteredReportTotal.toFixed(2)}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 24%', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Range</span>
                       <strong>
                         {currentReportRange.start.toLocaleDateString()} - {currentReportRange.end.toLocaleDateString()}
                       </strong>
                     </div>
-                    <div style={{ flex: '0 0 14%', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div className="finance-summary-card">
                       <span className="income-details-label">Entries</span>
                       <strong>{filteredLiquidationEntries.length}</strong>
                     </div>
                   </div>
 
-                  <h3 className="transaction-histories-title" style={{ marginTop: '18px' }}>
+                  <h3 className="transaction-histories-title finance-section-title">
                     Liquidation Histories
                   </h3>
-                  <div className="income-details-list transaction-histories-grid" style={{ marginTop: '12px' }}>
+                  <div className="income-details-list transaction-histories-grid finance-history-grid">
                     {filteredLiquidationEntries.length > 0 ? (
                       filteredLiquidationEntries.map((entry) => (
                         <div key={entry.id} className="income-detail-row">
                           <div className="transaction-history-meta">
-                            <div>
-                              <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>
+                            <div className="finance-reference-block">
+                              <span className="transaction-client-id finance-ref-label">
                                 Reference Number:
                               </span>
                               <strong className="transaction-reference-number">
@@ -1913,15 +1938,14 @@ const SourceIncome = () => {
                             <span className="transaction-client-id">
                               {getIncomeDate(entry).toLocaleDateString()}
                             </span>
-                            <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                            <div className="finance-entry-subtext">
                               {entry.remarks || 'No reason provided'}
                             </div>
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                            <div className="finance-entry-actions">
                               <button
                                 type="button"
                                 className="income-details-btn"
                                 onClick={() => openReceipt(entry)}
-                                style={{ padding: '8px 14px', fontSize: '12px' }}
                               >
                                 View Receipt
                               </button>
@@ -1981,27 +2005,26 @@ const SourceIncome = () => {
               </div>
             </div>
 
-            <h3 className="transaction-histories-title">Payment History </h3>
-            <div className="income-details-list transaction-histories-grid">
+            <h3 className="transaction-histories-title finance-section-title">Payment History </h3>
+            <div className="income-details-list transaction-histories-grid finance-history-grid">
               {getCreditPaymentHistory(selectedCreditOrder).length > 0 ? (
                 getCreditPaymentHistory(selectedCreditOrder).map((entry) => (
                   <div key={entry.id} className="income-detail-row">
                     <div className="transaction-history-meta">
-                      <div>
-                        <span className="transaction-client-id" style={{ fontSize: '11px', color: '#999', marginRight: '8px' }}>Check Number:</span>
+                      <div className="finance-reference-block">
+                        <span className="transaction-client-id finance-ref-label">Check Number:</span>
                         <strong className="transaction-reference-number">
                           {getChequeLabel(entry) || orderReferenceCache[entry.jobOrderNo] || 'Loading...'}
                         </strong>
                       </div>
-                      <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                      <div className="finance-entry-subtext">
                         {entry.paymentMethod} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
                       </div>
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                      <div className="finance-entry-actions">
                         <button
                           type="button"
                           className="income-details-btn"
                           onClick={() => openReceipt(entry)}
-                          style={{ padding: '8px 14px', fontSize: '12px' }}
                         >
                           View Receipt
                         </button>
@@ -2010,7 +2033,6 @@ const SourceIncome = () => {
                             type="button"
                             className="income-details-btn"
                             onClick={() => handleViewOrder(entry.jobOrderNo)}
-                            style={{ padding: '8px 14px', fontSize: '12px' }}
                           >
                             View Order
                           </button>
@@ -2036,15 +2058,15 @@ const SourceIncome = () => {
           size="finance"
         >
           <div className="income-details-modal">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="finance-performance-stack">
+              <div className="finance-performance-header">
                 <div>
                   <h3 className="transaction-histories-title" style={{ margin: 0 }}>Timeline</h3>
-                  <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                  <div className="finance-entry-subtext">
                     Compare sales income against liquidation withdrawals.
                   </div>
                 </div>
-                <div className="report-filter-bar" style={{ marginTop: 0 }}>
+                <div className="report-filter-bar finance-report-filter-bar">
                   {REPORT_PERIODS.map((period) => (
                     <button
                       key={period.key}
@@ -2058,16 +2080,16 @@ const SourceIncome = () => {
                 </div>
               </div>
 
-              <div className="income-details-summary income-reporting-summary" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+              <div className="income-details-summary finance-summary-grid finance-summary-grid-three">
+                <div className="finance-summary-card">
                   <span className="income-details-label">Sales Income</span>
                   <strong>PHP {performanceSalesTotal.toFixed(2)}</strong>
                 </div>
-                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                <div className="finance-summary-card">
                   <span className="income-details-label">Withdrawals</span>
                   <strong>PHP {performanceLiquidationTotal.toFixed(2)}</strong>
                 </div>
-                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                <div className="finance-summary-card">
                   <span className="income-details-label">Net Result</span>
                   <strong style={{ color: performanceNetTotal < 0 ? '#c62828' : '#1b8f4b' }}>
                     PHP {performanceNetTotal.toFixed(2)}
@@ -2075,15 +2097,15 @@ const SourceIncome = () => {
                 </div>
               </div>
 
-              <section style={{ border: '1px solid #dfe7e3', borderRadius: '16px', padding: '16px', background: 'linear-gradient(180deg, #fff, #f8fbfa)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <section className="finance-chart-panel">
+                <div className="finance-performance-header">
                   <div>
                     <h3 className="transaction-histories-title" style={{ margin: 0 }}>Revenue vs. Expenses</h3>
-                    <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                    <div className="finance-entry-subtext">
                       Line chart showing sales income and liquidation withdrawals over time.
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: '#6e645a' }}>
+                  <div className="finance-chart-legend">
                     <span><strong style={{ color: '#016667' }}>●</strong> Sales Income</span>
                     <span><strong style={{ color: '#c62828' }}>●</strong> Withdrawals</span>
                   </div>
@@ -2091,15 +2113,15 @@ const SourceIncome = () => {
                 {renderPerformanceLineChart()}
               </section>
 
-              <section style={{ border: '1px solid #dfe7e3', borderRadius: '16px', padding: '16px', background: 'linear-gradient(180deg, #fff, #f8fbfa)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <section className="finance-chart-panel">
+                <div className="finance-performance-header">
                   <div>
                     <h3 className="transaction-histories-title" style={{ margin: 0 }}>Net Profit</h3>
-                    <div style={{ fontSize: '12px', color: '#6e645a', marginTop: '4px' }}>
+                    <div className="finance-entry-subtext">
                       Green bars indicate profit. Red bars indicate a loss.
                     </div>
                   </div>
-                  <div style={{ fontSize: '12px', color: '#6e645a' }}>
+                  <div className="finance-entry-subtext">
                     {performanceReportPeriod === 'WEEKLY'
                       ? 'Daily performance'
                       : performanceReportPeriod === 'MONTHLY'
@@ -2123,18 +2145,18 @@ const SourceIncome = () => {
           submitText="Save Liquidation"
           size="finance"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label className="income-details-label" style={{ fontSize: '14px' }}>Withdrawal Date</label>
+          <div className="finance-form-stack">
+            <div className="finance-form-field">
+              <label className="income-details-label finance-form-label">Withdrawal Date</label>
               <input
                 type="date"
                 value={liquidationDate}
                 onChange={(e) => setLiquidationDate(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                className="finance-form-input"
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label className="income-details-label" style={{ fontSize: '14px' }}>Amount</label>
+            <div className="finance-form-field">
+              <label className="income-details-label finance-form-label">Amount</label>
               <input
                 type="number"
                 min="0"
@@ -2142,16 +2164,16 @@ const SourceIncome = () => {
                 value={liquidationAmount}
                 onChange={(e) => setLiquidationAmount(e.target.value)}
                 placeholder="Enter amount to withdraw"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd' }}
+                className="finance-form-input"
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label className="income-details-label" style={{ fontSize: '14px' }}>Reason</label>
+            <div className="finance-form-field">
+              <label className="income-details-label finance-form-label">Reason</label>
               <textarea
                 value={liquidationReason}
                 onChange={(e) => setLiquidationReason(e.target.value)}
                 placeholder="Enter reason for liquidation"
-                style={{ width: '100%', minHeight: '110px', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', resize: 'vertical' }}
+                className="finance-form-textarea"
               />
             </div>
           </div>
@@ -2171,3 +2193,6 @@ const SourceIncome = () => {
 };
 
 export default SourceIncome;
+
+
+
