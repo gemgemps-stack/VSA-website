@@ -1576,13 +1576,20 @@ const SourceIncome = () => {
         </div>
 
         {loading ? (
-          <p>Loading...</p>
+          <div className="finance-loading-state" role="status" aria-live="polite">
+            <div className="finance-loading-pulse" aria-hidden="true" />
+            <strong>Preparing your finance overview…</strong>
+            <p>Gathering income sources, payment methods, and liquidation activity for the latest insights.</p>
+          </div>
         ) : (
           <div className="finance-sections-grid">
             {canAccessIncome && (
               <section className="finance-panel">
-                <div className="page-header" style={{ marginBottom: '16px' }}>
-                  <h2 style={{ margin: 0 }}>Source of Income</h2>
+                <div className="finance-section-header finance-section-header-compact">
+                  <div>
+                    <h2>Source of Income</h2>
+                    <p>See where revenue is coming from and open the details for each channel.</p>
+                  </div>
                 </div>
 
                 <div className="income-grids-container">
@@ -1630,8 +1637,11 @@ const SourceIncome = () => {
 
             {canAccessPayment && (
               <section className="finance-panel">
-                <div className="page-header" style={{ marginBottom: '16px' }}>
-                  <h2 style={{ margin: 0 }}>Payment Methods</h2>
+                <div className="finance-section-header finance-section-header-compact">
+                  <div>
+                    <h2>Payment Methods</h2>
+                    <p>Review payout channels and outstanding balances in one place.</p>
+                  </div>
                 </div>
 
                 <div className="payment-methods-grid">
