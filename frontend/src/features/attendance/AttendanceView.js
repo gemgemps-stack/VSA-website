@@ -481,8 +481,7 @@ const calculateDayType = (hours) => {
             <span className="attendance-hero-kicker">Attendance overview</span>
             <h1>Attendance Tracker</h1>
             <p>
-              Review monthly attendance patterns, track daily status changes, and jump straight into record editing without
-              leaving the page.
+              Review monthly attendance patterns, spot trends quickly, and manage daily updates from one streamlined workspace.
             </p>
             <div className="attendance-hero-actions">
               <button className="btn-secondary total-hours-btn" type="button" onClick={() => setSummaryModalOpen(true)}>

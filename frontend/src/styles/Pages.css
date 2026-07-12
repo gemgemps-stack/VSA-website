@@ -1133,11 +1133,24 @@
   backdrop-filter: blur(10px);
 }
 
+.finance-hero-panel::before {
+  content: '';
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #016667 0%, #d9b26f 100%);
+  margin-bottom: 2px;
+}
+
 .finance-hero-stat {
+  min-height: 100px;
   padding: 14px 16px;
   border-radius: 16px;
   background: linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%);
   border: 1px solid #dfe7e3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .finance-hero-stat span {
@@ -1215,6 +1228,10 @@
   flex-direction: column;
 }
 
+.finance-panel:hover {
+  box-shadow: 0 14px 32px rgba(18, 38, 36, 0.07);
+}
+
 .finance-panel-full {
   grid-column: 1 / -1;
 }
@@ -1246,6 +1263,8 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf2ef;
 }
 
 .finance-section-header h2 {
@@ -1296,6 +1315,7 @@
 }
 
 .finance-summary-card {
+  position: relative;
   min-width: 0;
   box-sizing: border-box;
   padding: 14px 16px;
@@ -1303,6 +1323,16 @@
   background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
   border: 1px solid #dfe7e3;
   box-shadow: 0 6px 16px rgba(18, 38, 36, 0.04);
+  overflow: hidden;
+}
+
+.finance-summary-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #016667 0%, #d9b26f 100%);
 }
 
 .finance-summary-card strong {
@@ -1473,6 +1503,13 @@
   padding: 18px;
   min-height: 156px;
   box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.finance-panel .income-grid-card:hover,
+.finance-panel .payment-method-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(1, 102, 103, 0.08);
 }
 
 .finance-panel .income-shop-grids {
@@ -1510,6 +1547,7 @@
   padding: 18px;
   min-height: 156px;
   box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .finance-panel .payment-methods-grid {
@@ -1591,6 +1629,9 @@
 
 .finance-panel .income-detail-row {
   border-radius: 16px;
+  border-left: 3px solid rgba(1, 102, 103, 0.25);
+  padding-block: 14px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdfc 100%);
 }
 
 .finance-panel .income-details-list {
@@ -1599,6 +1640,15 @@
 
 .finance-panel .income-details-btn {
   padding-inline: 14px;
+  border-radius: 999px;
+  background: rgba(1, 102, 103, 0.08);
+  color: #016667;
+  border: 1px solid rgba(1, 102, 103, 0.12);
+}
+
+.finance-panel .income-details-btn:hover {
+  background: rgba(1, 102, 103, 0.14);
+  transform: translateY(-1px);
 }
 
 .report-filter-bar {
@@ -1617,19 +1667,22 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+  box-shadow: 0 2px 8px rgba(18, 38, 36, 0.03);
 }
 
 .report-filter-btn:hover {
   border-color: #016667;
   color: #016667;
   transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(1, 102, 103, 0.08);
 }
 
 .report-filter-btn.active {
-  background: #016667;
+  background: linear-gradient(135deg, #016667 0%, #014d4e 100%);
   color: #fff;
   border-color: #016667;
+  box-shadow: 0 10px 20px rgba(1, 102, 103, 0.16);
 }
 
 .order-status-badge {
@@ -2141,11 +2194,35 @@
   backdrop-filter: blur(10px);
 }
 
+.attendance-hero-panel::before {
+  content: '';
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #016667 0%, #d9b26f 100%);
+  margin-bottom: 2px;
+}
+
 .attendance-hero-stat {
+  position: relative;
+  min-height: 100px;
   padding: 14px 16px;
   border-radius: 16px;
   background: linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%);
   border: 1px solid #dfe7e3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.attendance-hero-stat::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #016667 0%, #d9b26f 100%);
 }
 
 .attendance-hero-stat span {
@@ -2161,7 +2238,7 @@
 .attendance-hero-stat strong {
   display: block;
   color: #20150d;
-  font-size: 18px;
+  font-size: clamp(18px, 2.2vw, 22px);
   line-height: 1.1;
 }
 
@@ -2184,6 +2261,8 @@
   gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf2ef;
 }
 
 .attendance-section-header h2 {
@@ -2233,6 +2312,7 @@
   border-radius: 12px;
   font-size: 14px;
   font-family: 'Montserrat', sans-serif;
+  background: #fcfdfc;
   transition: all 0.2s ease;
 }
 
@@ -2386,7 +2466,7 @@
   padding: 12px;
   background: #fff;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -2423,7 +2503,9 @@
 }
 
 .attendance-day.selected {
-  background: rgba(1, 102, 103, 0.04);
+  background: linear-gradient(180deg, rgba(1, 102, 103, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+  border-color: rgba(1, 102, 103, 0.45);
+  box-shadow: 0 8px 18px rgba(1, 102, 103, 0.08);
 }
 
 .attendance-day.has-present {

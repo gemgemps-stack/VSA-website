@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import Modal from '../../components/Modal';
@@ -1528,7 +1528,7 @@ const SourceIncome = () => {
             <span className="finance-hero-kicker">Finance control center</span>
             <h1>Finance</h1>
             <p>
-              Track income sources, payment methods, and liquidation activity in one clean workspace.
+              Monitor income streams, payment methods, and cash withdrawals from one streamlined workspace.
             </p>
             <div className="finance-hero-chips" aria-label="Finance coverage">
               <span>Income by shop</span>
