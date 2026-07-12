@@ -721,7 +721,18 @@ const Orders = () => {
         modeOfPayment: effectiveModeOfPayment,
         remarks: remarks.trim() || null,
       });
-      alert('Down payment saved successfully.');
+
+      const nextStatus = (selectedOrder.status === ORDER_STATUS.IN_PRODUCTION || selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID)
+        && Math.abs((remainingBalance - amount)) <= 0.01
+        ? ORDER_STATUS.FULLY_PAID
+        : null;
+
+      if (nextStatus) {
+        await updateSelectedOrderStatus(nextStatus, { skipModeValidation: true });
+      } else {
+        alert('Payment saved successfully.');
+      }
+
       resetPaymentInputFields();
       loadOrders();
       loadIncomeEntries();

@@ -949,7 +949,7 @@
 .income-details-modal {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .income-details-summary {
@@ -984,9 +984,42 @@
 .income-details-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   max-height: 320px;
   overflow-y: auto;
+}
+
+/* Compact the modal layout for finance details (cheques, methods) */
+.income-details-modal .order-search-bar {
+  margin-bottom: 8px;
+}
+
+.income-details-modal .income-details-summary {
+  margin-bottom: 6px;
+}
+
+.income-details-modal .transaction-histories-title {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+/* Ensure grid rows size to content and enable internal scrolling without large gaps */
+.income-details-modal .transaction-histories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+  grid-auto-rows: min-content;
+}
+
+.income-details-modal .income-details-list {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.income-details-modal .income-detail-row {
+  padding: 10px 12px;
 }
 
 .transaction-histories-title {
