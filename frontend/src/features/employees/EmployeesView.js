@@ -268,63 +268,100 @@ const Employees = () => {
     return matchesRole && matchesSearch;
   });
 
+  const staffStats = [
+    { label: 'Registered staff', value: users.length, detail: 'People in the roster' },
+    { label: 'Admins', value: users.filter((employee) => (employee.role || '').toUpperCase() === 'ADMIN').length, detail: 'Permission leaders' },
+    { label: 'Visible now', value: filteredUsers.length, detail: 'Matching your filters' },
+  ];
+
   return (
     <DashboardLayout>
       <div className="page-container">
         <div className="page-header">
-          <h1>Employees</h1>
+          <div className="page-title-block">
+            <span className="page-eyebrow">People & access</span>
+            <h1>Employees</h1>
+            <p className="page-subtitle">
+              Keep your team roster, roles, and page permissions clear and easy to manage.
+            </p>
+          </div>
           {isAdmin && (
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="page-actions">
               <button className="btn-primary" onClick={() => openRegisterModal('employee')} type="button">
-                + Register New Employee
+                Register Employee
               </button>
               <button className="btn-primary" onClick={() => openRegisterModal('admin')} type="button">
-                + Register New Admin
+                Register Admin
               </button>
             </div>
           )}
         </div>
 
         {isAdmin ? (
-          <>
-            <div className="employee-search-bar">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                placeholder="🔎 Search employees by name, email, or role"
-              />
+          <div className="content-surface">
+            <div className="content-surface-header">
+              <div>
+                <h2>Team overview</h2>
+                <p>Quickly scan your workforce, refine the roster, and keep permissions aligned.</p>
+              </div>
+              <div className="stats-strip">
+                {staffStats.map((stat) => (
+                  <div key={stat.label} className="stat-pill">
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                    <small>{stat.detail}</small>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="orders-filter-bar">
-              {employeeFilters.map((filter) => (
-                <button
-                  key={filter.key}
-                  type="button"
-                  className={`order-filter-btn ${employeeFilter === filter.key ? 'active' : ''}`}
-                  onClick={() => {
-                    setEmployeeFilter(filter.key);
+            <div className="search-and-filter-row">
+              <div className="employee-search-bar">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                >
-                  {filter.label}
-                </button>
-              ))}
+                  placeholder="Search employees by name, email, or role"
+                />
+              </div>
+
+              <div className="orders-filter-bar">
+                {employeeFilters.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    className={`order-filter-btn ${employeeFilter === filter.key ? 'active' : ''}`}
+                    onClick={() => {
+                      setEmployeeFilter(filter.key);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <DataTable
-              columns={columns}
-              data={filteredUsers}
-              onEdit={openPermissionsModal}
-              onDelete={handleDeleteUser}
-              loading={loading}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
+            {filteredUsers.length === 0 ? (
+              <div className="empty-state">
+                <h3>No employees match this view yet</h3>
+                <p>Try adjusting your search or switching filters to see more people.</p>
+              </div>
+            ) : (
+              <DataTable
+                columns={columns}
+                data={filteredUsers}
+                onEdit={openPermissionsModal}
+                onDelete={handleDeleteUser}
+                loading={loading}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
 
             <Modal
               isOpen={registerModalOpen}
@@ -455,7 +492,7 @@ const Employees = () => {
                 </div>
               </div>
             </Modal>
-          </>
+          </div>
         ) : (
           <div className="permission-section" style={{ marginTop: '8px' }}>
             <div className="permission-section-header">

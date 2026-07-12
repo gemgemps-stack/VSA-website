@@ -120,107 +120,148 @@ const Clients = () => {
     return haystack.includes(searchQuery.trim().toLowerCase());
   });
 
+  const clientStats = [
+    { label: 'Total clients', value: clients.length, detail: 'Stored profiles' },
+    { label: 'VIP clients', value: clients.filter((client) => client.vip).length, detail: 'Priority accounts' },
+    { label: 'Visible now', value: filteredClients.length, detail: 'Matching your search' },
+  ];
+
   return (
     <PermissionGuard permission="CLIENTS">
       <DashboardLayout>
         <div className="page-container">
           <div className="page-header">
-            <h1>Clients</h1>
-            <button
-              className="btn-primary"
-              onClick={() => {
-                setEditingClient(null);
-                setFormData({
-                  clientName: '',
-                  contactNumber: '',
-                  vip: false,
-                  notes: '',
-                });
-                setModalOpen(true);
-              }}
-              type="button"
+            <div className="page-title-block">
+              <span className="page-eyebrow">Client relationships</span>
+              <h1>Clients</h1>
+              <p className="page-subtitle">
+                Keep every account easy to find, segment, and maintain with a cleaner client view.
+              </p>
+            </div>
+            <div className="page-actions">
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setEditingClient(null);
+                  setFormData({
+                    clientName: '',
+                    contactNumber: '',
+                    vip: false,
+                    notes: '',
+                  });
+                  setModalOpen(true);
+                }}
+                type="button"
+              >
+                Register Client
+              </button>
+            </div>
+          </div>
+
+          <div className="content-surface">
+            <div className="content-surface-header">
+              <div>
+                <h2>Client directory</h2>
+                <p>Search for contacts, spot VIP accounts, and keep notes just a click away.</p>
+              </div>
+              <div className="stats-strip">
+                {clientStats.map((stat) => (
+                  <div key={stat.label} className="stat-pill">
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                    <small>{stat.detail}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="search-and-filter-row">
+              <div className="client-search-bar">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search clients by name, contact, or notes"
+                />
+              </div>
+            </div>
+
+            {filteredClients.length === 0 ? (
+              <div className="empty-state">
+                <h3>No clients match this search yet</h3>
+                <p>Try a broader term or register a new client to build your directory.</p>
+              </div>
+            ) : (
+              <DataTable
+                columns={columns}
+                data={filteredClients}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                loading={loading}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
+
+            <Modal
+              isOpen={modalOpen}
+              title={editingClient ? 'Edit Client' : 'New Client'}
+              onClose={() => setModalOpen(false)}
+              onSubmit={handleSubmit}
+              submitText={editingClient ? 'Update' : 'Create'}
             >
-              ➕ Register New Client
-            </button>
-          </div>
-
-          <div className="client-search-bar">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="🔎 Search clients by name, contact, or VIP status"
-            />
-          </div>
-
-          <DataTable
-            columns={columns}
-            data={filteredClients}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            loading={loading}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-
-          <Modal
-            isOpen={modalOpen}
-            title={editingClient ? 'Edit Client' : 'New Client'}
-            onClose={() => setModalOpen(false)}
-            onSubmit={handleSubmit}
-            submitText={editingClient ? 'Update' : 'Create'}
-          >
-            <form>
-              <div className="form-group">
-                <label>Client Name *</label>
-                <input
-                  type="text"
-                  value={formData.clientName}
-                  onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Contact Number *</label>
-                <input
-                  type="text"
-                  value={formData.contactNumber}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      contactNumber: formatPhoneNumber(e.target.value),
-                    })
-                  }
-                  placeholder="0917-123-4567"
-                  maxLength={13}
-                  inputMode="numeric"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>
+              <form>
+                <div className="form-group">
+                  <label>Client Name *</label>
                   <input
-                    type="checkbox"
-                    checked={formData.vip}
-                    onChange={(e) => setFormData({ ...formData, vip: e.target.checked })}
+                    type="text"
+                    value={formData.clientName}
+                    onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                    required
                   />
-                  VIP Client
-                </label>
-              </div>
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows="3"
-                />
-              </div>
-            </form>
-          </Modal>
+                </div>
+                <div className="form-group">
+                  <label>Contact Number *</label>
+                  <input
+                    type="text"
+                    value={formData.contactNumber}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contactNumber: formatPhoneNumber(e.target.value),
+                      })
+                    }
+                    placeholder="0917-123-4567"
+                    maxLength={13}
+                    inputMode="numeric"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.vip}
+                      onChange={(e) => setFormData({ ...formData, vip: e.target.checked })}
+                    />
+                    VIP Client
+                  </label>
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows="3"
+                  />
+                </div>
+              </form>
+            </Modal>
+          </div>
         </div>
       </DashboardLayout>
     </PermissionGuard>

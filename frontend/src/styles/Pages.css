@@ -3,6 +3,131 @@
   animation: fadeIn 0.3s ease-in;
 }
 
+.page-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.page-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6e645a;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #6e645a;
+  font-size: 14px;
+  max-width: 680px;
+  line-height: 1.6;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.content-surface {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+  border: 1px solid #e2ebe7;
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 10px 26px rgba(1, 102, 103, 0.06);
+}
+
+.content-surface-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.content-surface-header h2 {
+  margin: 0 0 4px;
+  color: #20150d;
+  font-size: 18px;
+}
+
+.content-surface-header p {
+  margin: 0;
+  color: #6e645a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.stats-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stat-pill {
+  min-width: 118px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #dfe7e3;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.03);
+}
+
+.stat-pill strong {
+  display: block;
+  color: #016667;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.stat-pill span {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6e645a;
+}
+
+.stat-pill small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6e645a;
+}
+
+.search-and-filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.empty-state {
+  padding: 24px;
+  border-radius: 16px;
+  background: #f9fcfb;
+  border: 1px dashed #cfded9;
+  text-align: center;
+}
+
+.empty-state h3 {
+  margin: 0 0 6px;
+  color: #20150d;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #6e645a;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -110,18 +235,20 @@
 }
 
 .employee-search-bar {
-  margin-bottom: 20px;
+  margin-bottom: 0;
+  width: 100%;
+  max-width: 520px;
 }
 
 .employee-search-bar input {
   width: 100%;
-  max-width: 520px;
   padding: 12px 14px;
   border: 1px solid #dfe7e3;
   border-radius: 12px;
   font-size: 14px;
   font-family: 'Montserrat', sans-serif;
   transition: all 0.2s ease;
+  background: #fff;
 }
 
 .employee-search-bar input:focus {
@@ -131,18 +258,20 @@
 }
 
 .client-search-bar {
-  margin-bottom: 20px;
+  margin-bottom: 0;
+  width: 100%;
+  max-width: 520px;
 }
 
 .client-search-bar input {
   width: 100%;
-  max-width: 520px;
   padding: 12px 14px;
   border: 1px solid #dfe7e3;
   border-radius: 12px;
   font-size: 14px;
   font-family: 'Montserrat', sans-serif;
   transition: all 0.2s ease;
+  background: #fff;
 }
 
 .client-search-bar input:focus {
