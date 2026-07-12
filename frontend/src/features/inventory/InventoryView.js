@@ -253,75 +253,107 @@ const Inventory = () => {
     setModalOpen(true);
   };
 
+  const inventoryStats = [
+    { label: 'Tracked items', value: inventory.length, detail: 'Loaded in current roster' },
+    { label: 'Visible now', value: paginatedInventory.length, detail: 'On this page' },
+    { label: 'Filtered results', value: filteredInventory.length, detail: 'Matching your search' },
+  ];
+
   return (
     <PermissionGuard permission="INVENTORY">
       <DashboardLayout>
         <div className="page-container">
           <div className="page-header">
-            <h1>Inventory</h1>
-            <button className="btn-primary" onClick={openNewItemModal} type="button">
-              + Add Item
-            </button>
+            <div className="page-title-block">
+              <span className="page-eyebrow">Stock control</span>
+              <h1>Inventory</h1>
+              <p className="page-subtitle">
+                Review your stock, refine searches quickly, and keep the catalog easy to maintain.
+              </p>
+            </div>
+            <div className="page-actions">
+              <button className="btn-primary" onClick={openNewItemModal} type="button">
+                Add Item
+              </button>
+            </div>
           </div>
 
-          <div
-            className="inventory-search-bar"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '0.75rem',
-              marginBottom: '1rem',
-            }}
-          >
-            <input
-              type="text"
-              value={searchFilters.itemType}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, itemType: e.target.value }))}
-              placeholder="🔎 Search item type"
-            />
-            <input
-              type="text"
-              value={searchFilters.name}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="🔎 Search name"
-            />
-            <input
-              type="text"
-              value={searchFilters.jerseyType}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
-              placeholder="🔎 Search version"
-            />
-            <input
-              type="text"
-              value={searchFilters.size}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, size: e.target.value }))}
-              placeholder="🔎 Search size"
-            />
-            <input
-              type="text"
-              value={searchFilters.shop}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, shop: e.target.value }))}
-              placeholder="🔎 Search shop"
-            />
-            <input
-              type="text"
-              value={searchFilters.createdAt}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, createdAt: e.target.value }))}
-              placeholder="🔎 Search date created"
-            />
-          </div>
+          <div className="content-surface">
+            <div className="content-surface-header">
+              <div>
+                <h2>Inventory overview</h2>
+                <p>Browse the full catalog and jump to the exact item you need.</p>
+              </div>
+              <div className="stats-strip">
+                {inventoryStats.map((stat) => (
+                  <div key={stat.label} className="stat-pill">
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                    <small>{stat.detail}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <DataTable
-            columns={columns}
-            data={paginatedInventory}
-            onView={handleViewDetails}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            loading={loading}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+            <div className="search-and-filter-row">
+              <div className="inventory-search-bar">
+                <input
+                  type="text"
+                  value={searchFilters.itemType}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, itemType: e.target.value }))}
+                  placeholder="Search item type"
+                />
+                <input
+                  type="text"
+                  value={searchFilters.name}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="Search name"
+                />
+                <input
+                  type="text"
+                  value={searchFilters.jerseyType}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
+                  placeholder="Search version"
+                />
+                <input
+                  type="text"
+                  value={searchFilters.size}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, size: e.target.value }))}
+                  placeholder="Search size"
+                />
+                <input
+                  type="text"
+                  value={searchFilters.shop}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, shop: e.target.value }))}
+                  placeholder="Search shop"
+                />
+                <input
+                  type="text"
+                  value={searchFilters.createdAt}
+                  onChange={(e) => setSearchFilters((prev) => ({ ...prev, createdAt: e.target.value }))}
+                  placeholder="Search date created"
+                />
+              </div>
+            </div>
+
+            {filteredInventory.length === 0 ? (
+              <div className="empty-state">
+                <h3>No inventory items match your current filters</h3>
+                <p>Try a broader term or add a new item to refresh the catalog.</p>
+              </div>
+            ) : (
+              <DataTable
+                columns={columns}
+                data={paginatedInventory}
+                onView={handleViewDetails}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                loading={loading}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
 
           <Modal
             isOpen={modalOpen}
@@ -506,6 +538,7 @@ const Inventory = () => {
               </div>
             )}
           </Modal>
+          </div>
         </div>
       </DashboardLayout>
     </PermissionGuard>

@@ -34,46 +34,45 @@ const Dashboard = () => {
     }
   };
 
+  const heroStats = [
+    { label: 'Orders', value: stats.totalOrders, path: '/orders', permission: 'INVENTORY_ORDERS' },
+    { label: 'Clients', value: stats.totalClients, path: '/clients', permission: 'CLIENTS' },
+    { label: 'Inventory', value: stats.totalInventory, path: '/inventory', permission: 'INVENTORY' },
+  ];
+
   return (
     <DashboardLayout>
       <div className="dashboard">
-        <h1>Dashboard</h1>
-        <p className="welcome">Welcome, {user?.username}!</p>
+        <div className="dashboard-hero">
+          <div>
+            <span className="page-eyebrow">Operations overview</span>
+            <h1>Dashboard</h1>
+            <p className="welcome">Welcome back, {user?.username || 'there'} — here’s a concise view of the day’s key business areas.</p>
+          </div>
+          <div className="hero-badge">Live snapshot</div>
+        </div>
 
         <div className="stats-grid">
-          <PermissionGuard permission="INVENTORY_ORDERS">
-            <div className="stat-card" onClick={() => navigate('/orders')}>
-              <div className="stat-icon">📋</div>
-              <div className="stat-content">
-                <h3>Orders</h3>
-                <p className="stat-value">{stats.totalOrders}</p>
+          {heroStats.map((item) => (
+            <PermissionGuard key={item.label} permission={item.permission}>
+              <div className="stat-card" onClick={() => navigate(item.path)}>
+                <div className="stat-icon">
+                  {item.label === 'Orders' ? '📋' : item.label === 'Clients' ? '👤' : '📦'}
+                </div>
+                <div className="stat-content">
+                  <h3>{item.label}</h3>
+                  <p className="stat-value">{item.value}</p>
+                </div>
               </div>
-            </div>
-          </PermissionGuard>
-
-          <PermissionGuard permission="CLIENTS">
-            <div className="stat-card" onClick={() => navigate('/clients')}>
-              <div className="stat-icon">👤</div>
-              <div className="stat-content">
-                <h3>Registered Clients</h3>
-                <p className="stat-value">{stats.totalClients}</p>
-              </div>
-            </div>
-          </PermissionGuard>
-
-          <PermissionGuard permission="INVENTORY">
-            <div className="stat-card" onClick={() => navigate('/inventory')}>
-              <div className="stat-icon">📦</div>
-              <div className="stat-content">
-                <h3>Inventory</h3>
-                <p className="stat-value">{stats.totalInventory}</p>
-              </div>
-            </div>
-          </PermissionGuard>
+            </PermissionGuard>
+          ))}
         </div>
 
         <div className="quick-actions">
-          <h2>Quick Actions</h2>
+          <div className="quick-actions-header">
+            <h2>Quick Actions</h2>
+            <p>Jump to the area you need right away.</p>
+          </div>
           <div className="actions-grid">
             <PermissionGuard permission="INVENTORY_ORDERS">
               <button className="action-btn" onClick={() => navigate('/orders')}>
