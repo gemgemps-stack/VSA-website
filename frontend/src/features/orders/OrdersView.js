@@ -284,6 +284,24 @@ const Orders = () => {
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);
 
+  const summaryCards = [
+    {
+      label: 'Open Orders',
+      value: filteredOrders.filter((order) => ![ORDER_STATUS.FULLY_PAID, ORDER_STATUS.CANCELLED].includes((order.status || '').toUpperCase())).length,
+      accent: '#0f766e',
+    },
+    {
+      label: 'Awaiting Approval',
+      value: filteredOrders.filter((order) => (order.status || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL).length,
+      accent: '#2563eb',
+    },
+    {
+      label: 'Pending Payments',
+      value: filteredOrders.filter((order) => [ORDER_STATUS.DOWN_PAYMENT_PENDING, ORDER_STATUS.IN_PRODUCTION, ORDER_STATUS.NOT_YET_FULLY_PAID].includes((order.status || '').toUpperCase())).length,
+      accent: '#d97706',
+    },
+  ];
+
   const filteredClients = clients.filter((client) =>
     String(client.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
   );
@@ -775,10 +793,35 @@ const Orders = () => {
   };
 
   const styles = {
-    pageContainer: { padding: '20px' },
-    pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-    searchBar: { marginBottom: '20px' },
-    filterBar: { display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
+    pageContainer: { padding: '24px', maxWidth: '1320px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' },
+    heroCard: {
+      background: 'linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%)',
+      border: '1px solid #dbeafe',
+      borderRadius: '20px',
+      padding: '24px',
+      boxShadow: '0 10px 35px rgba(15, 23, 42, 0.06)',
+    },
+    heroContent: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px', marginBottom: '18px', flexWrap: 'wrap' },
+    eyebrow: { fontSize: '0.72rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#2563eb', fontWeight: '700', marginBottom: '8px' },
+    pageTitle: { margin: '0 0 8px 0', fontSize: '1.85rem', color: '#1f2937' },
+    subtitle: { margin: 0, color: '#64748b', fontSize: '0.95rem', maxWidth: '720px', lineHeight: 1.5 },
+    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' },
+    statCard: { background: '#fff', borderRadius: '14px', padding: '14px 16px', border: '1px solid #e2e8f0' },
+    statLabel: { display: 'block', fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' },
+    statValue: { fontSize: '1.3rem', color: '#0f172a' },
+    searchCard: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '12px 14px', boxShadow: '0 8px 20px rgba(15, 23, 42, 0.04)' },
+    searchInputWrap: { display: 'flex', alignItems: 'center', gap: '10px' },
+    searchIcon: { fontSize: '1rem', color: '#64748b' },
+    filterBar: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
+    filterButton: { padding: '8px 14px', borderRadius: '999px', border: '1px solid #dbe2ea', backgroundColor: '#fff', color: '#475569', fontSize: '0.85rem' },
+    filterButtonActive: { backgroundColor: '#0f766e', borderColor: '#0f766e', color: '#fff', boxShadow: '0 8px 20px rgba(15, 118, 110, 0.18)' },
+    tableCard: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '16px', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)' },
+    loadingState: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', minHeight: '220px', color: '#64748b' },
+    loadingDot: { width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2563eb', animation: 'pulse 1.2s infinite' },
+    loadingText: { margin: 0, fontSize: '0.95rem' },
+    emptyState: { minHeight: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#64748b', gap: '8px' },
+    emptyTitle: { margin: 0, color: '#334155', fontSize: '1rem' },
+    emptyText: { margin: 0, fontSize: '0.9rem' },
     modalContent: { display: 'flex', flexDirection: 'column', gap: '20px' },
     formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
     formGridWide: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
@@ -826,76 +869,115 @@ const Orders = () => {
     <PermissionGuard permission="INVENTORY_ORDERS">
       <DashboardLayout>
         <div style={styles.pageContainer}>
-          <div style={styles.pageHeader}>
-            <h1 style={{ margin: 0, fontSize: '1.8rem', color: '#1a1a1a' }}>Inventory Orders</h1>
-            <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => { setEditingOrder(null); setFormData(createInitialFormData()); setClientSearch(''); setModalOpen(true); }}>
-              + New Inventory Order
-            </button>
+          <div style={styles.heroCard}>
+            <div style={styles.heroContent}>
+              <div>
+                <div style={styles.eyebrow}>Operations</div>
+                <h1 style={styles.pageTitle}>Inventory Orders</h1>
+                <p style={styles.subtitle}>Track approvals, deposits, and fulfillment progress for retail orders in one clear view.</p>
+              </div>
+              <button
+                style={{ ...styles.button, ...styles.buttonPrimary, ...styles.addButton }}
+                onClick={() => { setEditingOrder(null); setFormData(createInitialFormData()); setClientSearch(''); setModalOpen(true); }}
+              >
+                + New Inventory Order
+              </button>
+            </div>
+
+            <div style={styles.statsGrid}>
+              {summaryCards.map((card) => (
+                <div key={card.label} style={{ ...styles.statCard, borderTop: `4px solid ${card.accent}` }}>
+                  <span style={styles.statLabel}>{card.label}</span>
+                  <strong style={styles.statValue}>{card.value}</strong>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div style={styles.searchBar}>
-            <input
-              type="text"
-              style={{ ...styles.input, width: '100%' }}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="🔎 Search orders by job no, client, team, or status..."
-            />
+          <div style={styles.searchCard}>
+            <div style={styles.searchInputWrap}>
+              <span style={styles.searchIcon}>⌕</span>
+              <input
+                type="text"
+                style={{ ...styles.input, width: '100%', border: 'none', boxShadow: 'none', padding: '0' }}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by job no, client, team, or status"
+              />
+            </div>
           </div>
 
           <div style={styles.filterBar}>
-            {ORDER_FILTERS.map((filter) => (
-              <button
-                key={filter.key}
-                style={{
-                  ...styles.button,
-                  backgroundColor: statusFilter === filter.key ? '#007bff' : '#f8f9fa',
-                  color: statusFilter === filter.key ? 'white' : '#333',
-                  border: '1px solid #ddd',
-                  padding: '6px 12px',
-                  fontSize: '0.85rem'
-                }}
-                onClick={() => setStatusFilter(filter.key)}
-              >
-                {filter.label}
-              </button>
-            ))}
+            {ORDER_FILTERS.map((filter) => {
+              const isActive = statusFilter === filter.key;
+              return (
+                <button
+                  key={filter.key}
+                  style={{
+                    ...styles.button,
+                    ...styles.filterButton,
+                    ...(isActive ? styles.filterButtonActive : {}),
+                  }}
+                  onClick={() => setStatusFilter(filter.key)}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
           </div>
 
-          <DataTable
-            columns={[
-              { key: 'jobOrderNo', label: 'Job Order No' },
-              { key: 'clientName', label: 'Client Name' },
-              { key: 'teamName', label: 'Team Name' },
-              {
-                key: 'status',
-                label: 'Status',
-                render: (value) => (
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    backgroundColor: getStatusColor(value),
-                    color: 'white'
-                  }}>
-                    {getStatusLabel(value)}
-                  </span>
-                ),
-              },
-              { key: 'orderDate', label: 'Date' },
-            ]}
-            data={paginatedOrders}
-            onView={handleView}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
-            canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
-            loading={loading}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+          <div style={styles.tableCard}>
+            {loading ? (
+              <div style={styles.loadingState}>
+                <div style={styles.loadingDot} />
+                <p style={styles.loadingText}>Loading orders…</p>
+              </div>
+            ) : filteredOrders.length === 0 ? (
+              <div style={styles.emptyState}>
+                <h3 style={styles.emptyTitle}>No orders match this view</h3>
+                <p style={styles.emptyText}>Try a broader search or switch filters to see more records.</p>
+              </div>
+            ) : (
+              <DataTable
+                columns={[
+                  { key: 'jobOrderNo', label: 'Job Order No' },
+                  { key: 'clientName', label: 'Client Name' },
+                  { key: 'teamName', label: 'Team Name' },
+                  {
+                    key: 'status',
+                    label: 'Status',
+                    render: (value) => (
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        backgroundColor: getStatusColor(value),
+                        color: 'white',
+                        display: 'inline-block',
+                      }}>
+                        {getStatusLabel(value)}
+                      </span>
+                    ),
+                  },
+                  { key: 'orderDate', label: 'Date' },
+                ]}
+                data={paginatedOrders}
+                onView={handleView}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+                canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+                loading={loading}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                rowStyle={(row) => ({
+                  borderLeft: `4px solid ${getStatusColor(row.status)}`,
+                })}
+              />
+            )}
+          </div>
 
           <Modal
             isOpen={modalOpen}

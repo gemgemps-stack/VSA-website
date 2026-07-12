@@ -309,6 +309,24 @@ const CustomizedOrders = () => {
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);
 
+  const summaryCards = [
+    {
+      label: 'Open Manufacturing Orders',
+      value: filteredOrders.filter((order) => ![ORDER_STATUS.FULLY_PAID, ORDER_STATUS.CANCELLED].includes((order.status || '').toUpperCase())).length,
+      accent: '#0f766e',
+    },
+    {
+      label: 'Awaiting Approval',
+      value: filteredOrders.filter((order) => (order.status || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL).length,
+      accent: '#2563eb',
+    },
+    {
+      label: 'In Production',
+      value: filteredOrders.filter((order) => [ORDER_STATUS.DOWN_PAYMENT_PENDING, ORDER_STATUS.IN_PRODUCTION, ORDER_STATUS.NOT_YET_FULLY_PAID].includes((order.status || '').toUpperCase())).length,
+      accent: '#d97706',
+    },
+  ];
+
   const filteredClients = clients
     .filter(Boolean)
     .filter((client) =>
@@ -833,27 +851,42 @@ const CustomizedOrders = () => {
     <PermissionGuard permission="CUSTOMIZED_ORDERS">
       <DashboardLayout>
         <div style={styles.container}>
-          <div style={styles.header}>
-            <div style={styles.headerTitle}>
-              <h1 style={styles.title}>🏭 Customized Orders</h1>
-              <p style={styles.subtitle}>Orders to be manufactured</p>
+          <div style={styles.heroCard}>
+            <div style={styles.heroContent}>
+              <div>
+                <div style={styles.eyebrow}>Manufacturing</div>
+                <h1 style={styles.title}>Customized Orders</h1>
+                <p style={styles.subtitle}>Keep production workstreams, approvals, and payments organized across every customized order.</p>
+              </div>
+              <button onClick={handleOpenAddModal} style={{ ...styles.addButton }}>
+                + New Customized Order
+              </button>
             </div>
-            <button onClick={handleOpenAddModal} style={styles.addButton}>
-              + New Customized Order
-            </button>
+
+            <div style={styles.statsGrid}>
+              {summaryCards.map((card) => (
+                <div key={card.label} style={{ ...styles.statCard, borderTop: `4px solid ${card.accent}` }}>
+                  <span style={styles.statLabel}>{card.label}</span>
+                  <strong style={styles.statValue}>{card.value}</strong>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div style={styles.searchSection}>
-            <input
-              type="text"
-              placeholder="🔎 Search by Job Order No, Client, Product, etc..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              style={styles.searchInput}
-            />
+            <div style={styles.searchInputWrap}>
+              <span style={styles.searchIcon}>⌕</span>
+              <input
+                type="text"
+                placeholder="Search by job order, client, product, or status"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={{ ...styles.searchInput, border: 'none', boxShadow: 'none', padding: '0' }}
+              />
+            </div>
           </div>
 
           <div style={styles.filterBar}>
@@ -879,32 +912,34 @@ const CustomizedOrders = () => {
             })}
           </div>
 
-          {loading ? (
-            <div style={styles.loadingContainer}>
-              <p>Loading orders...</p>
-            </div>
-          ) : (
-            <>
-              <DataTable
-                columns={columns}
-                data={paginatedOrders}
-                onView={handleView}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
-                canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
-                onRowClick={handleView}
-                rowStyle={(row) => ({
-                  cursor: 'pointer',
-                  borderLeft: `4px solid ${getStatusColor(row.status)}`,
-                })}
-              />
+          <div style={styles.tableCard}>
+            {loading ? (
+              <div style={styles.loadingContainer}>
+                <div style={styles.loadingDot} />
+                <p style={styles.loadingText}>Loading orders...</p>
+              </div>
+            ) : filteredOrders.length === 0 ? (
+              <div style={styles.emptyState}>
+                <h3 style={styles.emptyTitle}>No customized orders available for manufacturing</h3>
+                <p style={styles.emptyText}>Try broadening the search or switching filters to see more records.</p>
+              </div>
+            ) : (
+              <>
+                <DataTable
+                  columns={columns}
+                  data={paginatedOrders}
+                  onView={handleView}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+                  canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+                  onRowClick={handleView}
+                  rowStyle={(row) => ({
+                    cursor: 'pointer',
+                    borderLeft: `4px solid ${getStatusColor(row.status)}`,
+                  })}
+                />
 
-              {filteredOrders.length === 0 ? (
-                <div style={styles.emptyState}>
-                  <p>No customized orders available for manufacturing</p>
-                </div>
-              ) : (
                 <div style={styles.pagination}>
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -924,9 +959,9 @@ const CustomizedOrders = () => {
                     Next
                   </button>
                 </div>
-              )}
-            </>
-          )}
+              </>
+            )}
+          </div>
 
           <Modal
             isOpen={modalOpen}
@@ -1638,70 +1673,125 @@ const CustomizedOrders = () => {
 
 const styles = {
   container: {
-    padding: '20px',
-    maxWidth: '1200px',
+    padding: '24px',
+    maxWidth: '1320px',
     margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '18px',
   },
-  header: {
+  heroCard: {
+    background: 'linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%)',
+    border: '1px solid #dbeafe',
+    borderRadius: '20px',
+    padding: '24px',
+    boxShadow: '0 10px 35px rgba(15, 23, 42, 0.06)',
+  },
+  heroContent: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '30px',
     gap: '20px',
+    marginBottom: '18px',
+    flexWrap: 'wrap',
   },
-  headerTitle: {
-    flex: 1,
+  eyebrow: {
+    fontSize: '0.72rem',
+    letterSpacing: '0.16em',
+    textTransform: 'uppercase',
+    color: '#2563eb',
+    fontWeight: '700',
+    marginBottom: '8px',
   },
   title: {
-    fontSize: '2em',
-    color: '#333',
-    margin: '0 0 10px 0',
+    fontSize: '1.85rem',
+    color: '#1f2937',
+    margin: '0 0 8px 0',
   },
   subtitle: {
-    fontSize: '0.95em',
-    color: '#666',
+    fontSize: '0.95rem',
+    color: '#64748b',
     margin: 0,
+    maxWidth: '720px',
+    lineHeight: 1.5,
   },
   addButton: {
     padding: '10px 20px',
-    borderRadius: '6px',
+    borderRadius: '999px',
     border: 'none',
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#0f766e',
     color: 'white',
     cursor: 'pointer',
     fontSize: '0.95em',
-    fontWeight: '500',
+    fontWeight: '600',
     whiteSpace: 'nowrap',
     transition: 'all 0.2s',
+    boxShadow: '0 8px 20px rgba(15, 118, 110, 0.18)',
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '12px',
+  },
+  statCard: {
+    background: '#fff',
+    borderRadius: '14px',
+    padding: '14px 16px',
+    border: '1px solid #e2e8f0',
+  },
+  statLabel: {
+    display: 'block',
+    fontSize: '0.78rem',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom: '6px',
+  },
+  statValue: {
+    fontSize: '1.3rem',
+    color: '#0f172a',
   },
   searchSection: {
-    marginBottom: '20px',
+    background: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '16px',
+    padding: '12px 14px',
+    boxShadow: '0 8px 20px rgba(15, 23, 42, 0.04)',
     display: 'flex',
     gap: '10px',
     alignItems: 'center',
+  },
+  searchInputWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    width: '100%',
+  },
+  searchIcon: {
+    fontSize: '1rem',
+    color: '#64748b',
   },
   filterBar: {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '10px',
-    marginBottom: '20px',
   },
   filterButton: {
-    padding: '9px 14px',
+    padding: '8px 14px',
     borderRadius: '999px',
-    border: '1px solid #cfd8dc',
+    border: '1px solid #dbe2ea',
     backgroundColor: '#fff',
-    color: '#455a64',
+    color: '#475569',
     cursor: 'pointer',
-    fontSize: '0.88em',
+    fontSize: '0.85em',
     fontWeight: '500',
     transition: 'all 0.2s ease',
   },
   filterButtonActive: {
-    backgroundColor: '#016667',
-    borderColor: '#016667',
+    backgroundColor: '#0f766e',
+    borderColor: '#0f766e',
     color: '#fff',
-    boxShadow: '0 4px 12px rgba(1, 102, 103, 0.18)',
+    boxShadow: '0 8px 20px rgba(15, 118, 110, 0.18)',
   },
   searchInput: {
     flex: 1,
@@ -1711,16 +1801,49 @@ const styles = {
     fontSize: '0.95em',
     boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
   },
+  tableCard: {
+    background: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '18px',
+    padding: '16px',
+    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)',
+  },
   loadingContainer: {
-    textAlign: 'center',
-    padding: '40px 20px',
-    color: '#666',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    minHeight: '220px',
+    color: '#64748b',
+  },
+  loadingDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    backgroundColor: '#2563eb',
+  },
+  loadingText: {
+    margin: 0,
+    fontSize: '0.95rem',
   },
   emptyState: {
+    minHeight: '220px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
     textAlign: 'center',
-    padding: '40px 20px',
-    color: '#999',
-    fontSize: '0.95em',
+    color: '#64748b',
+    gap: '8px',
+  },
+  emptyTitle: {
+    margin: 0,
+    color: '#334155',
+    fontSize: '1rem',
+  },
+  emptyText: {
+    margin: 0,
+    fontSize: '0.9rem',
   },
   pagination: {
     display: 'flex',
