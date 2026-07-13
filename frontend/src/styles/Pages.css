@@ -1022,6 +1022,25 @@
   padding: 10px 12px;
 }
 
+/* Ensure the finance modal body lays out compact sections and lets
+   the transaction list use remaining vertical space to avoid large gaps */
+.modal-finance .modal-body .income-details-modal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.modal-finance .modal-body .income-details-modal .income-details-summary,
+.modal-finance .modal-body .income-details-modal .order-search-bar,
+.modal-finance .modal-body .income-details-modal .transaction-histories-title {
+  flex: 0 0 auto;
+}
+.modal-finance .modal-body .income-details-modal .income-details-list {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
 .transaction-histories-title {
   margin: 0;
   font-size: 17px;
