@@ -1736,14 +1736,16 @@ const styles = {
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gridTemplateColumns: 'repeat(2, minmax(210px, 240px))',
     gap: '12px',
+    justifyContent: 'flex-start',
   },
   statCard: {
     background: '#fff',
     borderRadius: '14px',
     padding: '14px 16px',
     border: '1px solid #e2e8f0',
+    minWidth: 0,
   },
   statLabel: {
     display: 'block',
