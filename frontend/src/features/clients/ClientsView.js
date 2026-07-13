@@ -184,7 +184,7 @@ const Clients = () => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="Search clients by name, contact, or notes"
+                  placeholder="⌕ Search clients by name, contact, or notes"
                 />
               </div>
             </div>
