@@ -320,11 +320,6 @@ const CustomizedOrders = () => {
       value: filteredOrders.filter((order) => (order.status || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL).length,
       accent: '#2563eb',
     },
-    {
-      label: 'In Production',
-      value: filteredOrders.filter((order) => [ORDER_STATUS.DOWN_PAYMENT_PENDING, ORDER_STATUS.IN_PRODUCTION, ORDER_STATUS.NOT_YET_FULLY_PAID].includes((order.status || '').toUpperCase())).length,
-      accent: '#d97706',
-    },
   ];
 
   const filteredClients = clients
