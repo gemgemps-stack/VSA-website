@@ -647,7 +647,7 @@ const calculateDayType = (hours) => {
                 type="text"
                 value={statusQuery}
                 onChange={(e) => setStatusQuery(e.target.value)}
-                placeholder="⌕ Search status "
+                placeholder="⌕ Search status"
               />
             </div>
 

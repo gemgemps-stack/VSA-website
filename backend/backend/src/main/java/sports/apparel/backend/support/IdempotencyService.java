@@ -1,11 +1,14 @@
 package sports.apparel.backend.support;
 
+import org.springframework.stereotype.Service;
+
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+@Service
 public class IdempotencyService {
 
     private final Map<String, CompletableFuture<Object>> inFlight = new ConcurrentHashMap<>();
