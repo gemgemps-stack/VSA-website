@@ -14,6 +14,8 @@ import java.util.UUID;
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     Optional<Order> findByJobOrderNo(String jobOrderNo);
 
+    Optional<Order> findByRequestFingerprint(String requestFingerprint);
+
     List<Order> findByClientId(UUID clientId);
 
     List<Order> findByOrderDateBetween(LocalDate startDate, LocalDate endDate);

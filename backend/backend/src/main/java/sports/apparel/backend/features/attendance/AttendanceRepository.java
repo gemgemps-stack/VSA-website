@@ -15,6 +15,8 @@ import java.util.UUID;
 public interface AttendanceRepository extends JpaRepository<EmployeeAttendance, UUID> {
     Optional<EmployeeAttendance> findByUserIdAndAttendanceDate(UUID userId, LocalDate attendanceDate);
 
+    Optional<EmployeeAttendance> findByRequestFingerprint(String requestFingerprint);
+
     boolean existsByUserIdAndAttendanceDate(UUID userId, LocalDate attendanceDate);
 
     Page<EmployeeAttendance> findAllByOrderByAttendanceDateDesc(Pageable pageable);

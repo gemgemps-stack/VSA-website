@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import sports.apparel.backend.entity.OrderItem;
+import sports.apparel.backend.support.IdempotencyService;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,19 +36,32 @@ public class OrderService {
     private final InventoryRepository inventoryRepository;
     private final JobOrderNumberService jobOrderNumberService;
     private final sports.apparel.backend.features.income.IncomeSourceService incomeSourceService;
+    private final IdempotencyService idempotencyService;
 
     public OrderService(OrderRepository orderRepository, ClientRepository clientRepository,
                        InventoryRepository inventoryRepository,
                        JobOrderNumberService jobOrderNumberService,
-                       sports.apparel.backend.features.income.IncomeSourceService incomeSourceService) {
+                       sports.apparel.backend.features.income.IncomeSourceService incomeSourceService,
+                       IdempotencyService idempotencyService) {
         this.orderRepository = orderRepository;
         this.clientRepository = clientRepository;
         this.inventoryRepository = inventoryRepository;
         this.jobOrderNumberService = jobOrderNumberService;
         this.incomeSourceService = incomeSourceService;
+        this.idempotencyService = idempotencyService;
     }
 
     public OrderDTO createOrder(CreateOrderRequest request) {
+        String dedupeKey = buildCreateDedupeKey(request);
+        OrderDTO existingResponse = idempotencyService.execute(dedupeKey, () -> createOrderInternal(request));
+        if (existingResponse != null) {
+            return existingResponse;
+        }
+
+        return createOrderInternal(request);
+    }
+
+    private OrderDTO createOrderInternal(CreateOrderRequest request) {
         Client client = null;
         if (request.getClientId() != null) {
             client = clientRepository.findById(request.getClientId())
@@ -75,6 +89,7 @@ public class OrderService {
         order.setReferenceNumber(request.getReferenceNumber());
         order.setStatus(resolvedStatus);
         order.setInventoryDeducted(false);
+        order.setRequestFingerprint(buildCreateDedupeKey(request));
 
         // Only deduct inventory if status is DOWN_PAYMENT_PENDING or further (meaning it's approved)
         // or if it's already past approval in the request.
@@ -111,6 +126,20 @@ public class OrderService {
 
         orderRepository.save(savedOrder);
         return new OrderDTO(savedOrder);
+    }
+
+    private String buildCreateDedupeKey(CreateOrderRequest request) {
+        String clientId = request.getClientId() != null ? request.getClientId().toString() : "";
+        String orderDate = request.getOrderDate() != null ? request.getOrderDate().toString() : "";
+        String referenceNumber = request.getReferenceNumber() != null ? request.getReferenceNumber() : "";
+        String status = request.getStatus() != null ? request.getStatus() : "";
+        String contentHash = String.join("|", clientId, orderDate, referenceNumber, status,
+                request.getClientName() != null ? request.getClientName() : "",
+                request.getTeamName() != null ? request.getTeamName() : "",
+                request.getShop() != null ? request.getShop() : "",
+                request.getRemarks() != null ? request.getRemarks() : "",
+                request.getModeOfPayment() != null ? request.getModeOfPayment() : "");
+        return "order:create:" + Integer.toHexString(contentHash.hashCode());
     }
 
     private boolean shouldDeductInventory(String status) {

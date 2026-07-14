@@ -27,6 +27,9 @@ public class Order {
     @Column(nullable = false, unique = true, length = 50)
     private String jobOrderNo;
 
+    @Column(name = "request_fingerprint", unique = true, length = 100)
+    private String requestFingerprint;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = true)
     private Client client;
@@ -78,6 +81,10 @@ public class Order {
 
     @Column(nullable = false)
     private Boolean inventoryDeducted = false;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

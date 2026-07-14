@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,6 +43,9 @@ public class EmployeeAttendance {
     @Column(name = "attendance_date", nullable = false)
     private LocalDate attendanceDate;
 
+    @Column(name = "request_fingerprint", unique = true, length = 100)
+    private String requestFingerprint;
+
     @Column(name = "time_in")
     private LocalTime timeIn;
 
@@ -53,6 +57,10 @@ public class EmployeeAttendance {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

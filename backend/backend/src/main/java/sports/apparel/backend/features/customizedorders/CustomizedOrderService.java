@@ -9,6 +9,7 @@ import sports.apparel.backend.entity.CustomizedOrder;
 import sports.apparel.backend.features.clients.ClientRepository;
 import sports.apparel.backend.features.income.IncomeSourceService;
 import sports.apparel.backend.features.income.PaymentUpdateRequest;
+import sports.apparel.backend.support.IdempotencyService;
 
 import sports.apparel.backend.entity.CustomizedOrderItem;
 import java.math.BigDecimal;
@@ -34,18 +35,31 @@ public class CustomizedOrderService {
     private final ClientRepository clientRepository;
     private final CustomizedJobOrderNumberService jobOrderNumberService;
     private final IncomeSourceService incomeSourceService;
+    private final IdempotencyService idempotencyService;
 
     public CustomizedOrderService(CustomizedOrderRepository customizedOrderRepository,
                                   ClientRepository clientRepository,
                                   CustomizedJobOrderNumberService jobOrderNumberService,
-                                  IncomeSourceService incomeSourceService) {
+                                  IncomeSourceService incomeSourceService,
+                                  IdempotencyService idempotencyService) {
         this.customizedOrderRepository = customizedOrderRepository;
         this.clientRepository = clientRepository;
         this.jobOrderNumberService = jobOrderNumberService;
         this.incomeSourceService = incomeSourceService;
+        this.idempotencyService = idempotencyService;
     }
 
     public CustomizedOrderDTO createOrder(CreateCustomizedOrderRequest request) {
+        String dedupeKey = buildCreateDedupeKey(request);
+        CustomizedOrderDTO existingResponse = idempotencyService.execute(dedupeKey, () -> createOrderInternal(request));
+        if (existingResponse != null) {
+            return existingResponse;
+        }
+
+        return createOrderInternal(request);
+    }
+
+    private CustomizedOrderDTO createOrderInternal(CreateCustomizedOrderRequest request) {
         Client client = null;
         if (request.getClientId() != null) {
             client = clientRepository.findById(request.getClientId())
@@ -72,6 +86,7 @@ public class CustomizedOrderService {
         order.setRemarks(request.getRemarks());
         order.setReferenceNumber(request.getReferenceNumber());
         order.setStatus(resolvedStatus);
+        order.setRequestFingerprint(buildCreateDedupeKey(request));
 
         if (request.getItems() != null) {
             List<CustomizedOrderItem> items = request.getItems().stream().map(itemReq -> {
@@ -96,6 +111,20 @@ public class CustomizedOrderService {
         }
 
         return new CustomizedOrderDTO(savedOrder);
+    }
+
+    private String buildCreateDedupeKey(CreateCustomizedOrderRequest request) {
+        String clientId = request.getClientId() != null ? request.getClientId().toString() : "";
+        String orderDate = request.getOrderDate() != null ? request.getOrderDate().toString() : "";
+        String referenceNumber = request.getReferenceNumber() != null ? request.getReferenceNumber() : "";
+        String status = request.getStatus() != null ? request.getStatus() : "";
+        String contentHash = String.join("|", clientId, orderDate, referenceNumber, status,
+                request.getClientName() != null ? request.getClientName() : "",
+                request.getTeamName() != null ? request.getTeamName() : "",
+                request.getShop() != null ? request.getShop() : "",
+                request.getRemarks() != null ? request.getRemarks() : "",
+                request.getModeOfPayment() != null ? request.getModeOfPayment() : "");
+        return "customized-order:create:" + Integer.toHexString(contentHash.hashCode());
     }
 
     public CustomizedOrderDTO getOrderById(UUID id) {

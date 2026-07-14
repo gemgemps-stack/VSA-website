@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sports.apparel.backend.entity.EmployeeAttendance;
 import sports.apparel.backend.entity.User;
 import sports.apparel.backend.features.users.UserRepository;
+import sports.apparel.backend.support.IdempotencyService;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -20,13 +21,26 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final UserRepository userRepository;
+    private final IdempotencyService idempotencyService;
 
-    public AttendanceService(AttendanceRepository attendanceRepository, UserRepository userRepository) {
+    public AttendanceService(AttendanceRepository attendanceRepository, UserRepository userRepository,
+                             IdempotencyService idempotencyService) {
         this.attendanceRepository = attendanceRepository;
         this.userRepository = userRepository;
+        this.idempotencyService = idempotencyService;
     }
 
     public AttendanceDTO createAttendance(CreateAttendanceRequest request) {
+        String dedupeKey = buildCreateDedupeKey(request);
+        AttendanceDTO existingResponse = idempotencyService.execute(dedupeKey, () -> createAttendanceInternal(request));
+        if (existingResponse != null) {
+            return existingResponse;
+        }
+
+        return createAttendanceInternal(request);
+    }
+
+    private AttendanceDTO createAttendanceInternal(CreateAttendanceRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
 
@@ -41,6 +55,7 @@ public class AttendanceService {
         attendance.setTimeOut(request.getTimeOut());
         attendance.setStatus(normalizeStatus(request.getStatus()));
         attendance.setNotes(request.getNotes());
+        attendance.setRequestFingerprint(buildCreateDedupeKey(request));
 
         return new AttendanceDTO(attendanceRepository.save(attendance));
     }
@@ -76,6 +91,17 @@ public class AttendanceService {
                 .stream()
                 .map(AttendanceDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    private String buildCreateDedupeKey(CreateAttendanceRequest request) {
+        String userId = request.getUserId() != null ? request.getUserId().toString() : "";
+        String attendanceDate = request.getAttendanceDate() != null ? request.getAttendanceDate().toString() : "";
+        String status = request.getStatus() != null ? request.getStatus() : "";
+        String timeIn = request.getTimeIn() != null ? request.getTimeIn().toString() : "";
+        String timeOut = request.getTimeOut() != null ? request.getTimeOut().toString() : "";
+        String notes = request.getNotes() != null ? request.getNotes() : "";
+        String contentHash = String.join("|", userId, attendanceDate, status, timeIn, timeOut, notes);
+        return "attendance:create:" + Integer.toHexString(contentHash.hashCode());
     }
 
     public AttendanceDTO updateAttendance(UUID id, CreateAttendanceRequest request) {
