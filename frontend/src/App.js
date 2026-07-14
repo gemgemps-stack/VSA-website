@@ -15,7 +15,30 @@ import Employees from './features/employees/EmployeesView';
 import Attendance from './features/attendance/AttendanceView';
 import './App.css';
 
+const PING_INTERVAL_MS = 10 * 60 * 1000;
+
 function App() {
+  React.useEffect(() => {
+    const pingBackend = () => {
+      const apiUrl = process.env.REACT_APP_API_URL || '';
+      if (!apiUrl) {
+        return;
+      }
+
+      fetch(`${apiUrl.replace(/\/$/, '')}/ping`, {
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-store' },
+      }).catch(() => {
+        // Ignore ping failures; this is only a keep-alive mechanism.
+      });
+    };
+
+    pingBackend();
+    const intervalId = window.setInterval(pingBackend, PING_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   return (
     <Router>
       <AuthProvider>

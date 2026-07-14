@@ -100,6 +100,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers("/api/auth/health").permitAll()
+                        .requestMatchers("/ping").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
