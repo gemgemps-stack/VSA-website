@@ -17,10 +17,6 @@ import java.time.Duration;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(
-        originPatterns = {"http://localhost:*", "http://127.0.0.1:*"},
-        allowCredentials = "true"
-)
 public class AuthController {
 
     private static final String COOKIE_PATH = "/";
