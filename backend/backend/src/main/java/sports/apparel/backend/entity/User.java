@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Version;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,6 +37,9 @@ public class User {
 
     @Column(precision = 12, scale = 2)
     private BigDecimal salary;
+
+    @Version
+    private Long version;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
