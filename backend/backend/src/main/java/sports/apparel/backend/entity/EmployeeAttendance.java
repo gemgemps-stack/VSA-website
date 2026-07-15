@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -57,10 +56,6 @@ public class EmployeeAttendance {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
-
-    @Version
-    @Column(nullable = false)
-    private Long version;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

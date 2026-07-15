@@ -37,10 +37,6 @@ public class User {
     @Column(precision = 12, scale = 2)
     private BigDecimal salary;
 
-    @Version
-    @Column(nullable = false)
-    private Long version;
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -79,10 +79,6 @@ public class CustomizedOrder {
     @Column(length = 50)
     private String status;
 
-    @Version
-    @Column(nullable = false)
-    private Long version;
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
