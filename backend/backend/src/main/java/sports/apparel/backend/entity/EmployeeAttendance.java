@@ -57,6 +57,9 @@ public class EmployeeAttendance {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Version
+    private Long version;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

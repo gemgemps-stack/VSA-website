@@ -82,6 +82,9 @@ public class Order {
     @Column(nullable = false)
     private Boolean inventoryDeducted = false;
 
+    @Version
+    private Long version;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
