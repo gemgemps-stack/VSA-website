@@ -1065,7 +1065,7 @@ const CustomizedOrders = () => {
 	                          placeholder="0.00"
 	                          step="0.01"
 	                          style={styles.input}
-	                          onWheel={(e) => e.preventDefault()}
+	                          onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
 	                        />
 	                      </div>
 	
@@ -1078,7 +1078,7 @@ const CustomizedOrders = () => {
                             onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                             placeholder="0"
                             style={styles.input}
-                            onWheel={(e) => e.preventDefault()}
+                            onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           />
                         </div>
 	
@@ -1144,7 +1144,7 @@ const CustomizedOrders = () => {
                           if (!Number.isFinite(n)) return;
                           setFormData({ ...formData, discount: String(Math.max(0, n)) });
                         }}
-                        onWheel={(e) => e.preventDefault()}
+                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         placeholder="0"
                         step="0.01"
                         style={styles.input}
@@ -1161,7 +1161,7 @@ const CustomizedOrders = () => {
                         step="0.01"
                         min="0"
                         style={styles.input}
-                        onWheel={(e) => e.preventDefault()}
+                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       />
                     </div>
 
@@ -1527,7 +1527,7 @@ const CustomizedOrders = () => {
                                 if (!Number.isFinite(amount) || amount < 0) return;
                                 setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
                               }}
-                              onWheel={(e) => e.preventDefault()}
+                              onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               placeholder="Input payment update"
                               style={styles.input}
                             />
@@ -1667,7 +1667,7 @@ const CustomizedOrders = () => {
                             if (!Number.isFinite(numValue) || numValue < 0) return;
                             setDownPaymentAmount(String(Math.min(numValue, remainingBalance)));
                           }}
-                          onWheel={(e) => e.preventDefault()}
+                          onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           placeholder="0"
                           min="0"
                           style={styles.input}

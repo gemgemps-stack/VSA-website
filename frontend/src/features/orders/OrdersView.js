@@ -1079,7 +1079,7 @@ const Orders = () => {
                         value={item.unitPrice}
                         readOnly
                         placeholder="0.00"
-                        onWheel={(e) => e.preventDefault()}
+                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       />
                     </div>
                     <div style={styles.formGroup}>
@@ -1090,7 +1090,7 @@ const Orders = () => {
                         style={styles.input}
                         value={item.quantity}
                         onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                        onWheel={(e) => e.preventDefault()}
+                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         max={(() => {
                           const inv = inventoryItems.find(i => getInventoryLabel(i) === item.productName);
                           return inv ? inv.quantity : undefined;
@@ -1128,14 +1128,14 @@ const Orders = () => {
                       if (!Number.isFinite(n)) return;
                       setFormData(p => ({ ...p, discount: String(Math.max(0, n)) }));
                     }}
-                    onWheel={(e) => e.preventDefault()}
+                    onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     placeholder="0"
                   />
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Down Payment</label>
                   {fieldErrors.downPayment ? <div style={styles.fieldError}>{fieldErrors.downPayment}</div> : null}
-                  <input type="number" style={styles.input} value={formData.downPayment} onChange={handleDownPaymentChange} disabled={isVipClient} placeholder="0" onWheel={(e) => e.preventDefault()} />
+                  <input type="number" style={styles.input} value={formData.downPayment} onChange={handleDownPaymentChange} disabled={isVipClient} placeholder="0" onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }} />
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Total Price</label>
@@ -1440,7 +1440,7 @@ const Orders = () => {
                             if (!Number.isFinite(numValue) || numValue < 0) return;
                             setDownPaymentAmount(String(Math.min(numValue, remainingBalance)));
                           }}
-                          onWheel={(e) => e.preventDefault()}
+                          onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           placeholder="0"
                           min="0"
                           style={styles.input}
@@ -1521,7 +1521,7 @@ const Orders = () => {
                           if (!Number.isFinite(amount) || amount < 0) return;
                           setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
                         }}
-                        onWheel={(e) => e.preventDefault()}
+                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       />
                       <div style={styles.formGroup}>
                         <select
