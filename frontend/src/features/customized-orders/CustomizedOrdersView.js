@@ -174,6 +174,16 @@ const CustomizedOrders = () => {
   }, []);
 
   useEffect(() => {
+    const handler = (e) => {
+      if (e.target.matches && e.target.matches('input[type="number"]')) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('wheel', handler, { passive: false });
+    return () => document.removeEventListener('wheel', handler);
+  }, []);
+
+  useEffect(() => {
     loadClients();
     loadIncomeEntries();
   }, [loadClients, loadIncomeEntries]);
