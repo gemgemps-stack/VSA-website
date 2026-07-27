@@ -1340,7 +1340,8 @@ const CustomizedOrders = () => {
                   <label style={styles.label}>Products:</label>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
                     <colgroup>
-                      <col style={{ width: '45%' }} />
+                      <col style={{ width: '36%' }} />
+                      <col style={{ width: '9%' }} />
                       <col style={{ width: '18%' }} />
                       <col style={{ width: '13%' }} />
                       <col style={{ width: '20%' }} />
@@ -1348,6 +1349,7 @@ const CustomizedOrders = () => {
                     <thead>
                       <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                         <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Size</th>
                         <th style={{ padding: '10px' }}>Unit Price</th>
                         <th style={{ padding: '10px' }}>Quantity</th>
                         <th style={{ padding: '10px' }}>Subtotal</th>
@@ -1357,6 +1359,7 @@ const CustomizedOrders = () => {
                       {(selectedOrder?.items || []).map((item, index) => (
                         <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                           <td style={{ padding: '10px' }}>{item.productName}</td>
+                          <td style={{ padding: '10px' }}>{item.size || '-'}</td>
                           <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice)}</td>
                           <td style={{ padding: '10px' }}>{item.quantity}</td>
                           <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice * item.quantity)}</td>
