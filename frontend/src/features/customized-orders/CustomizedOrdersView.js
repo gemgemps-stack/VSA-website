@@ -545,6 +545,7 @@ const CustomizedOrders = () => {
         items: formData.items.map(item => ({
           id: item.id,
           productName: item.productName.trim(),
+          size: item.size || null,
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
         })),
@@ -1370,6 +1371,59 @@ const CustomizedOrders = () => {
                   <div style={{ marginTop: '10px', textAlign: 'right' }}>
                     <label style={styles.label}>Discount: {selectedOrder?.discount || 0}%</label>
                   </div>
+                </div>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const order = selectedOrder;
+                      if (!order) return;
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write(`
+                        <html>
+                        <head><title>Order ${order.jobOrderNo || ''}</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; padding: 30px; color: #333; }
+                          h2 { margin: 0 0 5px 0; }
+                          .header-info { margin-bottom: 20px; }
+                          .header-info p { margin: 4px 0; }
+                          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                          th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; }
+                          th { background: #f5f5f5; }
+                        </style>
+                        </head>
+                        <body>
+                          <h2>Order ${order.jobOrderNo || ''}</h2>
+                          <div class="header-info">
+                            <p><strong>Client Name:</strong> ${order.clientName || '-'}</p>
+                            <p><strong>Team Name:</strong> ${order.teamName || '-'}</p>
+                            <p><strong>Shop:</strong> ${order.shop || '-'}</p>
+                            <p><strong>Order Date:</strong> ${order.orderDate || '-'}</p>
+                          </div>
+                          <table>
+                            <thead>
+                              <tr><th>Product Name</th><th>Size</th><th>Quantity</th></tr>
+                            </thead>
+                            <tbody>
+                              ${(order.items || []).map(item => '<tr><td>' + (item.productName || '-') + '</td><td>' + (item.size || '-') + '</td><td>' + (item.quantity || 0) + '</td></tr>').join('')}
+                            </tbody>
+                          </table>
+                          <script>window.onload=function(){window.print();}<\/script>
+                        </body></html>
+                      `);
+                      printWindow.document.close();
+                    }}
+                    style={{
+                      ...styles.button,
+                      backgroundColor: '#1976d2',
+                      color: 'white',
+                      padding: '8px 16px',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    Print Order
+                  </button>
                 </div>
 
                 <div style={styles.financialsSection}>
