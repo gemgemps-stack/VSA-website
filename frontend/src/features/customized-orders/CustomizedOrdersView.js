@@ -1409,7 +1409,7 @@ const CustomizedOrders = () => {
                               ${(order.items || []).map(item => '<tr><td>' + (item.productName || '-') + '</td><td>' + (item.size || '-') + '</td><td>' + (item.quantity || 0) + '</td></tr>').join('')}
                             </tbody>
                           </table>
-                          <script>window.onload=function(){window.print();}<\/script>
+                          <script>window.onload=function(){window.print();}</scr` + `ipt>
                         </body></html>
                       `);
                       printWindow.document.close();
