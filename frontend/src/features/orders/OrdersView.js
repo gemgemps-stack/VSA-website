@@ -833,7 +833,7 @@ const Orders = () => {
     formGridWide: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
     formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
     label: { fontWeight: '600', color: '#333', fontSize: '0.9rem' },
-    input: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', width: '100%', boxSizing: 'border-box' },
+    input: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', width: '100%', boxSizing: 'border-box', WebkitAppearance: 'none', MozAppearance: 'textfield', appearance: 'textfield' },
     fieldError: { color: '#d9534f', fontSize: '0.8rem', marginTop: '-2px' },
     textarea: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', minHeight: '80px', resize: 'vertical' },
     autocompleteContainer: { position: 'relative', width: '100%' },
@@ -874,6 +874,7 @@ const Orders = () => {
   return (
     <PermissionGuard permission="INVENTORY_ORDERS">
       <DashboardLayout>
+        <style>{`input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type="number"] { -moz-appearance: textfield; }`}</style>
         <div style={styles.pageContainer}>
           <div style={styles.heroCard}>
             <div style={styles.heroContent}>

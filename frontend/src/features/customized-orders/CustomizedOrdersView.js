@@ -859,6 +859,7 @@ const CustomizedOrders = () => {
   return (
     <PermissionGuard permission="CUSTOMIZED_ORDERS">
       <DashboardLayout>
+        <style>{`input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type="number"] { -moz-appearance: textfield; }`}</style>
         <div style={styles.container}>
           <div style={styles.heroCard}>
             <div style={styles.heroContent}>
@@ -1994,6 +1995,9 @@ const styles = {
     border: '1px solid #ddd',
     fontSize: '0.9em',
     boxSizing: 'border-box',
+    WebkitAppearance: 'none',
+    MozAppearance: 'textfield',
+    appearance: 'textfield',
   },
   textarea: {
     width: '100%',
