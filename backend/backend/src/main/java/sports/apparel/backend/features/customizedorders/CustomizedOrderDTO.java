@@ -37,6 +37,7 @@ public class CustomizedOrderDTO {
     public static class ItemDTO {
         private UUID id;
         private String productName;
+        private String size;
         private BigDecimal unitPrice;
         private Integer quantity;
     }
@@ -64,7 +65,7 @@ public class CustomizedOrderDTO {
         this.orderRetail = order.getOrderRetail();
         this.quantity = order.getQuantity();
         this.items = order.getItems().stream()
-                .map(item -> new ItemDTO(item.getId(), item.getProductName(), item.getUnitPrice(), item.getQuantity()))
+                .map(item -> new ItemDTO(item.getId(), item.getProductName(), item.getSize(), item.getUnitPrice(), item.getQuantity()))
                 .collect(Collectors.toList());
         this.freebie = order.getFreebie();
         this.discount = order.getDiscount();

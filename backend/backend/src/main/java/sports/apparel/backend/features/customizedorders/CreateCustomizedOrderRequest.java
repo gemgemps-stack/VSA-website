@@ -33,6 +33,8 @@ public class CreateCustomizedOrderRequest {
         @NotBlank(message = "Product name is required")
         private String productName;
 
+        private String size;
+
         @NotNull(message = "Unit price is required")
         @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
         private BigDecimal unitPrice;

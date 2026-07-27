@@ -26,6 +26,9 @@ public class CustomizedOrderItem {
     @Column(nullable = false, length = 255)
     private String productName;
 
+    @Column(length = 20)
+    private String size;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 

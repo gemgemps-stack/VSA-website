@@ -92,6 +92,7 @@ public class CustomizedOrderService {
             List<CustomizedOrderItem> items = request.getItems().stream().map(itemReq -> {
                 CustomizedOrderItem item = new CustomizedOrderItem();
                 item.setProductName(itemReq.getProductName());
+                item.setSize(itemReq.getSize());
                 item.setUnitPrice(itemReq.getUnitPrice());
                 item.setQuantity(itemReq.getQuantity());
                 item.setCustomizedOrder(order);
@@ -222,6 +223,7 @@ public class CustomizedOrderService {
                             .findFirst()
                             .ifPresent(item -> {
                                 item.setProductName(itemReq.getProductName());
+                                item.setSize(itemReq.getSize());
                                 item.setUnitPrice(itemReq.getUnitPrice());
                                 item.setQuantity(itemReq.getQuantity());
                             });
@@ -229,6 +231,7 @@ public class CustomizedOrderService {
                     // Add new item
                     CustomizedOrderItem newItem = new CustomizedOrderItem();
                     newItem.setProductName(itemReq.getProductName());
+                    newItem.setSize(itemReq.getSize());
                     newItem.setUnitPrice(itemReq.getUnitPrice());
                     newItem.setQuantity(itemReq.getQuantity());
                     newItem.setCustomizedOrder(order);

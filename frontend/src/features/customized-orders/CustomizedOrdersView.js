@@ -95,7 +95,7 @@ const getOrderFinancials = (order) => {
 const createInitialFormData = () => ({
   clientId: null,
   teamName: '',
-  items: [{ productName: '', unitPrice: '', quantity: '' }],
+  items: [{ productName: '', size: '', unitPrice: '', quantity: '' }],
   freebie: '',
   discount: '0',
   downPayment: '0',
@@ -353,7 +353,7 @@ const CustomizedOrders = () => {
   const handleAddItem = () => {
     setFormData((prev) => ({
       ...prev,
-      items: [...prev.items, { productName: '', unitPrice: '', quantity: '' }],
+      items: [...prev.items, { productName: '', size: '', unitPrice: '', quantity: '' }],
     }));
   };
 
@@ -442,6 +442,7 @@ const CustomizedOrders = () => {
       items: (order?.items || []).map(item => ({
         id: item.id,
         productName: item.productName || '',
+        size: item.size || '',
         unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
         quantity: item.quantity != null ? String(item.quantity) : '',
       })),
@@ -454,7 +455,7 @@ const CustomizedOrders = () => {
       notes: order?.remarks || '',
     });
     if (order?.items?.length === 0) {
-      setFormData(prev => ({ ...prev, items: [{ productName: '', unitPrice: '', quantity: '' }] }));
+      setFormData(prev => ({ ...prev, items: [{ productName: '', size: '', unitPrice: '', quantity: '' }] }));
     }
     setClientSearch(order?.clientName || '');
     setClientSuggestionsOpen(false);
@@ -600,6 +601,7 @@ const CustomizedOrders = () => {
     items: (order.items || []).map(item => ({
       id: item.id,
       productName: item.productName,
+      size: item.size || null,
       unitPrice: Number(item.unitPrice),
       quantity: Number(item.quantity),
     })),
@@ -1024,7 +1026,7 @@ const CustomizedOrders = () => {
 
 	                  {/* Dynamic Product Items */}
 	                  {formData.items.map((item, index) => (
-	                    <div key={index} style={{ ...styles.formGrid, gridTemplateColumns: '57% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
+	                    <div key={index} style={{ ...styles.formGrid, gridTemplateColumns: '47% 10% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
 	                      <div style={styles.formGroup}>
 	                        <label style={styles.label}>{index === 0 ? 'Product Name *' : ''}</label>
 	                        <input
@@ -1034,6 +1036,23 @@ const CustomizedOrders = () => {
 	                          onChange={(e) => handleItemChange(index, 'productName', e.target.value)}
 	                          style={styles.input}
 	                        />
+	                      </div>
+
+	                      <div style={styles.formGroup}>
+	                        <label style={styles.label}>{index === 0 ? 'Size' : ''}</label>
+	                        <select
+	                          value={item.size}
+	                          onChange={(e) => handleItemChange(index, 'size', e.target.value)}
+	                          style={styles.input}
+	                        >
+	                          <option value="">N/A</option>
+	                          <option value="Small">Small</option>
+	                          <option value="Medium">Medium</option>
+	                          <option value="Large">Large</option>
+	                          <option value="XL">XL</option>
+	                          <option value="XXL">XXL</option>
+	                          <option value="XXXL">XXXL</option>
+	                        </select>
 	                      </div>
 	
 	                      <div style={styles.formGroup}>
