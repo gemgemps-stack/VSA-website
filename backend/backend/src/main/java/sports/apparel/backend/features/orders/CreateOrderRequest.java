@@ -28,6 +28,9 @@ public class CreateOrderRequest {
     @AllArgsConstructor
     public static class ItemRequest {
         private String productName;
+        private String size;
+        private String number;
+        private String jerseyType;
         private BigDecimal unitPrice;
         private Integer quantity;
     }

@@ -100,6 +100,9 @@ public class OrderService {
             List<OrderItem> items = request.getItems().stream().map(itemReq -> {
                 OrderItem item = new OrderItem();
                 item.setProductName(itemReq.getProductName());
+                item.setSize(itemReq.getSize());
+                item.setNumber(itemReq.getNumber());
+                item.setJerseyType(itemReq.getJerseyType());
                 item.setUnitPrice(itemReq.getUnitPrice());
                 item.setQuantity(itemReq.getQuantity());
                 item.setOrder(order);
@@ -350,6 +353,9 @@ public class OrderService {
             List<OrderItem> items = request.getItems().stream().map(itemReq -> {
                 OrderItem item = new OrderItem();
                 item.setProductName(itemReq.getProductName());
+                item.setSize(itemReq.getSize());
+                item.setNumber(itemReq.getNumber());
+                item.setJerseyType(itemReq.getJerseyType());
                 item.setUnitPrice(itemReq.getUnitPrice());
                 item.setQuantity(itemReq.getQuantity());
                 item.setOrder(order);

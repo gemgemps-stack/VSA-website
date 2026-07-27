@@ -26,6 +26,15 @@ public class OrderItem {
     @Column(nullable = false, length = 255)
     private String productName;
 
+    @Column(length = 20)
+    private String size;
+
+    @Column(length = 50)
+    private String number;
+
+    @Column(length = 50)
+    private String jerseyType;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 

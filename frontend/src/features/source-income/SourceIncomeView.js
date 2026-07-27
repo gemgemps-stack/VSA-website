@@ -699,8 +699,14 @@ const SourceIncome = () => {
     if (order?.items?.length > 0) {
       order.items.forEach((item) => {
         const subtotal = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
+        const details = [
+          item.productName || 'Unnamed item',
+          item.size && `Size: ${item.size}`,
+          item.number && `Size Number: ${item.number}`,
+          item.jerseyType && `Version: ${item.jerseyType}`,
+        ].filter(Boolean).join(' | ');
         lines.push(
-          `${item.productName || 'Unnamed item'} | ${formatMoney(item.unitPrice)} x ${item.quantity || 0} = ${formatMoney(subtotal)}`,
+          `${details} | ${formatMoney(item.unitPrice)} x ${item.quantity || 0} = ${formatMoney(subtotal)}`,
         );
       });
     } else {
@@ -1028,7 +1034,8 @@ const SourceIncome = () => {
                 <div>
                   <strong>{item.productName || 'Unnamed item'}</strong>
                   <div className="finance-entry-subtext">
-                    {item.quantity || 0} × {formatMoney(item.unitPrice)}
+                    {[item.size && `Size: ${item.size}`, item.number && `Size Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' • ')}
+                    {([item.size, item.number, item.jerseyType].some(Boolean) ? ' • ' : '') + `${item.quantity || 0} × ${formatMoney(item.unitPrice)}`}
                   </div>
                 </div>
                 <strong>{formatMoney((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0))}</strong>

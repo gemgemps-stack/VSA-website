@@ -37,12 +37,18 @@ public class OrderDTO {
     public static class ItemDTO {
         private UUID id;
         private String productName;
+        private String size;
+        private String number;
+        private String jerseyType;
         private BigDecimal unitPrice;
         private Integer quantity;
 
         public ItemDTO(OrderItem item) {
             this.id = item.getId();
             this.productName = item.getProductName();
+            this.size = item.getSize();
+            this.number = item.getNumber();
+            this.jerseyType = item.getJerseyType();
             this.unitPrice = item.getUnitPrice();
             this.quantity = item.getQuantity();
         }
