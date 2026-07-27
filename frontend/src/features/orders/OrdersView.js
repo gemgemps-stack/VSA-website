@@ -1058,7 +1058,13 @@ const Orders = () => {
                           <div style={styles.suggestionsList}>
                             {filteredInventory.map(i => (
                               <div key={i.id} style={styles.suggestionItem} onMouseDown={() => handleRetailSelect(index, i)}>
-                                {getInventoryLabel(i)} (Stock: {i.quantity})
+                                <div>{getInventoryLabel(i)}</div>
+                                <div style={{ fontSize: '0.85em', color: '#666', marginTop: '2px' }}>
+                                  {i.jerseyType && <span>Version: {i.jerseyType} | </span>}
+                                  {i.size && <span>Size: {i.size} | </span>}
+                                  {i.number && <span>Size Number: {i.number} | </span>}
+                                  <span>Stock: {i.quantity}</span>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1284,6 +1290,64 @@ const Orders = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const order = selectedOrder;
+                      if (!order) return;
+                      const items = order.items || [];
+                      const rows = items.map(item => {
+                        const inv = inventoryItems.find(i => getInventoryLabel(i) === item.productName);
+                        return '<tr>'
+                          + '<td>' + (inv?.itemType || '-') + '</td>'
+                          + '<td>' + (inv?.name || item.productName || '-') + '</td>'
+                          + '<td>' + (inv?.jerseyType || '-') + '</td>'
+                          + '<td>' + (inv?.size || '-') + '</td>'
+                          + '<td>' + (inv?.number || '-') + '</td>'
+                          + '<td>' + (item.quantity || 0) + '</td>'
+                          + '</tr>';
+                      }).join('');
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write([
+                        '<html><head><title>Order ' + (order.jobOrderNo || '') + '</title>',
+                        '<style>',
+                        'body{font-family:Arial,sans-serif;padding:30px;color:#333}',
+                        'h2{margin:0 0 5px 0}',
+                        '.info{margin-bottom:20px}',
+                        '.info p{margin:4px 0}',
+                        'table{width:100%;border-collapse:collapse;margin-top:15px}',
+                        'th,td{border:1px solid #ccc;padding:8px 10px;text-align:left}',
+                        'th{background:#f5f5f5}',
+                        '</style></head><body>',
+                        '<h2>Order ' + (order.jobOrderNo || '') + '</h2>',
+                        '<div class="info">',
+                        '<p><strong>Client Name:</strong> ' + (order.clientName || '-') + '</p>',
+                        '<p><strong>Team Name:</strong> ' + (order.teamName || '-') + '</p>',
+                        '<p><strong>Shop:</strong> ' + (order.shop || '-') + '</p>',
+                        '<p><strong>Order Date:</strong> ' + (order.orderDate || '-') + '</p>',
+                        '</div>',
+                        '<table><thead><tr>',
+                        '<th>Item Type</th><th>Item Name</th><th>Version</th><th>Size</th><th>Size Number</th><th>Quantity</th>',
+                        '</tr></thead><tbody>' + rows + '</tbody></table>',
+                        '</body></html>'
+                      ].join(''));
+                      printWindow.document.close();
+                      printWindow.focus();
+                      printWindow.print();
+                    }}
+                    style={{
+                      ...styles.button,
+                      backgroundColor: '#1976d2',
+                      color: 'white',
+                      padding: '8px 16px',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    Print Order
+                  </button>
                 </div>
 
                 <div style={styles.financialsSection}>
