@@ -50,12 +50,12 @@ const Login = () => {
             />
             <div className="brand-copy">
               <h1>Verdida Sports Apparel</h1>
-              <p>Operations hub for apparel, orders, and client work.</p>
+              <p>Apparel and Clothing</p>
             </div>
           </div>
 
           <div className="brand-highlight">
-            <h2>Keep the business moving without the clutter.</h2>
+            <h2>Style doesn't have to be expensive. 💯</h2>
             <p>
               Manage inventory, orders, and customer accounts from one focused workspace.
             </p>
@@ -64,7 +64,7 @@ const Login = () => {
           <ul className="brand-points">
             <li>Inventory, order, and client visibility in one place</li>
             <li>Fast access for the teams that need it every day</li>
-            <li>Built for a calm, low-friction workflow</li>
+            <li>Trusted brand experience</li>
           </ul>
         </section>
 
