@@ -12,7 +12,15 @@ const PermissionGuard = ({ permission, children, fallback = null }) => {
   const hasAccess = hasPermission(user.permissions, permission);
 
   if (!hasAccess) {
-    return fallback || <div className="access-denied">Access Denied</div>;
+    return (
+      fallback || (
+        <div className="access-denied" role="alert">
+          <span className="access-denied-kicker">Access restricted</span>
+          <strong>You do not have permission to view this area.</strong>
+          <p>Ask an administrator to enable access for {permission}.</p>
+        </div>
+      )
+    );
   }
 
   return children;

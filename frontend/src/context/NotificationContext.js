@@ -10,11 +10,14 @@ export const NotificationProvider = ({ children }) => {
     setNotifications((prev) => prev.filter((notification) => notification.id !== id));
   }, []);
 
-  const addNotification = useCallback((message, type = 'info') => {
-    const id = Date.now() + Math.random();
-    setNotifications((prev) => [...prev, { id, message, type }]);
-    window.setTimeout(() => removeNotification(id), 3500);
-  }, [removeNotification]);
+  const addNotification = useCallback(
+    (message, type = 'info') => {
+      const id = Date.now() + Math.random();
+      setNotifications((prev) => [...prev, { id, message: String(message), type }]);
+      window.setTimeout(() => removeNotification(id), 3500);
+    },
+    [removeNotification]
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -23,7 +26,7 @@ export const NotificationProvider = ({ children }) => {
 
     const previousAlert = window.alert;
     window.alert = (message) => {
-      addNotification(String(message), 'info');
+      addNotification(message, 'info');
     };
 
     return () => {
@@ -31,13 +34,16 @@ export const NotificationProvider = ({ children }) => {
     };
   }, [addNotification]);
 
-  const value = useMemo(() => ({
-    addNotification,
-    notify: addNotification,
-    success: (message) => addNotification(message, 'success'),
-    error: (message) => addNotification(message, 'error'),
-    info: (message) => addNotification(message, 'info')
-  }), [addNotification]);
+  const value = useMemo(
+    () => ({
+      addNotification,
+      notify: addNotification,
+      success: (message) => addNotification(message, 'success'),
+      error: (message) => addNotification(message, 'error'),
+      info: (message) => addNotification(message, 'info'),
+    }),
+    [addNotification]
+  );
 
   return (
     <NotificationContext.Provider value={value}>
@@ -56,7 +62,7 @@ export const NotificationProvider = ({ children }) => {
               onClick={() => removeNotification(notification.id)}
               aria-label="Dismiss notification"
             >
-              ×
+              &times;
             </button>
           </div>
         ))}

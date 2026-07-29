@@ -33,6 +33,11 @@ function App() {
       });
     };
 
+    const apiUrl = process.env.REACT_APP_API_URL || '';
+    if (!apiUrl) {
+      return undefined;
+    }
+
     pingBackend();
     const intervalId = window.setInterval(pingBackend, PING_INTERVAL_MS);
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import LoginView from './LoginView';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,8 @@ describe('LoginView', () => {
 
     fireEvent.submit(form);
 
-    expect(login).toHaveBeenCalledWith('tester@example.com', 'Example123!');
+    await waitFor(() => {
+      expect(login).toHaveBeenCalledWith('tester@example.com', 'Example123!');
+    });
   });
 });

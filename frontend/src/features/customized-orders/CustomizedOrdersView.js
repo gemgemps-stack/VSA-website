@@ -895,8 +895,12 @@ const CustomizedOrders = () => {
 
           <div style={styles.searchSection}>
             <div style={styles.searchInputWrap}>
-              <span style={styles.searchIcon}>⌕</span>
-              <input
+              <span style={styles.searchIcon} aria-hidden="true">
+                <svg viewBox="0 0 24 24" style={styles.searchIconSvg} focusable="false">
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path d="M16 16l4.5 4.5" />
+                </svg>
+              </span>
                 type="text"
                 placeholder="Search by job order, client, product, or status"
                 value={searchQuery}
@@ -1114,7 +1118,7 @@ const CustomizedOrders = () => {
 	                              marginBottom: '5px',
 	                            }}
 	                          >
-	                            ✕
+                            &times;
 	                          </button>
 	                        ) : <div style={{ marginBottom: '5px', height: '38px' }}></div>}
 	                      </div>
@@ -1399,13 +1403,13 @@ const CustomizedOrders = () => {
                         <html>
                         <head><title>Order ${order.jobOrderNo || ''}</title>
                         <style>
-                          body { font-family: Arial, sans-serif; padding: 30px; color: #333; }
+                          body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 30px; color: #334155; }
                           h2 { margin: 0 0 5px 0; }
                           .header-info { margin-bottom: 20px; }
                           .header-info p { margin: 4px 0; }
                           table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                          th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; }
-                          th { background: #f5f5f5; }
+                          th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+                          th { background: #f8fafc; }
                         </style>
                         </head>
                         <body>
@@ -1854,11 +1858,11 @@ const styles = {
     color: '#0f172a',
   },
   searchSection: {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
-    borderRadius: '16px',
-    padding: '12px 14px',
-    boxShadow: '0 8px 20px rgba(15, 23, 42, 0.04)',
+    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    border: '1px solid #dbe4ee',
+    borderRadius: '18px',
+    padding: '14px 16px',
+    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)',
     display: 'flex',
     gap: '10px',
     alignItems: 'center',
@@ -1866,12 +1870,26 @@ const styles = {
   searchInputWrap: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '12px',
     width: '100%',
   },
   searchIcon: {
-    fontSize: '1rem',
-    color: '#64748b',
+    width: '18px',
+    height: '18px',
+    flex: '0 0 auto',
+    color: '#94a3b8',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchIconSvg: {
+    width: '18px',
+    height: '18px',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
   },
   filterBar: {
     display: 'flex',
@@ -1897,18 +1915,21 @@ const styles = {
   },
   searchInput: {
     flex: 1,
-    padding: '10px 15px',
-    borderRadius: '6px',
-    border: '1px solid #ddd',
-    fontSize: '0.95em',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    padding: '2px 0',
+    borderRadius: 0,
+    border: 'none',
+    background: 'transparent',
+    outline: 'none',
+    fontSize: '0.98rem',
+    color: '#0f172a',
+    boxShadow: 'none',
   },
   tableCard: {
     background: '#fff',
     border: '1px solid #e2e8f0',
-    borderRadius: '18px',
-    padding: '16px',
-    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)',
+    borderRadius: '20px',
+    padding: '18px',
+    boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
   },
   loadingContainer: {
     display: 'flex',
@@ -1957,15 +1978,16 @@ const styles = {
   },
   paginationButton: {
     padding: '8px 15px',
-    borderRadius: '6px',
-    border: '1px solid #ddd',
+    borderRadius: '999px',
+    border: '1px solid #dbe2ea',
     backgroundColor: '#fff',
     cursor: 'pointer',
     fontSize: '0.9em',
     transition: 'all 0.2s',
+    color: '#334155',
   },
   pageInfo: {
-    color: '#666',
+    color: '#475569',
     fontSize: '0.9em',
   },
   modalContent: {
@@ -1975,9 +1997,9 @@ const styles = {
     overflowY: 'auto',
   },
   modalTitle: {
-    fontSize: '1.5em',
+    fontSize: '1.45rem',
     marginBottom: '20px',
-    color: '#333',
+    color: '#0f172a',
   },
   formSection: {
     marginBottom: '20px',
@@ -1992,30 +2014,33 @@ const styles = {
     gap: '15px',
   },
   label: {
-    fontWeight: 'bold',
-    color: '#555',
+    fontWeight: '600',
+    color: '#334155',
     fontSize: '0.9em',
     display: 'block',
     marginBottom: '5px',
   },
   input: {
     width: '100%',
-    padding: '10px',
-    borderRadius: '6px',
-    border: '1px solid #ddd',
-    fontSize: '0.9em',
+    padding: '10px 12px',
+    borderRadius: '10px',
+    border: '1px solid #d8e0e8',
+    backgroundColor: '#fff',
+    fontSize: '0.95em',
+    color: '#0f172a',
     boxSizing: 'border-box',
     WebkitAppearance: 'none',
     MozAppearance: 'textfield',
     appearance: 'textfield',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
   },
   textarea: {
     width: '100%',
-    padding: '10px',
-    borderRadius: '6px',
-    border: '1px solid #ddd',
+    padding: '10px 12px',
+    borderRadius: '10px',
+    border: '1px solid #d8e0e8',
     fontFamily: 'inherit',
-    fontSize: '0.9em',
+    fontSize: '0.95em',
     minHeight: '80px',
     boxSizing: 'border-box',
     resize: 'vertical',
@@ -2029,32 +2054,32 @@ const styles = {
     left: 0,
     right: 0,
     backgroundColor: '#fff',
-    border: '1px solid #ddd',
+    border: '1px solid #d8e0e8',
     borderTop: 'none',
-    borderRadius: '0 0 6px 6px',
+    borderRadius: '0 0 10px 10px',
     maxHeight: '150px',
     overflowY: 'auto',
     zIndex: 1000,
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)',
   },
   suggestionItem: {
-    padding: '8px 12px',
+    padding: '10px 12px',
     cursor: 'pointer',
-    fontSize: '0.9em',
-    borderBottom: '1px solid #f0f0f0',
+    fontSize: '0.92em',
+    borderBottom: '1px solid #f1f5f9',
   },
   hint: {
-    color: '#999',
+    color: '#64748b',
     fontSize: '0.85em',
-    marginTop: '3px',
+    marginTop: '5px',
     display: 'block',
   },
   totalSection: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f8fafc',
     padding: '15px',
-    borderRadius: '6px',
+    borderRadius: '12px',
     marginBottom: '20px',
-    borderLeft: '4px solid #2196F3',
+    borderLeft: '4px solid #0f766e',
   },
   totalRow: {
     display: 'flex',
@@ -2074,22 +2099,22 @@ const styles = {
     gap: '5px',
   },
   financialsSection: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f8fafc',
     padding: '15px',
-    borderRadius: '6px',
+    borderRadius: '12px',
     marginBottom: '20px',
-    borderLeft: '4px solid #2196F3',
+    borderLeft: '4px solid #0f766e',
   },
   financialsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    gap: '10px',
+    gap: '12px',
     marginTop: '10px',
   },
   financialLabel: {
     display: 'block',
     fontSize: '0.85em',
-    color: '#666',
+    color: '#64748b',
     marginBottom: '3px',
   },
   notesSection: {
@@ -2115,8 +2140,8 @@ const styles = {
     marginLeft: 'auto',
     marginRight: 'auto',
     padding: '15px',
-    border: '1px solid #ddd',
-    borderRadius: '8px',
+    border: '1px solid #dbe2ea',
+    borderRadius: '12px',
     backgroundColor: '#fff',
     width: '50%',
     minWidth: '360px',
@@ -2125,12 +2150,12 @@ const styles = {
   paymentUpdateTitle: {
     margin: '0 0 10px 0',
     fontSize: '1.1rem',
-    color: '#222',
+    color: '#0f172a',
   },
   statusPrompt: {
     margin: '0 0 12px',
     fontWeight: '600',
-    color: '#444',
+    color: '#334155',
   },
   paymentUpdateActions: {
     marginTop: '10px',
@@ -2150,12 +2175,12 @@ const styles = {
   },
   button: {
     padding: '10px 20px',
-    borderRadius: '6px',
+    borderRadius: '10px',
     border: 'none',
     cursor: 'pointer',
     fontSize: '0.95em',
     fontWeight: '500',
-    transition: 'all 0.2s',
+    transition: 'transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease',
   },
   buttonPrimary: {
     backgroundColor: '#FF9800',
