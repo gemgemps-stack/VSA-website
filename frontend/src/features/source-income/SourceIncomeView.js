@@ -1598,9 +1598,6 @@ const SourceIncome = () => {
               <section className="finance-panel">
                 <div className="finance-section-header finance-section-header-compact">
                   <div>
-                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
-                      <SectionIcon variant="finance" />
-                    </span>
                     <h2>Source of Income</h2>
                     <p>See where revenue is coming from and open the details for each channel.</p>
                   </div>
@@ -1653,9 +1650,6 @@ const SourceIncome = () => {
               <section className="finance-panel">
                 <div className="finance-section-header finance-section-header-compact">
                   <div>
-                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
-                      <SectionIcon variant="finance" />
-                    </span>
                     <h2>Payment Methods</h2>
                     <p>Review payout channels and outstanding balances in one place.</p>
                   </div>
@@ -1762,9 +1756,6 @@ const SourceIncome = () => {
               <section className="finance-panel finance-panel-full finance-report-section">
                 <div className="finance-section-header">
                   <div>
-                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
-                      <SectionIcon variant="search" />
-                    </span>
                     <h2>Income Reporting</h2>
                     <p>Review sales income by period and trace each recorded transaction.</p>
                   </div>
@@ -1885,9 +1876,6 @@ const SourceIncome = () => {
               <section className="finance-panel finance-panel-full finance-report-section finance-liquidation-section">
                 <div className="finance-section-header">
                   <div>
-                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
-                      <SectionIcon variant="finance" />
-                    </span>
                     <h2>Liquidation</h2>
                     <p>Cash out records, liquidation totals, and withdrawal history.</p>
                   </div>
