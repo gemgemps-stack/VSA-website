@@ -3,13 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Navbar.css';
 
+const UserAvatarIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 12.25a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Z" />
+    <path d="M5.75 19.25a6.25 6.25 0 0 1 12.5 0" />
+  </svg>
+);
+
 const Navbar = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
   const userLabel = (user?.username || user?.email || 'User').trim() || 'User';
-  const userInitial = userLabel.charAt(0).toUpperCase();
 
   const handleLogout = async () => {
     try {
@@ -45,8 +51,8 @@ const Navbar = ({ toggleSidebar }) => {
               aria-haspopup="menu"
               aria-expanded={dropdownOpen}
             >
-              <span className="user-initial" aria-hidden="true">
-                {userInitial}
+              <span className="user-avatar" aria-hidden="true">
+                <UserAvatarIcon />
               </span>
               <span className="user-name">{userLabel}</span>
               <span className="user-caret" aria-hidden="true">

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
+import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import userService from '../../services/userService';
@@ -478,6 +479,9 @@ const calculateDayType = (hours) => {
       <div className="page-container">
         <div className="attendance-hero">
           <div className="attendance-hero-copy">
+            <span style={sectionIconBadgeStyle} aria-hidden="true">
+              <SectionIcon variant="attendance" />
+            </span>
             <span className="attendance-hero-kicker">Attendance overview</span>
             <h1>Attendance Tracker</h1>
             <p>
@@ -616,7 +620,7 @@ const calculateDayType = (hours) => {
           </div>
         </div>
 
-        <div className="attendance-panel attendance-records-panel">
+          <div className="attendance-panel attendance-records-panel">
           <div className="attendance-section-header">
             <div>
               <span className="attendance-hero-kicker">Records</span>
@@ -633,22 +637,32 @@ const calculateDayType = (hours) => {
           >
             <div className="attendance-control attendance-record-search">
               <label>Employee Name</label>
-              <input
-                type="text"
-                value={employeeNameQuery}
-                onChange={(e) => setEmployeeNameQuery(e.target.value)}
-                placeholder="Search employee name"
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
+                  <SectionIcon variant="search" />
+                </span>
+                <input
+                  type="text"
+                  value={employeeNameQuery}
+                  onChange={(e) => setEmployeeNameQuery(e.target.value)}
+                  placeholder="Search employee name"
+                />
+              </div>
             </div>
 
             <div className="attendance-control attendance-record-search">
               <label>Status</label>
-              <input
-                type="text"
-                value={statusQuery}
-                onChange={(e) => setStatusQuery(e.target.value)}
-                placeholder="Search status"
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
+                  <SectionIcon variant="search" />
+                </span>
+                <input
+                  type="text"
+                  value={statusQuery}
+                  onChange={(e) => setStatusQuery(e.target.value)}
+                  placeholder="Search status"
+                />
+              </div>
             </div>
 
             {employeeNameQuery.trim() && (
@@ -713,7 +727,12 @@ const calculateDayType = (hours) => {
                     </div>
                   )}
                   {employeeSuggestionsOpen && filteredEmployees.length === 0 && (
-                    <div className="client-search-results empty">No matching employees found</div>
+                    <div className="client-search-results empty">
+                      <span style={{ ...sectionIconBadgeStyle, width: '32px', height: '32px', marginBottom: '8px' }} aria-hidden="true">
+                        <SectionIcon variant="search" />
+                      </span>
+                      <span>No matching employees found</span>
+                    </div>
                   )}
                 </div>
               </div>

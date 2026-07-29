@@ -4,6 +4,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import customizedOrderService from '../../services/customizedOrderService';
@@ -1532,6 +1533,9 @@ const SourceIncome = () => {
       <div className="page-container">
         <div className="finance-hero">
           <div className="finance-hero-copy">
+            <span style={sectionIconBadgeStyle} aria-hidden="true">
+              <SectionIcon variant="finance" />
+            </span>
             <span className="finance-hero-kicker">Finance control center</span>
             <h1>Finance</h1>
             <p>
@@ -1594,6 +1598,9 @@ const SourceIncome = () => {
               <section className="finance-panel">
                 <div className="finance-section-header finance-section-header-compact">
                   <div>
+                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
+                      <SectionIcon variant="finance" />
+                    </span>
                     <h2>Source of Income</h2>
                     <p>See where revenue is coming from and open the details for each channel.</p>
                   </div>
@@ -1646,6 +1653,9 @@ const SourceIncome = () => {
               <section className="finance-panel">
                 <div className="finance-section-header finance-section-header-compact">
                   <div>
+                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
+                      <SectionIcon variant="finance" />
+                    </span>
                     <h2>Payment Methods</h2>
                     <p>Review payout channels and outstanding balances in one place.</p>
                   </div>
@@ -1749,16 +1759,19 @@ const SourceIncome = () => {
 
             {canAccessIncome && (
               <div className="finance-bottom-grid">
-                <section className="finance-panel finance-panel-full finance-report-section">
-                  <div className="finance-section-header">
-                    <div>
-                      <h2>Income Reporting</h2>
-                      <p>Review sales income by period and trace each recorded transaction.</p>
-                    </div>
+              <section className="finance-panel finance-panel-full finance-report-section">
+                <div className="finance-section-header">
+                  <div>
+                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
+                      <SectionIcon variant="search" />
+                    </span>
+                    <h2>Income Reporting</h2>
+                    <p>Review sales income by period and trace each recorded transaction.</p>
                   </div>
+                </div>
 
-                  <div className="finance-toolbar">
-                    <div className="report-filter-bar">
+                <div className="finance-toolbar">
+                  <div className="report-filter-bar">
                       {REPORT_PERIODS.map((period) => (
                         <button
                           key={period.key}
@@ -1771,7 +1784,11 @@ const SourceIncome = () => {
                       ))}
                     </div>
 
-                    <div className="order-search-bar finance-search-field">
+                  <div className="order-search-bar finance-search-field">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
+                        <SectionIcon variant="search" />
+                      </span>
                       <input
                         type="text"
                         value={searchReferenceNumber}
@@ -1780,6 +1797,7 @@ const SourceIncome = () => {
                       />
                     </div>
                   </div>
+                </div>
 
                   <div className="income-details-summary finance-summary-grid">
                     <div className="finance-summary-card">
@@ -1854,33 +1872,44 @@ const SourceIncome = () => {
                         </div>
                       ))
                     ) : (
-                      <p className="income-details-empty">
-                        No income transaction history found for this period.
-                      </p>
+                      <div className="income-details-empty">
+                        <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: '10px' }} aria-hidden="true">
+                          <SectionIcon variant="search" />
+                        </span>
+                        <p>No income transaction history found for this period.</p>
+                      </div>
                     )}
                   </div>
                 </section>
 
-                <section className="finance-panel finance-panel-full finance-report-section finance-liquidation-section">
-                  <div className="finance-section-header">
-                    <div>
-                      <h2>Liquidation</h2>
-                      <p>Cash out records, liquidation totals, and withdrawal history.</p>
-                    </div>
+              <section className="finance-panel finance-panel-full finance-report-section finance-liquidation-section">
+                <div className="finance-section-header">
+                  <div>
+                    <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: '10px' }} aria-hidden="true">
+                      <SectionIcon variant="finance" />
+                    </span>
+                    <h2>Liquidation</h2>
+                    <p>Cash out records, liquidation totals, and withdrawal history.</p>
                   </div>
+                </div>
 
-                  <div className="finance-toolbar">
-                    <div className="finance-search-bar">
+                <div className="finance-toolbar">
+                  <div className="finance-search-bar">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
+                        <SectionIcon variant="search" />
+                      </span>
                       <input
                         type="text"
                         placeholder="Search by liquidation reference number..."
                         value={searchReferenceNumber}
                         onChange={(e) => setSearchReferenceNumber(e.target.value)}
                       />
-                      {searchReferenceNumber && (
-                        <button
-                          type="button"
-                          className="finance-search-clear-btn"
+                    </div>
+                    {searchReferenceNumber && (
+                      <button
+                        type="button"
+                        className="finance-search-clear-btn"
                           onClick={handleClearSearch}
                           title="Clear search"
                         >
@@ -1974,11 +2003,16 @@ const SourceIncome = () => {
                         </div>
                       ))
                     ) : (
-                      <p className="income-details-empty">
-                        {searchReferenceNumber
-                          ? `No liquidation history found matching "${searchReferenceNumber}" for this period.`
-                          : 'No liquidation history found for this period.'}
-                      </p>
+                      <div className="income-details-empty">
+                        <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: '10px' }} aria-hidden="true">
+                          <SectionIcon variant="search" />
+                        </span>
+                        <p>
+                          {searchReferenceNumber
+                            ? `No liquidation history found matching "${searchReferenceNumber}" for this period.`
+                            : 'No liquidation history found for this period.'}
+                        </p>
+                      </div>
                     )}
                   </div>
                 </section>

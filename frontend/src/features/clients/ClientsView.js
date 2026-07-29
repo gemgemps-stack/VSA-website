@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
+import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import { useNotification } from '../../context/NotificationContext';
 import clientService from '../../services/clientService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
@@ -155,6 +156,9 @@ const Clients = () => {
         <div className="page-container">
           <div className="page-header">
             <div className="page-title-block">
+              <span style={sectionIconBadgeStyle} aria-hidden="true">
+                <SectionIcon variant="clients" />
+              </span>
               <span className="page-eyebrow">Client relationships</span>
               <h1>Clients</h1>
               <p className="page-subtitle">
@@ -193,21 +197,29 @@ const Clients = () => {
             </div>
 
             <div className="search-and-filter-row">
-              <div className="client-search-bar">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search clients by name, contact, or notes"
-                />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
+                <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: 0 }} aria-hidden="true">
+                  <SectionIcon variant="search" />
+                </span>
+                <div className="client-search-bar" aria-label="Client search">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Search clients by name, contact, or notes"
+                  />
+                </div>
               </div>
             </div>
 
             {filteredClients.length === 0 ? (
               <div className="empty-state">
+                <span style={{ ...sectionIconBadgeStyle, marginBottom: '12px' }} aria-hidden="true">
+                  <SectionIcon variant="clients" />
+                </span>
                 <h3>No clients match this search yet</h3>
                 <p>Try a broader term or register a new client to build your directory.</p>
               </div>

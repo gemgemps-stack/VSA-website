@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
+import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import { useLocation } from 'react-router-dom';
 import inventoryService from '../../services/inventoryService';
 import clientService from '../../services/clientService';
@@ -825,9 +826,10 @@ const Orders = () => {
     statCard: { background: '#fff', borderRadius: '14px', padding: '14px 16px', border: '1px solid #e2e8f0', minWidth: 0 },
     statLabel: { display: 'block', fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' },
     statValue: { fontSize: '1.3rem', color: '#0f172a' },
-    searchCard: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '12px 14px', boxShadow: '0 8px 20px rgba(15, 23, 42, 0.04)' },
-    searchInputWrap: { display: 'flex', alignItems: 'center', gap: '10px' },
-    searchIcon: { fontSize: '1rem', color: '#64748b' },
+    searchCard: { background: 'linear-gradient(180deg, #fff 0%, #f8fafc 100%)', border: '1px solid #dbe4ee', borderRadius: '18px', padding: '14px 16px', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)' },
+    searchInputWrap: { display: 'flex', alignItems: 'center', gap: '12px' },
+    searchIcon: { width: '18px', height: '18px', flex: '0 0 auto', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+    searchIconSvg: { width: '18px', height: '18px', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' },
     filterBar: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
     filterButton: { padding: '8px 14px', borderRadius: '999px', border: '1px solid #dbe2ea', backgroundColor: '#fff', color: '#475569', fontSize: '0.85rem' },
     filterButtonActive: { backgroundColor: '#0f766e', borderColor: '#0f766e', color: '#fff', boxShadow: '0 8px 20px rgba(15, 118, 110, 0.18)' },
@@ -889,6 +891,9 @@ const Orders = () => {
           <div style={styles.heroCard}>
             <div style={styles.heroContent}>
               <div>
+                <span style={sectionIconBadgeStyle} aria-hidden="true">
+                  <SectionIcon variant="orders" />
+                </span>
                 <div style={styles.eyebrow}>Operations</div>
                 <h1 style={styles.pageTitle}>Inventory Orders</h1>
                 <p style={styles.subtitle}>Track approvals, deposits, and fulfillment progress for retail orders in one clear view.</p>
@@ -913,7 +918,12 @@ const Orders = () => {
 
           <div style={styles.searchCard}>
             <div style={styles.searchInputWrap}>
-              <span style={styles.searchIcon}>Search</span>
+              <span style={styles.searchIcon} aria-hidden="true">
+                <svg viewBox="0 0 24 24" style={styles.searchIconSvg} focusable="false">
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path d="M16 16l4.5 4.5" />
+                </svg>
+              </span>
               <input
                 type="text"
                 style={{ ...styles.input, width: '100%', border: 'none', boxShadow: 'none', padding: '0' }}

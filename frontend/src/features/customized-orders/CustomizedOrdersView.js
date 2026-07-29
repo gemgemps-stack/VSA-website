@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
+import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import { useLocation } from 'react-router-dom';
 import incomeService from '../../services/incomeService';
 import customizedOrderService from '../../services/customizedOrderService';
@@ -874,6 +875,9 @@ const CustomizedOrders = () => {
           <div style={styles.heroCard}>
             <div style={styles.heroContent}>
               <div>
+                <span style={sectionIconBadgeStyle} aria-hidden="true">
+                  <SectionIcon variant="orders" />
+                </span>
                 <div style={styles.eyebrow}>Manufacturing</div>
                 <h1 style={styles.title}>Customized Orders</h1>
                 <p style={styles.subtitle}>Keep production workstreams, approvals, and payments organized across every customized order.</p>
@@ -901,6 +905,7 @@ const CustomizedOrders = () => {
                   <path d="M16 16l4.5 4.5" />
                 </svg>
               </span>
+              <input
                 type="text"
                 placeholder="Search by job order, client, product, or status"
                 value={searchQuery}

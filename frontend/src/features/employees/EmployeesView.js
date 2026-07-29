@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
+import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
 import { expandPermissions } from '../../utils/permissions';
@@ -269,12 +270,15 @@ const Employees = () => {
 
   return (
     <DashboardLayout>
-      <div className="page-container">
-        <div className="page-header">
-          <div className="page-title-block">
-            <span className="page-eyebrow">People & access</span>
-            <h1>Employees</h1>
-            <p className="page-subtitle">
+        <div className="page-container">
+          <div className="page-header">
+            <div className="page-title-block">
+              <span style={sectionIconBadgeStyle} aria-hidden="true">
+                <SectionIcon variant="employees" />
+              </span>
+              <span className="page-eyebrow">People & access</span>
+              <h1>Employees</h1>
+              <p className="page-subtitle">
               Keep your team roster, roles, and page permissions clear and easy to manage.
             </p>
           </div>
@@ -309,16 +313,21 @@ const Employees = () => {
             </div>
 
             <div className="search-and-filter-row">
-              <div className="employee-search-bar">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search employees by name, email, or role"
-                />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
+                <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: 0 }} aria-hidden="true">
+                  <SectionIcon variant="search" />
+                </span>
+                <div className="employee-search-bar" aria-label="Employee search">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Search employees by name, email, or role"
+                  />
+                </div>
               </div>
 
               <div className="orders-filter-bar">
@@ -340,6 +349,9 @@ const Employees = () => {
 
             {filteredUsers.length === 0 ? (
               <div className="empty-state">
+                <span style={{ ...sectionIconBadgeStyle, marginBottom: '12px' }} aria-hidden="true">
+                  <SectionIcon variant="employees" />
+                </span>
                 <h3>No employees match this view yet</h3>
                 <p>Try adjusting your search or switching filters to see more people.</p>
               </div>
