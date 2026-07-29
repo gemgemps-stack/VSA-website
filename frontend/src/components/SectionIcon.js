@@ -72,9 +72,9 @@ const SectionIcon = ({ variant }) => {
       );
     case 'search':
       return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="6.25" />
-          <path d="M15.5 15.5L20 20" />
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none">
+          <circle cx="10.5" cy="10.5" r="6.25" />
+          <path d="M15.25 15.25L20 20" />
         </svg>
       );
     default:

@@ -10,6 +10,14 @@ const UserAvatarIcon = () => (
   </svg>
 );
 
+const MenuIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4.5 7h15" />
+    <path d="M4.5 12h15" />
+    <path d="M4.5 17h15" />
+  </svg>
+);
+
 const Navbar = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -31,7 +39,7 @@ const Navbar = ({ toggleSidebar }) => {
       <div className="navbar-container">
         <div className="navbar-left">
           <button className="toggle-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
-            Menu
+            <MenuIcon />
           </button>
           <img
             className="navbar-logo"
