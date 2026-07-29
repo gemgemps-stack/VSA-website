@@ -876,7 +876,7 @@ const CustomizedOrders = () => {
             <div style={styles.heroContent}>
               <div>
                 <span style={sectionIconBadgeStyle} aria-hidden="true">
-                  <SectionIcon variant="orders" />
+                  <SectionIcon variant="customized" />
                 </span>
                 <div style={styles.eyebrow}>Manufacturing</div>
                 <h1 style={styles.title}>Customized Orders</h1>
