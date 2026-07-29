@@ -35,9 +35,27 @@ const Dashboard = () => {
   };
 
   const heroStats = [
-    { label: 'Orders', value: stats.totalOrders, path: '/orders', permission: 'INVENTORY_ORDERS' },
-    { label: 'Clients', value: stats.totalClients, path: '/clients', permission: 'CLIENTS' },
-    { label: 'Inventory', value: stats.totalInventory, path: '/inventory', permission: 'INVENTORY' },
+    {
+      label: 'Orders',
+      badge: 'OR',
+      value: stats.totalOrders,
+      path: '/orders',
+      permission: 'INVENTORY_ORDERS',
+    },
+    {
+      label: 'Clients',
+      badge: 'CL',
+      value: stats.totalClients,
+      path: '/clients',
+      permission: 'CLIENTS',
+    },
+    {
+      label: 'Inventory',
+      badge: 'IN',
+      value: stats.totalInventory,
+      path: '/inventory',
+      permission: 'INVENTORY',
+    },
   ];
 
   return (
@@ -47,7 +65,9 @@ const Dashboard = () => {
           <div>
             <span className="page-eyebrow">Operations overview</span>
             <h1>Dashboard</h1>
-            <p className="welcome">Welcome back, {user?.username || 'there'} — here’s a concise view of the day’s key business areas.</p>
+            <p className="welcome">
+              Welcome back, {user?.username || 'there'}. Here&apos;s a concise view of the day&apos;s key business areas.
+            </p>
           </div>
           <div className="hero-badge">Live snapshot</div>
         </div>
@@ -55,15 +75,15 @@ const Dashboard = () => {
         <div className="stats-grid">
           {heroStats.map((item) => (
             <PermissionGuard key={item.label} permission={item.permission}>
-              <div className="stat-card" onClick={() => navigate(item.path)}>
-                <div className="stat-icon">
-                  {item.label === 'Orders' ? '📋' : item.label === 'Clients' ? '👤' : '📦'}
-                </div>
-                <div className="stat-content">
-                  <h3>{item.label}</h3>
-                  <p className="stat-value">{item.value}</p>
-                </div>
-              </div>
+              <button className="stat-card" type="button" onClick={() => navigate(item.path)}>
+                <span className="stat-icon" aria-hidden="true">
+                  {item.badge}
+                </span>
+                <span className="stat-content">
+                  <span className="stat-label">{item.label}</span>
+                  <span className="stat-value">{item.value}</span>
+                </span>
+              </button>
             </PermissionGuard>
           ))}
         </div>
@@ -76,31 +96,36 @@ const Dashboard = () => {
           <div className="actions-grid">
             <PermissionGuard permission="INVENTORY_ORDERS">
               <button className="action-btn" onClick={() => navigate('/orders')}>
-                📋 View Orders
+                <span>View Orders</span>
+                <span aria-hidden="true">-&gt;</span>
               </button>
             </PermissionGuard>
 
             <PermissionGuard permission="INVENTORY">
               <button className="action-btn" onClick={() => navigate('/inventory')}>
-                📦 Manage Inventory
+                <span>Manage Inventory</span>
+                <span aria-hidden="true">-&gt;</span>
               </button>
             </PermissionGuard>
 
             <PermissionGuard permission="CLIENTS">
               <button className="action-btn" onClick={() => navigate('/clients')}>
-                👤 Manage Clients
+                <span>Manage Clients</span>
+                <span aria-hidden="true">-&gt;</span>
               </button>
             </PermissionGuard>
 
             <PermissionGuard permission="ATTENDANCE">
               <button className="action-btn" onClick={() => navigate('/attendance')}>
-                ✓ View Attendance
+                <span>View Attendance</span>
+                <span aria-hidden="true">-&gt;</span>
               </button>
             </PermissionGuard>
 
             <PermissionGuard permission="EMPLOYEES">
               <button className="action-btn" onClick={() => navigate('/employees')}>
-                👨‍💼 Manage Employees
+                <span>Manage Employees</span>
+                <span aria-hidden="true">-&gt;</span>
               </button>
             </PermissionGuard>
           </div>

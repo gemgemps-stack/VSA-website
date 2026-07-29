@@ -1,19 +1,20 @@
-/* Sidebar Styles */
 .sidebar {
   position: fixed;
   left: 0;
-  top: 60px;
-  width: 250px;
-  height: calc(100vh - 60px);
-  background:
-    radial-gradient(circle at top left, rgba(217, 178, 111, 0.14), transparent 28%),
-    linear-gradient(180deg, #01595a 0%, #016667 48%, #014d4e 100%);
-  color: white;
+  top: 72px;
+  width: 264px;
+  height: calc(100dvh - 72px);
   overflow-y: auto;
-  transition: transform 0.3s ease;
   z-index: 90;
-  box-shadow: 12px 0 30px rgba(11, 31, 29, 0.16);
+  color: #fff;
+  background:
+    radial-gradient(circle at top left, rgba(217, 178, 111, 0.1), transparent 26%),
+    linear-gradient(180deg, rgba(11, 70, 68, 0.98) 0%, rgba(15, 109, 107, 0.96) 45%, rgba(8, 50, 49, 0.98) 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 14px 0 36px rgba(15, 36, 34, 0.16);
+  backdrop-filter: blur(14px);
+  transform: translateX(0);
+  transition: transform 0.25s ease;
 }
 
 .sidebar::before {
@@ -22,31 +23,8 @@
   top: 0;
   display: block;
   height: 4px;
-  background: linear-gradient(90deg, rgba(217, 178, 111, 0.95), rgba(255, 255, 255, 0.5));
+  background: linear-gradient(90deg, rgba(217, 178, 111, 0.92) 0%, rgba(255, 255, 255, 0.45) 100%);
   z-index: 1;
-}
-
-.sidebar.open {
-  transform: translateX(0);
-}
-
-.sidebar-header {
-  padding: 20px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-title {
-  font-family: 'Bebas Neue', cursive;
-  font-size: 20px;
-  margin: 0 0 5px 0;
-  letter-spacing: 1px;
-}
-
-.sidebar-subtitle {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 12px;
-  color: var(--accent, #D9B26F);
-  margin: 0;
 }
 
 .sidebar-menu {
@@ -55,7 +33,7 @@
 
 .menu-section {
   margin-bottom: 18px;
-  padding: 0 10px;
+  padding: 0 12px;
 }
 
 .menu-section ul {
@@ -71,46 +49,54 @@
 .menu-section a {
   display: flex;
   align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
   padding: 12px 14px;
-  color: rgba(255, 255, 255, 0.84);
-  text-decoration: none;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   border: 1px solid transparent;
-  border-radius: 14px;
-  margin-bottom: 6px;
-  backdrop-filter: blur(6px);
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
 }
 
 .menu-section a:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: white;
   transform: translateX(2px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .menu-section a.active {
   background: rgba(255, 255, 255, 0.16);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.14);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .menu-icon {
-  width: 30px;
-  height: 30px;
-  margin-right: 12px;
-  text-align: center;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   flex: 0 0 auto;
 }
 
 .menu-label {
-  font-family: 'Montserrat', sans-serif;
   font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .admin-section {
@@ -120,19 +106,19 @@
 }
 
 .section-title {
-  padding: 0 14px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.66);
+  margin: 0 0 10px;
+  padding: 0 14px;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  margin: 0;
-  letter-spacing: 0.12em;
 }
 
 @media (max-width: 768px) {
   .sidebar {
-    transform: translateX(-100%);
     width: 280px;
+    transform: translateX(-100%);
   }
 
   .sidebar.open {
@@ -140,6 +126,6 @@
   }
 
   .menu-section {
-    padding: 0 12px;
+    padding: 0 10px;
   }
 }

@@ -1,4 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --color-bg: #eef3f1;
+  --color-surface: rgba(255, 255, 255, 0.9);
+  --color-surface-strong: #ffffff;
+  --color-border: #dbe4e0;
+  --color-text: #18201d;
+  --color-muted: #5f6d68;
+  --color-accent: #0f6d6b;
+  --color-accent-strong: #0a5351;
+  --color-accent-soft: rgba(15, 109, 107, 0.1);
+  --color-danger: #c23b22;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --shadow-lg: 0 20px 50px rgba(18, 32, 30, 0.08);
+  --shadow-md: 0 10px 24px rgba(18, 32, 30, 0.06);
+  --font-body: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
 
 * {
   margin: 0;
@@ -6,79 +25,110 @@
   box-sizing: border-box;
 }
 
-:root {
-  --primary: #016667;
-  --secondary: #F4F7F8;
-  --accent: #D9B26F;
-}
-
 html,
 body,
 #root {
-  height: 100%;
-  font-family: 'Montserrat', sans-serif;
+  min-height: 100%;
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--secondary);
-  color: #333;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(15, 109, 107, 0.08), transparent 26%),
+    radial-gradient(circle at top right, rgba(217, 178, 111, 0.07), transparent 24%),
+    linear-gradient(180deg, #f7faf9 0%, var(--color-bg) 100%);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 .App {
-  height: 100%;
+  min-height: 100vh;
 }
 
-/* Common Button Styles */
-button {
-  font-family: 'Montserrat', sans-serif;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-body) !important;
+  color: var(--color-text);
+  letter-spacing: -0.03em;
 }
 
-button:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+p,
+li,
+button,
+input,
+select,
+textarea,
+a,
+label {
+  font-family: var(--font-body);
 }
 
-/* Form Styles */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
 input,
 select,
 textarea {
-  font-family: 'Montserrat', sans-serif;
+  font: inherit;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
+button {
+  cursor: pointer;
 }
 
-/* Scrollbar Styles */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(15, 109, 107, 0.06);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+  background: rgba(15, 109, 107, 0.28);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: rgba(15, 109, 107, 0.42);
 }
 
-/* Utility Classes */
 .access-denied {
-  padding: 40px;
+  padding: 32px;
   text-align: center;
-  color: #e74c3c;
-  font-size: 18px;
-  background: white;
-  border-radius: 8px;
+  color: var(--color-danger);
+  font-size: 16px;
+  background: var(--color-surface-strong);
+  border: 1px solid #f1d3cd;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .container {
@@ -87,9 +137,17 @@ textarea:focus {
   padding: 0 20px;
 }
 
-/* Responsive */
+::selection {
+  background: rgba(15, 109, 107, 0.18);
+  color: var(--color-text);
+}
+
 @media (max-width: 768px) {
   :root {
-    font-size: 14px;
+    font-size: 15px;
+  }
+
+  .container {
+    padding: 0 16px;
   }
 }

@@ -1,25 +1,21 @@
 /* Main Layout Styles */
 .dashboard-layout {
   display: flex;
-  height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(217, 178, 111, 0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(1, 102, 103, 0.08), transparent 24%),
-    linear-gradient(180deg, #f7faf9 0%, #eef3f1 100%);
-  background-attachment: fixed;
+  min-height: 100dvh;
+  background: transparent;
 }
 
 .main-content {
   flex: 1;
-  margin-left: 250px;
-  margin-top: 60px;
+  margin-left: 264px;
+  margin-top: 72px;
   overflow-y: auto;
-  transition: margin-left 0.3s ease;
+  transition: margin-left 0.25s ease;
 }
 
 .content-wrapper {
-  padding: 24px;
-  max-width: 1520px;
+  padding: 28px;
+  max-width: 1560px;
   margin: 0 auto;
 }
 
@@ -29,6 +25,10 @@
   }
   
   .sidebar.open ~ .main-content {
-    margin-left: 250px;
+    margin-left: 0;
+  }
+
+  .content-wrapper {
+    padding: 18px 16px 24px;
   }
 }

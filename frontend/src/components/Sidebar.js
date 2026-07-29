@@ -9,17 +9,17 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '\u{1F4CA}' },
-    { path: '/inventory', label: 'Inventory', icon: '\u{1F4E6}', permission: 'INVENTORY' },
-    { path: '/orders', label: 'Inventory Orders', icon: '\u{1F4CB}', permission: 'INVENTORY_ORDERS' },
-    { path: '/customized-orders', label: 'Customized Orders', icon: '\u{1F3ED}', permission: 'CUSTOMIZED_ORDERS' },
-    { path: '/clients', label: 'Clients', icon: '\u{1F464}', permission: 'CLIENTS' },
-    { path: '/attendance', label: 'Attendance', icon: '\u2713', permission: 'ATTENDANCE' },
+    { path: '/dashboard', label: 'Dashboard', badge: 'DB' },
+    { path: '/inventory', label: 'Inventory', badge: 'IN', permission: 'INVENTORY' },
+    { path: '/orders', label: 'Inventory Orders', badge: 'OR', permission: 'INVENTORY_ORDERS' },
+    { path: '/customized-orders', label: 'Customized Orders', badge: 'CU', permission: 'CUSTOMIZED_ORDERS' },
+    { path: '/clients', label: 'Clients', badge: 'CL', permission: 'CLIENTS' },
+    { path: '/attendance', label: 'Attendance', badge: 'AT', permission: 'ATTENDANCE' },
   ];
 
   const managementItems = [
-    { path: '/income', label: 'Finance', icon: '\u{1F4B0}', permission: 'SOURCE_OF_INCOME' },
-    { path: '/employees', label: 'Employees', icon: '\u{1F468}\u200D\u{1F4BC}', permission: 'EMPLOYEES' },
+    { path: '/income', label: 'Finance', badge: 'FI', permission: 'SOURCE_OF_INCOME' },
+    { path: '/employees', label: 'Employees', badge: 'EM', permission: 'EMPLOYEES' },
   ];
 
   const canAccess = (permission) => {
@@ -28,7 +28,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   };
 
   return (
-    <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-menu">
         <div className="menu-section">
           <ul>
@@ -41,7 +41,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                       className={location.pathname === item.path ? 'active' : ''}
                       onClick={toggleSidebar}
                     >
-                      <span className="menu-icon">{item.icon}</span>
+                      <span className="menu-icon" aria-hidden="true">
+                        {item.badge}
+                      </span>
                       <span className="menu-label">{item.label}</span>
                     </Link>
                   </li>
@@ -63,7 +65,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                         className={location.pathname === item.path ? 'active' : ''}
                         onClick={toggleSidebar}
                       >
-                        <span className="menu-icon">{item.icon}</span>
+                        <span className="menu-icon" aria-hidden="true">
+                          {item.badge}
+                        </span>
                         <span className="menu-label">{item.label}</span>
                       </Link>
                     </li>
@@ -73,7 +77,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 };
 

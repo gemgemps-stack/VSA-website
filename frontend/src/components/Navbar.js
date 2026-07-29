@@ -8,10 +8,14 @@ const Navbar = ({ toggleSidebar }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
+  const userLabel = (user?.username || user?.email || 'User').trim() || 'User';
+  const userInitial = userLabel.charAt(0).toUpperCase();
+
   const handleLogout = async () => {
     try {
       await logout();
     } finally {
+      setDropdownOpen(false);
       navigate('/login', { replace: true });
     }
   };
@@ -21,7 +25,7 @@ const Navbar = ({ toggleSidebar }) => {
       <div className="navbar-container">
         <div className="navbar-left">
           <button className="toggle-btn" onClick={toggleSidebar} aria-label="Toggle navigation menu">
-            ☰
+            Menu
           </button>
           <img
             className="navbar-logo"
@@ -29,7 +33,7 @@ const Navbar = ({ toggleSidebar }) => {
             alt="Verdida Sports Apparel logo"
           />
           <div className="navbar-brand">
-            <h1 className="navbar-title"><i>Verdida Sports Apparel</i></h1>
+            <h1 className="navbar-title">Verdida Sports Apparel</h1>
             <span className="navbar-tagline">Operations dashboard</span>
           </div>
         </div>
@@ -37,12 +41,20 @@ const Navbar = ({ toggleSidebar }) => {
           <div className="user-menu">
             <button
               className="user-btn"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
+              onClick={() => setDropdownOpen((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={dropdownOpen}
             >
-              {user?.username} ▾
+              <span className="user-initial" aria-hidden="true">
+                {userInitial}
+              </span>
+              <span className="user-name">{userLabel}</span>
+              <span className="user-caret" aria-hidden="true">
+                v
+              </span>
             </button>
             {dropdownOpen && (
-              <div className="dropdown-menu">
+              <div className="dropdown-menu" role="menu">
                 <div className="dropdown-item">
                   <strong>{user?.email}</strong>
                 </div>

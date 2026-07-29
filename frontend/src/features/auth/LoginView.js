@@ -49,32 +49,30 @@ const Login = () => {
               alt="Verdida Sports Apparel logo"
             />
             <div className="brand-copy">
-              <h1><i>Verdida Sports Apparel</i></h1>
-              <p>
-              Apparel and Clothing
-            </p>
+              <h1>Verdida Sports Apparel</h1>
+              <p>Operations hub for apparel, orders, and client work.</p>
             </div>
           </div>
 
           <div className="brand-highlight">
-            <h2>Style doesn&apos;t have to be expensive 💯</h2>
+            <h2>Keep the business moving without the clutter.</h2>
             <p>
-              Manage inventory, orders, and customer accounts in one place.
+              Manage inventory, orders, and customer accounts from one focused workspace.
             </p>
           </div>
 
           <ul className="brand-points">
-            <li>Affordable apparel &amp; clothing</li>
-            <li>High-quality customized jerseys</li>
-            <li>Trusted brand experience</li>
+            <li>Inventory, order, and client visibility in one place</li>
+            <li>Fast access for the teams that need it every day</li>
+            <li>Built for a calm, low-friction workflow</li>
           </ul>
         </section>
 
         <section className="login-panel">
           <div className="login-panel-inner">
-          <div className="login-header">
-              <h2>Welcome back!</h2>
-              <p className="motto">Sign in to your VSA account with your email</p>
+            <div className="login-header">
+              <h2>Welcome back</h2>
+              <p className="motto">Sign in with your email to continue to the dashboard.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">
@@ -107,12 +105,8 @@ const Login = () => {
 
               {error && <div className="error-message">{error}</div>}
 
-              <button
-                type="submit"
-                className="login-btn"
-                disabled={loading}
-              >
-                {loading ? 'Logging in...' : 'Sign In'}
+              <button type="submit" className="login-btn" disabled={loading}>
+                {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
           </div>
