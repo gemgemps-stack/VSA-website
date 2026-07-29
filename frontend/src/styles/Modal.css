@@ -82,10 +82,11 @@
 
 .modal-header h2 {
   margin: 0;
-  color: var(--primary, #016667);
-  font-family: 'Bebas Neue', cursive;
-  font-size: 26px;
-  letter-spacing: 0.04em;
+  color: #18201d;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .modal-close {
@@ -152,20 +153,21 @@
 .btn-submit {
   padding: 11px 18px;
   border: none;
-  border-radius: 4px;
+  border-radius: 12px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s;
+  font-weight: 700;
+  transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .btn-cancel {
-  background-color: #ecf0f1;
-  color: #333;
+  background-color: #edf2ef;
+  color: #18201d;
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background-color: #d5dbdb;
+  background-color: #dee8e3;
+  transform: translateY(-1px);
 }
 
 .btn-submit {
@@ -175,6 +177,7 @@
 
 .btn-submit:hover:not(:disabled) {
   background: linear-gradient(135deg, #014d4e 0%, #013334 100%);
+  transform: translateY(-1px);
 }
 
 .btn-cancel:disabled,
