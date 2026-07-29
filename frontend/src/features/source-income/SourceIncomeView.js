@@ -269,8 +269,11 @@ const SourceIncome = () => {
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
 
+    const formatLocalDateKey = (date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
     const buildDayBucket = (date) => {
-      const bucketKey = date.toISOString().slice(0, 10);
+      const bucketKey = formatLocalDateKey(date);
       return {
         key: bucketKey,
         label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
@@ -280,7 +283,7 @@ const SourceIncome = () => {
     };
 
     const buildMonthBucket = (date) => {
-      const bucketKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const bucketKey = formatLocalDateKey(date).slice(0, 7);
       return {
         key: bucketKey,
         label: date.toLocaleDateString(undefined, { month: 'short', year: period === 'ANNUALLY' ? 'numeric' : undefined }),
@@ -312,8 +315,8 @@ const SourceIncome = () => {
       if (!isWithinRange(entryDate, range)) return;
 
       const bucketKey = period === 'WEEKLY' || period === 'MONTHLY'
-        ? entryDate.toISOString().slice(0, 10)
-        : `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}`;
+        ? formatLocalDateKey(entryDate)
+        : formatLocalDateKey(entryDate).slice(0, 7);
       const bucket = bucketMap.get(bucketKey);
       if (!bucket) return;
 
@@ -838,7 +841,7 @@ const SourceIncome = () => {
     const salesEntries = getSalesEntries(entries);
     const liquidationEntries = getLiquidationEntries(entries);
     const periodLabel = REPORT_PERIODS.find((item) => item.key === period)?.label || period;
-    const salesColumns = ['Date', 'Type', 'Job Order No.', 'Reference Number', 'Check Number', 'Source/Method', 'Remarks', 'Amount'];
+    const salesColumns = ['Date', 'Type', 'Job Order No.', 'Reference Number', 'Check Number', 'Shop', 'Payment Method', 'Remarks', 'Amount'];
     const liquidationColumns = ['Date', 'Type', 'Reference Number', 'Remarks', 'Amount'];
 
     const row = (cells, styleId = 'sCell') => `<Row>${cells.map((cell) => `<Cell${styleId ? ` ss:StyleID="${styleId}"` : ''}${cell.mergeAcross ? ` ss:MergeAcross="${cell.mergeAcross}"` : ''}><Data ss:Type="${cell.type || 'String'}">${escapeXml(cell.value)}</Data></Cell>`).join('')}</Row>`;
@@ -847,7 +850,7 @@ const SourceIncome = () => {
     const buildTransactionRows = (transactionEntries, transactionType) => {
       if (transactionEntries.length === 0) {
         return [row([
-          { value: `No ${transactionType.toLowerCase()} entries found for this period.`, mergeAcross: transactionType === 'LIQUIDATION' ? 4 : 7 },
+          { value: `No ${transactionType.toLowerCase()} entries found for this period.`, mergeAcross: transactionType === 'LIQUIDATION' ? 4 : 8 },
         ], 'sNote')];
       }
 
@@ -874,7 +877,8 @@ const SourceIncome = () => {
         const displayType = 'Sale';
         const referenceNumber = entry.referenceNumber || '';
         const checkNumber = entry.checkNumber || '';
-        const sourceMethod = entry.shopType || entry.paymentMethod || 'N/A';
+        const shop = entry.shopType || 'N/A';
+        const paymentMethod = entry.paymentMethod || 'N/A';
         const remarks = entry.remarks || '';
 
         return row([
@@ -883,7 +887,8 @@ const SourceIncome = () => {
           { value: entry.jobOrderNo || 'No Job Order' },
           { value: referenceNumber || 'N/A' },
           { value: checkNumber || 'N/A' },
-          { value: sourceMethod },
+          { value: shop },
+          { value: paymentMethod },
           { value: remarks || '' },
           { value: amount, type: 'Number' },
         ]);
@@ -891,22 +896,22 @@ const SourceIncome = () => {
     };
 
     const sheetRows = [
-      row([{ value: 'VERDIDA SPORTS APPAREL', mergeAcross: 7 }], 'sTitle'),
-      row([{ value: 'FINANCE REPORT', mergeAcross: 7 }], 'sHeading'),
-      row([{ value: `Period: ${periodLabel}`, mergeAcross: 7 }], 'sMeta'),
-      row([{ value: `Date Range: ${range.start.toLocaleDateString()} - ${range.end.toLocaleDateString()}`, mergeAcross: 7 }], 'sMeta'),
-      row([blankCell(7)], 'sBlank'),
-      row([{ value: 'SALES', mergeAcross: 7 }], 'sSection'),
+      row([{ value: 'VERDIDA SPORTS APPAREL', mergeAcross: 8 }], 'sTitle'),
+      row([{ value: 'FINANCE REPORT', mergeAcross: 8 }], 'sHeading'),
+      row([{ value: `Period: ${periodLabel}`, mergeAcross: 8 }], 'sMeta'),
+      row([{ value: `Date Range: ${range.start.toLocaleDateString()} - ${range.end.toLocaleDateString()}`, mergeAcross: 8 }], 'sMeta'),
+      row([blankCell(8)], 'sBlank'),
+      row([{ value: 'SALES', mergeAcross: 8 }], 'sSection'),
       row(salesColumns.map((column) => ({ value: column })), 'sHeader'),
       ...buildTransactionRows(salesEntries, 'SALE'),
-      row([blankCell(7)], 'sBlank'),
-      row([{ value: 'LIQUIDATIONS', mergeAcross: 7 }], 'sSection'),
+      row([blankCell(8)], 'sBlank'),
+      row([{ value: 'LIQUIDATIONS', mergeAcross: 8 }], 'sSection'),
       row(liquidationColumns.map((column) => ({ value: column })), 'sHeader'),
       ...buildTransactionRows(liquidationEntries, 'LIQUIDATION'),
-      row([blankCell(7)], 'sBlank'),
-      row([{ value: 'Sales Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: salesTotal, type: 'Number' }], 'sTotal'),
-      row([{ value: 'Liquidation Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: liquidationTotal, type: 'Number' }], 'sTotal'),
-      row([{ value: 'Report Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: netTotal, type: 'Number' }], netTotal < 0 ? 'sTotalNegative' : 'sTotal'),
+      row([blankCell(8)], 'sBlank'),
+      row([{ value: 'Sales Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: salesTotal, type: 'Number' }], 'sTotal'),
+      row([{ value: 'Liquidation Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: liquidationTotal, type: 'Number' }], 'sTotal'),
+      row([{ value: 'Report Total' }, blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), blankCell(), { value: netTotal, type: 'Number' }], netTotal < 0 ? 'sTotalNegative' : 'sTotal'),
     ];
 
     const xmlRows = sheetRows
@@ -2185,26 +2190,28 @@ const SourceIncome = () => {
           size="finance"
         >
           <div className="finance-form-stack">
-            <div className="finance-form-field">
-              <label className="income-details-label finance-form-label">Withdrawal Date</label>
-              <input
-                type="date"
-                value={liquidationDate}
-                onChange={(e) => setLiquidationDate(e.target.value)}
-                className="finance-form-input"
-              />
-            </div>
-            <div className="finance-form-field">
-              <label className="income-details-label finance-form-label">Amount</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={liquidationAmount}
-                onChange={(e) => setLiquidationAmount(e.target.value)}
-                placeholder="Enter amount to withdraw"
-                className="finance-form-input"
-              />
+            <div style={{ display: 'flex', gap: '3%', flexWrap: 'wrap' }}>
+              <div className="finance-form-field" style={{ flex: '0 0 30%' }}>
+                <label className="income-details-label finance-form-label">Withdrawal Date</label>
+                <input
+                  type="date"
+                  value={liquidationDate}
+                  onChange={(e) => setLiquidationDate(e.target.value)}
+                  className="finance-form-input"
+                />
+              </div>
+              <div className="finance-form-field" style={{ flex: '0 0 67%' }}>
+                <label className="income-details-label finance-form-label">Amount</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={liquidationAmount}
+                  onChange={(e) => setLiquidationAmount(e.target.value)}
+                  placeholder="Enter amount to withdraw"
+                  className="finance-form-input"
+                />
+              </div>
             </div>
             <div className="finance-form-field">
               <label className="income-details-label finance-form-label">Reason</label>
