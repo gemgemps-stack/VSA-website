@@ -1539,7 +1539,7 @@ const SourceIncome = () => {
         <div className="finance-hero">
           <div className="finance-hero-copy">
             <span style={sectionIconBadgeStyle} aria-hidden="true">
-              <SectionIcon variant="finance" />
+              <SectionIcon variant="banknote" />
             </span>
             <span className="finance-hero-kicker">Finance control center</span>
             <h1>Finance</h1>

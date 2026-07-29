@@ -69,14 +69,23 @@ const SectionIcon = ({ variant }) => {
           <path d="M14.75 19a4.5 4.5 0 0 1 7.5 0" />
         </svg>
       );
-    case 'finance':
+    case 'wallet':
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true" {...iconProps}>
-          <path d="M5 8.5A2.5 2.5 0 0 1 7.5 6h9A2.5 2.5 0 0 1 19 8.5v7A2.5 2.5 0 0 1 16.5 18h-9A2.5 2.5 0 0 1 5 15.5z" />
-          <path d="M7.5 9h9" />
-          <path d="M8 12h8" />
-          <path d="M8 15h6.5" />
-          <path d="M14.5 11.5a2 2 0 1 1 0 4" />
+          <path d="M5.5 8.25h12A1.75 1.75 0 0 1 19.25 10v6A1.75 1.75 0 0 1 17.5 17.75h-10A1.75 1.75 0 0 1 5.75 16V9A.75.75 0 0 1 6.5 8.25Z" />
+          <path d="M5.75 10.25h11.5A1.75 1.75 0 0 1 19 12v1a1.75 1.75 0 0 1-1.75 1.75H16" />
+          <circle cx="15.5" cy="12.5" r="0.75" />
+        </svg>
+      );
+    case 'banknote':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" {...iconProps}>
+          <path d="M4.75 8.25h14.5A1.75 1.75 0 0 1 21 10v4A1.75 1.75 0 0 1 19.25 15.75H4.75A1.75 1.75 0 0 1 3 14v-4a1.75 1.75 0 0 1 1.75-1.75Z" />
+          <path d="M7 10.5h2.75" />
+          <path d="M14.25 10.5H17" />
+          <path d="M7 13.5h2.75" />
+          <path d="M14.25 13.5H17" />
+          <circle cx="12" cy="12" r="1.4" />
         </svg>
       );
     case 'search':
