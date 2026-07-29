@@ -1,9 +1,10 @@
 /* DataTable Styles */
 .datatable-container {
-  background: white;
-  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  border: 1px solid #dbe4e0;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+  box-shadow: 0 12px 28px rgba(18, 32, 30, 0.06);
 }
 
 .datatable {
@@ -13,28 +14,31 @@
 }
 
 .datatable thead {
-  background-color: var(--primary, #016667);
-  color: white;
+  background: linear-gradient(135deg, #0f6d6b 0%, #0a5351 100%);
+  color: #fff;
 }
 
 .datatable th {
   padding: 15px;
   text-align: left;
-  font-weight: 600;
-  border-bottom: 2px solid #ddd;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
 }
 
 .datatable td {
   padding: 15px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #edf2ef;
+  color: #18201d;
 }
 
 .datatable tbody tr:hover {
-  background-color: #f9f9f9;
+  background-color: rgba(15, 109, 107, 0.03);
 }
 
 .datatable tbody tr:nth-child(even) {
-  background-color: #fafafa;
+  background-color: #fbfcfb;
 }
 
 .actions {
@@ -46,59 +50,66 @@
 .btn-view,
 .btn-edit,
 .btn-delete {
-  padding: 6px 12px;
-  background: none;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
   white-space: nowrap;
 }
 
 .btn-view {
-  color: #3498db;
-  border-color: #3498db;
+  color: #0f6d6b;
+  border-color: rgba(15, 109, 107, 0.18);
+  background: rgba(15, 109, 107, 0.06);
 }
 
 .btn-view:hover {
-  background-color: #ecf0f1;
+  transform: translateY(-1px);
+  background: rgba(15, 109, 107, 0.1);
 }
 
 .btn-edit {
-  color: var(--primary, #016667);
-  border-color: var(--primary, #016667);
+  color: #0a5351;
+  border-color: rgba(10, 83, 81, 0.18);
+  background: rgba(10, 83, 81, 0.06);
 }
 
 .btn-edit:hover {
-  background-color: #ecf0f1;
+  transform: translateY(-1px);
+  background: rgba(10, 83, 81, 0.1);
 }
 
 .btn-delete {
-  color: #e74c3c;
-  border-color: #e74c3c;
+  color: #c23b22;
+  border-color: rgba(194, 59, 34, 0.2);
+  background: rgba(194, 59, 34, 0.06);
 }
 
 .btn-delete:hover {
-  background-color: #fadbd8;
+  transform: translateY(-1px);
+  background: rgba(194, 59, 34, 0.1);
 }
 
 .loading,
 .no-data {
-  padding: 40px;
+  padding: 48px 24px;
   text-align: center;
-  color: #666;
+  color: #5f6d68;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+  border: 1px solid #dbe4e0;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(18, 32, 30, 0.06);
+  display: grid;
+  gap: 8px;
+}
+
+.loading strong,
+.no-data strong {
+  color: #18201d;
   font-size: 16px;
-}
-
-.loading {
-  background: white;
-  border-radius: 8px;
-}
-
-.no-data {
-  background: white;
-  border-radius: 8px;
 }
 
 .pagination {
@@ -106,31 +117,32 @@
   justify-content: center;
   align-items: center;
   gap: 10px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-top: 1px solid #eee;
+  padding: 16px;
+  background: #f8fbfa;
+  border-top: 1px solid #edf2ef;
 }
 
 .pagination button {
   padding: 8px 12px;
-  background-color: var(--primary, #016667);
-  color: white;
+  background: linear-gradient(135deg, #0f6d6b 0%, #0a5351 100%);
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: transform 0.18s ease, filter 0.18s ease;
 }
 
 .pagination button:hover:not(:disabled) {
-  background-color: #014849;
+  transform: translateY(-1px);
+  filter: brightness(1.03);
 }
 
 .pagination button:disabled {
-  background-color: #ccc;
+  background: #c7d4d0;
   cursor: not-allowed;
 }
 
 .pagination span {
-  color: #666;
-  font-weight: 500;
+  color: #5f6d68;
+  font-weight: 700;
 }

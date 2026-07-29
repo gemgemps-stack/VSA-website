@@ -15,11 +15,21 @@ const DataTable = ({
   onPageChange,
 }) => {
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="loading">
+        <strong>Loading records</strong>
+        <span>Fetching the latest data right now.</span>
+      </div>
+    );
   }
 
   if (!data || data.length === 0) {
-    return <div className="no-data">No records found</div>;
+    return (
+      <div className="no-data">
+        <strong>No records found</strong>
+        <span>Try a broader search or create a new entry.</span>
+      </div>
+    );
   }
 
   return (
@@ -91,7 +101,9 @@ const DataTable = ({
           >
             Previous
           </button>
-          <span>Page {currentPage} of {totalPages}</span>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
           <button
             disabled={currentPage === totalPages}
             onClick={() => onPageChange(currentPage + 1)}

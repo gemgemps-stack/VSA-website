@@ -913,7 +913,7 @@ const Orders = () => {
 
           <div style={styles.searchCard}>
             <div style={styles.searchInputWrap}>
-              <span style={styles.searchIcon}>⌕</span>
+              <span style={styles.searchIcon}>Search</span>
               <input
                 type="text"
                 style={{ ...styles.input, width: '100%', border: 'none', boxShadow: 'none', padding: '0' }}
@@ -947,7 +947,7 @@ const Orders = () => {
             {loading ? (
               <div style={styles.loadingState}>
                 <div style={styles.loadingDot} />
-                <p style={styles.loadingText}>Loading orders…</p>
+                <p style={styles.loadingText}>Loading orders...</p>
               </div>
             ) : filteredOrders.length === 0 ? (
               <div style={styles.emptyState}>
@@ -1116,7 +1116,7 @@ const Orders = () => {
                       </div>
                     </div>
                     {formData.items.length > 1 && (
-                      <button style={styles.removeBtn} onClick={() => handleRemoveItem(index)}>✕</button>
+                      <button style={styles.removeBtn} onClick={() => handleRemoveItem(index)}>x</button>
                     )}
                   </div>
                 ))}
@@ -1622,3 +1622,6 @@ const Orders = () => {
 };
 
 export default Orders;
+
+
+

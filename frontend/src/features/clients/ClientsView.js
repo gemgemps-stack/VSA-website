@@ -8,7 +8,7 @@ import clientService from '../../services/clientService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
 const formatPhoneNumber = (value) => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
 
   if (digits.length <= 4) return digits;
   if (digits.length <= 7) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
@@ -53,13 +53,23 @@ const Clients = () => {
     loadClients();
   }, [loadClients]);
 
+  const resetForm = () => {
+    setEditingClient(null);
+    setFormData({
+      clientName: '',
+      contactNumber: '',
+      vip: false,
+      notes: '',
+    });
+  };
+
   const handleEdit = (client) => {
     setEditingClient(client);
     setFormData({
-      clientName: client.clientName,
-      contactNumber: client.contactNumber,
-      vip: client.vip,
-      notes: client.notes,
+      clientName: client.clientName || '',
+      contactNumber: client.contactNumber || '',
+      vip: Boolean(client.vip),
+      notes: client.notes || '',
     });
     setModalOpen(true);
   };
@@ -77,15 +87,28 @@ const Clients = () => {
 
   const handleSubmit = async () => {
     try {
+      const payload = {
+        clientName: formData.clientName.trim(),
+        contactNumber: formData.contactNumber.trim(),
+        vip: Boolean(formData.vip),
+        notes: formData.notes.trim(),
+      };
+
+      if (!payload.clientName || !payload.contactNumber) {
+        notifyError('Client name and contact number are required.');
+        return;
+      }
+
       if (editingClient) {
-        await clientService.updateClient(editingClient.id, formData);
+        await clientService.updateClient(editingClient.id, payload);
         notifySuccess('Client updated successfully');
       } else {
-        await clientService.createClient(formData);
+        await clientService.createClient(payload);
         notifySuccess('Client created successfully');
       }
+
       setModalOpen(false);
-      setEditingClient(null);
+      resetForm();
       loadClients();
     } catch (error) {
       console.error('Error saving client:', error);
@@ -100,8 +123,8 @@ const Clients = () => {
     { key: 'contactNumber', label: 'Contact' },
     {
       key: 'vip',
-      label: 'VIP',
-      render: (value) => (value ? '💎 Yes' : '⭐ No'),
+      label: 'Tier',
+      render: (value) => (value ? 'VIP' : 'Standard'),
     },
   ];
 
@@ -110,7 +133,7 @@ const Clients = () => {
       client.clientCode,
       client.clientName,
       client.contactNumber,
-      client.vip ? 'vip' : 'regular',
+      client.vip ? 'vip' : 'standard',
       client.notes,
     ]
       .filter(Boolean)
@@ -142,13 +165,7 @@ const Clients = () => {
               <button
                 className="btn-primary"
                 onClick={() => {
-                  setEditingClient(null);
-                  setFormData({
-                    clientName: '',
-                    contactNumber: '',
-                    vip: false,
-                    notes: '',
-                  });
+                  resetForm();
                   setModalOpen(true);
                 }}
                 type="button"
@@ -184,7 +201,7 @@ const Clients = () => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="⌕ Search clients by name, contact, or notes"
+                  placeholder="Search clients by name, contact, or notes"
                 />
               </div>
             </div>
@@ -214,50 +231,54 @@ const Clients = () => {
               onSubmit={handleSubmit}
               submitText={editingClient ? 'Update' : 'Create'}
             >
-              <form>
-                <div className="form-group">
-                  <label>Client Name *</label>
-                  <input
-                    type="text"
-                    value={formData.clientName}
-                    onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Contact Number *</label>
-                  <input
-                    type="text"
-                    value={formData.contactNumber}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        contactNumber: formatPhoneNumber(e.target.value),
-                      })
-                    }
-                    placeholder="0917-123-4567"
-                    maxLength={13}
-                    inputMode="numeric"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>
+              <form className="form-card" style={{ padding: 0, boxShadow: 'none', border: 'none', background: 'transparent', maxWidth: 'none' }}>
+                <div className="employee-modal-grid">
+                  <div className="form-group">
+                    <label>Client Name *</label>
                     <input
-                      type="checkbox"
-                      checked={formData.vip}
-                      onChange={(e) => setFormData({ ...formData, vip: e.target.checked })}
+                      type="text"
+                      value={formData.clientName}
+                      onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                      placeholder="Enter client name"
+                      required
                     />
-                    VIP Client
-                  </label>
-                </div>
-                <div className="form-group">
-                  <label>Notes</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows="3"
-                  />
+                  </div>
+                  <div className="form-group">
+                    <label>Contact Number *</label>
+                    <input
+                      type="text"
+                      value={formData.contactNumber}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          contactNumber: formatPhoneNumber(e.target.value),
+                        })
+                      }
+                      placeholder="0917-123-4567"
+                      maxLength={13}
+                      inputMode="numeric"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="permission-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={formData.vip}
+                        onChange={(e) => setFormData({ ...formData, vip: e.target.checked })}
+                      />
+                      <span>VIP Client</span>
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label>Notes</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows="3"
+                      placeholder="Optional notes about the client"
+                    />
+                  </div>
                 </div>
               </form>
             </Modal>

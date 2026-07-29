@@ -6,7 +6,7 @@ import PermissionGuard from '../../components/PermissionGuard';
 import { useNotification } from '../../context/NotificationContext';
 import inventoryService from '../../services/inventoryService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
-const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopppee', 'Verdida Sports Apparel'];
+const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopee', 'Verdida Sports Apparel'];
 const SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'XL', 'XXL'];
 const INITIAL_PAGE_SIZE = 100;
 
@@ -301,37 +301,37 @@ const Inventory = () => {
                   type="text"
                   value={searchFilters.itemType}
                   onChange={(e) => setSearchFilters((prev) => ({ ...prev, itemType: e.target.value }))}
-                  placeholder="⌕ Search item type"
+                  placeholder="Search item type"
                 />
                 <input
                   type="text"
                   value={searchFilters.name}
                   onChange={(e) => setSearchFilters((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="⌕ Search name"
+                  placeholder="Search name"
                 />
                 <input
                   type="text"
                   value={searchFilters.jerseyType}
                   onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
-                  placeholder="⌕ Search version"
+                  placeholder="Search version"
                 />
                 <input
                   type="text"
                   value={searchFilters.size}
                   onChange={(e) => setSearchFilters((prev) => ({ ...prev, size: e.target.value }))}
-                  placeholder="⌕ Search size"
+                  placeholder="Search size"
                 />
                 <input
                   type="text"
                   value={searchFilters.shop}
                   onChange={(e) => setSearchFilters((prev) => ({ ...prev, shop: e.target.value }))}
-                  placeholder="⌕ Search shop"
+                  placeholder="Search shop"
                 />
                 <input
                   type="text"
                   value={searchFilters.createdAt}
                   onChange={(e) => setSearchFilters((prev) => ({ ...prev, createdAt: e.target.value }))}
-                  placeholder="⌕ Search date created"
+                  placeholder="Search date created"
                 />
               </div>
             </div>
@@ -546,3 +546,5 @@ const Inventory = () => {
 };
 
 export default Inventory;
+
+

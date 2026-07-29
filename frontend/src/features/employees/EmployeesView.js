@@ -10,21 +10,35 @@ import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErro
 const TEAM_OPTIONS = ['Marketing', 'Production', 'Sewing'];
 
 const extractUsers = (payload) => {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
-  if (payload?.content && Array.isArray(payload.content)) {
-    return payload.content;
-  }
-
+  if (Array.isArray(payload)) return payload;
+  if (payload?.content && Array.isArray(payload.content)) return payload.content;
   return [];
 };
+
+const createInitialFormData = () => ({
+  username: '',
+  email: '',
+  password: '',
+  role: '',
+});
 
 const Employees = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const [registerMode, setRegisterMode] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [formLoading, setFormLoading] = useState(false);
+  const [permissionSaving, setPermissionSaving] = useState(false);
+  const [formData, setFormData] = useState(createInitialFormData());
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
+  const [employeeFilter, setEmployeeFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const employeeFilters = [
     { key: 'ALL', label: 'All Employees' },
@@ -43,27 +57,6 @@ const Employees = () => {
     { key: 'SOURCE_OF_INCOME', label: 'Finance' },
     { key: 'EMPLOYEES', label: 'Employees' },
   ];
-
-  const createInitialFormData = () => ({
-    username: '',
-    email: '',
-    password: '',
-    role: '',
-  });
-
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [formLoading, setFormLoading] = useState(false);
-  const [permissionSaving, setPermissionSaving] = useState(false);
-  const [formData, setFormData] = useState(createInitialFormData());
-  const [selectedPermissions, setSelectedPermissions] = useState([]);
-  const [employeeFilter, setEmployeeFilter] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
 
   const loadUsers = useCallback(async () => {
     if (!isAdmin) {
@@ -324,7 +317,7 @@ const Employees = () => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="⌕ Search employees by name, email, or role"
+                  placeholder="Search employees by name, email, or role"
                 />
               </div>
 
@@ -418,25 +411,23 @@ const Employees = () => {
                     </div>
                   </>
                 ) : (
-                  <>
-                    <div className="form-group">
-                      <label>Team</label>
-                      <select
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        required
-                      >
-                        <option value="" disabled>
-                          Select Team
+                  <div className="form-group">
+                    <label>Team</label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select team
+                      </option>
+                      {TEAM_OPTIONS.map((team) => (
+                        <option key={team} value={team}>
+                          {team}
                         </option>
-                        {TEAM_OPTIONS.map((team) => (
-                          <option key={team} value={team}>
-                            {team}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </>
+                      ))}
+                    </select>
+                  </div>
                 )}
               </div>
 

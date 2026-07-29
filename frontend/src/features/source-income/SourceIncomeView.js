@@ -1022,7 +1022,7 @@ const SourceIncome = () => {
             <div>
               <strong>{data.order?.clientName || (isLiquidationEntry(data.entry) ? 'Liquidation Withdrawal' : 'Walk-in Client')}</strong>
               <div className="finance-entry-subtext">
-                {data.order?.shop || (isLiquidationEntry(data.entry) ? 'Finance' : 'Unknown shop')} • {data.order?.sourceType || (isLiquidationEntry(data.entry) ? 'Liquidation' : 'Order')}
+                {data.order?.shop || (isLiquidationEntry(data.entry) ? 'Finance' : 'Unknown shop')} - {data.order?.sourceType || (isLiquidationEntry(data.entry) ? 'Liquidation' : 'Order')}
               </div>
             </div>
             <strong>{formatMoney(data.entry?.amount)}</strong>
@@ -1034,8 +1034,8 @@ const SourceIncome = () => {
                 <div>
                   <strong>{item.productName || 'Unnamed item'}</strong>
                   <div className="finance-entry-subtext">
-                    {[item.size && `Size: ${item.size}`, item.number && `Size Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' • ')}
-                    {([item.size, item.number, item.jerseyType].some(Boolean) ? ' • ' : '') + `${item.quantity || 0} × ${formatMoney(item.unitPrice)}`}
+                    {[item.size && `Size: ${item.size}`, item.number && `Size Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' - ')}
+                    {([item.size, item.number, item.jerseyType].some(Boolean) ? ' - ' : '') + `${item.quantity || 0} x ${formatMoney(item.unitPrice)}`}
                   </div>
                 </div>
                 <strong>{formatMoney((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0))}</strong>
@@ -1230,7 +1230,7 @@ const SourceIncome = () => {
               type="text"
               value={chequeSearchNumber}
               onChange={(e) => setChequeSearchNumber(e.target.value)}
-              placeholder="⌕ Search by check number..."
+              placeholder="Search by check number..."
             />
           </div>
 
@@ -1585,7 +1585,7 @@ const SourceIncome = () => {
         {loading ? (
           <div className="finance-loading-state" role="status" aria-live="polite">
             <div className="finance-loading-pulse" aria-hidden="true" />
-            <strong>Preparing your finance overview…</strong>
+            <strong>Preparing your finance overview...</strong>
             <p>Gathering income sources, payment methods, and liquidation activity for the latest insights.</p>
           </div>
         ) : (
@@ -1776,7 +1776,7 @@ const SourceIncome = () => {
                         type="text"
                         value={searchReferenceNumber}
                         onChange={(e) => setSearchReferenceNumber(e.target.value)}
-                        placeholder="⌕ Search by reference number..."
+                        placeholder="Search by reference number..."
                       />
                     </div>
                   </div>
@@ -1873,7 +1873,7 @@ const SourceIncome = () => {
                     <div className="finance-search-bar">
                       <input
                         type="text"
-                        placeholder="⌕ Search by liquidation reference number..."
+                        placeholder="Search by liquidation reference number..."
                         value={searchReferenceNumber}
                         onChange={(e) => setSearchReferenceNumber(e.target.value)}
                       />
@@ -1884,7 +1884,7 @@ const SourceIncome = () => {
                           onClick={handleClearSearch}
                           title="Clear search"
                         >
-                          ×
+                          x
                         </button>
                       )}
                     </div>
@@ -2123,8 +2123,8 @@ const SourceIncome = () => {
                     </div>
                   </div>
                   <div className="finance-chart-legend">
-                    <span><strong className="finance-legend-dot income">●</strong> Sales Income</span>
-                    <span><strong className="finance-legend-dot withdrawal">●</strong> Withdrawals</span>
+                    <span><strong className="finance-legend-dot income">•</strong> Sales Income</span>
+                    <span><strong className="finance-legend-dot withdrawal">•</strong> Withdrawals</span>
                   </div>
                 </div>
                 {renderPerformanceLineChart()}
@@ -2210,6 +2210,9 @@ const SourceIncome = () => {
 };
 
 export default SourceIncome;
+
+
+
 
 
 
