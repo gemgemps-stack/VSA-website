@@ -2157,8 +2157,8 @@ const SourceIncome = () => {
                     </div>
                   </div>
                   <div className="finance-chart-legend">
-                    <span><strong className="finance-legend-dot income">•</strong> Sales Income</span>
-                    <span><strong className="finance-legend-dot withdrawal">•</strong> Withdrawals</span>
+                    <span><strong className="finance-legend-dot income" aria-hidden="true" /> Sales Income</span>
+                    <span><strong className="finance-legend-dot withdrawal" aria-hidden="true" /> Withdrawals</span>
                   </div>
                 </div>
                 {renderPerformanceLineChart()}
