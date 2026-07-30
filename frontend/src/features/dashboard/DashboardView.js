@@ -21,6 +21,33 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 2,
   }).format(Number(value) || 0);
 
+const formatShortCurrency = (value) => {
+  const amount = Number(value) || 0;
+  const isNegative = amount < 0;
+  const absolute = Math.abs(amount);
+  const sign = isNegative ? '-' : '';
+  const prefix = `${sign}₱`;
+
+  const compactNumber = (number) => {
+    const rounded = Math.round(number * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(/\.0$/, '');
+  };
+
+  if (absolute >= 1000000) {
+    return `${prefix}${compactNumber(absolute / 1000000)}M`;
+  }
+
+  if (absolute >= 1000) {
+    return `${prefix}${compactNumber(absolute / 1000)}K`;
+  }
+
+  if (absolute >= 100) {
+    return `${prefix}${compactNumber(absolute / 100)}H`;
+  }
+
+  return `${prefix}${absolute.toFixed(0)}`;
+};
+
 const formatCount = (value) =>
   new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 0,
@@ -75,22 +102,21 @@ const StatIcon = ({ name }) => {
     case 'finance':
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true" {...dashboardIconProps}>
-          <path d="M4.75 8.25h14.5A1.75 1.75 0 0 1 21 10v4A1.75 1.75 0 0 1 19.25 15.75H4.75A1.75 1.75 0 0 1 3 14v-4a1.75 1.75 0 0 1 1.75-1.75Z" />
-          <path d="M7 10.5h2.75" />
-          <path d="M14.25 10.5H17" />
-          <path d="M7 13.5h2.75" />
-          <path d="M14.25 13.5H17" />
-          <circle cx="12" cy="12" r="1.4" />
+          <path d="M5.5 7.5h9.75a2.75 2.75 0 0 1 2.75 2.75v6.5a2.75 2.75 0 0 1-2.75 2.75H6.75A2.75 2.75 0 0 1 4 16.75V9a1.5 1.5 0 0 1 1.5-1.5Z" />
+          <path d="M14.5 11.25h3.5A1.75 1.75 0 0 1 19.75 13v2.25A1.75 1.75 0 0 1 18 17h-3.5" />
+          <path d="M15 14h1.1" />
+          <path d="M7.25 9.75V8.5a1 1 0 0 1 1-1H16" />
+          <path d="M8 12.25h2.5" />
         </svg>
       );
     case 'employees':
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true" {...dashboardIconProps}>
-          <path d="M15 3.5H9A2.5 2.5 0 0 0 6.5 6v12A2.5 2.5 0 0 0 9 20.5h6A2.5 2.5 0 0 0 17.5 18V6A2.5 2.5 0 0 0 15 3.5Z" />
-          <path d="M9 7h6" />
-          <path d="M9 11h6" />
-          <path d="M11 15h2" />
-          <path d="M12 20.5v1.5" />
+          <path d="M8 4.5h8A2.5 2.5 0 0 1 18.5 7v10A2.5 2.5 0 0 1 16 19.5H8A2.5 2.5 0 0 1 5.5 17V7A2.5 2.5 0 0 1 8 4.5Z" />
+          <path d="M8 8h8" />
+          <path d="M8 11.5h4.5" />
+          <path d="M8 15h2.5" />
+          <circle cx="15.75" cy="14.75" r="1.25" />
         </svg>
       );
     case 'report':
@@ -223,7 +249,7 @@ const Dashboard = () => {
       icon: 'finance',
       metric: stats.monthlyNetIncome,
       metricLabel: 'Net this month',
-      metricFormat: 'currency',
+      metricFormat: 'shortCurrency',
       description: 'Sales income, liquidation, and performance reporting.',
       path: '/income',
       permission: 'SOURCE_OF_INCOME',
@@ -314,7 +340,11 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <button type="button" className="hero-action" onClick={() => navigate('/income')}>
+            <button
+              type="button"
+              className="hero-action"
+              onClick={() => navigate('/income', { state: { openPerformanceReport: true } })}
+            >
               Open finance report
             </button>
           </div>
@@ -549,6 +579,8 @@ const Dashboard = () => {
                             ? '-'
                             : card.metricFormat === 'currency'
                               ? formatCurrency(card.metric)
+                              : card.metricFormat === 'shortCurrency'
+                                ? formatShortCurrency(card.metric)
                               : formatCount(card.metric)}
                         </strong>
                         <span>{card.metricLabel}</span>

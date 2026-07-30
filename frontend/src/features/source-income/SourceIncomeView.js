@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
@@ -48,8 +48,9 @@ const escapeXml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&apos;');
 
-const SourceIncome = () => {
+  const SourceIncome = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { error: notifyError, success: notifySuccess, info: notifyInfo } = useNotification();
   const [incomeEntries, setIncomeEntries] = useState([]);
@@ -72,10 +73,24 @@ const SourceIncome = () => {
   const [liquidationReason, setLiquidationReason] = useState('');
   const [liquidationDate, setLiquidationDate] = useState(new Date().toISOString().slice(0, 10));
   const orderReferenceCacheRef = useRef(orderReferenceCache);
+  const autoOpenedPerformanceReportRef = useRef(false);
 
   useEffect(() => {
     orderReferenceCacheRef.current = orderReferenceCache;
   }, [orderReferenceCache]);
+
+  useEffect(() => {
+    if (autoOpenedPerformanceReportRef.current) {
+      return;
+    }
+
+    if (location.state?.openPerformanceReport) {
+      autoOpenedPerformanceReportRef.current = true;
+      setPerformanceReportPeriod('MONTHLY');
+      setPerformanceReportOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const fetchReferenceNumber = useCallback(async (jobOrderNo) => {
     if (!jobOrderNo || orderReferenceCacheRef.current[jobOrderNo]) return;
