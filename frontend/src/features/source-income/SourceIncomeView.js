@@ -2001,7 +2001,7 @@ const escapeXml = (value) => String(value ?? '')
                                 className="income-details-btn"
                                 onClick={() => openReceipt(entry)}
                               >
-                                View Receipt
+                                View Receipt 
                               </button>
                             </div>
                           </div>
