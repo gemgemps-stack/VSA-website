@@ -30,4 +30,6 @@ public interface AttendanceRepository extends JpaRepository<EmployeeAttendance, 
             LocalDate endDate,
             UUID userId
     );
+
+    long countByAttendanceDateBetween(LocalDate startDate, LocalDate endDate);
 }

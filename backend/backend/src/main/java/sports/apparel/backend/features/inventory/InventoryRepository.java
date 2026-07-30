@@ -14,4 +14,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, UUID> {
     List<Inventory> findByNameContainingIgnoreCase(String name);
 
     List<Inventory> findByQuantityLessThan(Integer quantity);
+
+    long countByQuantityLessThan(Integer quantity);
 }

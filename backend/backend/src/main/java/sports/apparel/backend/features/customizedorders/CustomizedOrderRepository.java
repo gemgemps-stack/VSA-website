@@ -22,6 +22,8 @@ public interface CustomizedOrderRepository extends JpaRepository<CustomizedOrder
 
     List<CustomizedOrder> findByStatus(String status);
 
+    long countByStatus(String status);
+
     @Query("SELECT o FROM CustomizedOrder o WHERE YEAR(o.orderDate) = :year AND MONTH(o.orderDate) = :month")
     List<CustomizedOrder> findByYearAndMonth(int year, int month);
 
