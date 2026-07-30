@@ -57,13 +57,12 @@ const MenuIcon = ({ name }) => {
       );
     case 'finance':
       return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.15" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4.75 7.5h14.5A1.75 1.75 0 0 1 21 9.25v5.5A1.75 1.75 0 0 1 19.25 16.5H4.75A1.75 1.75 0 0 1 3 14.75v-5.5A1.75 1.75 0 0 1 4.75 7.5Z" />
-          <path d="M6.75 10h2.25" />
-          <path d="M6.75 13h2.25" />
-          <path d="M15.75 10h1.5" />
-          <path d="M15.75 13h1.5" />
-          <path d="M10.15 9.2c.64-.5 1.58-.7 2.3-.7 1.15 0 2.1.48 2.35 1.2.23.67-.04 1.4-.76 1.84-.78.47-1.8.56-2.72.86-.86.28-1.52.74-1.52 1.68 0 1.03.98 1.68 2.2 1.68.81 0 1.58-.25 2.08-.73" />
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6.1 5.2c0-1.3 1.1-2.2 2.7-2.2 1.4 0 2.5.8 2.5 2 0 1-.9 1.6-2.2 1.9l-1 .2c-1.3.3-2 .9-2 1.9 0 1.3 1.1 2.2 2.7 2.2 1.5 0 2.6-.7 2.9-2" />
+          <path d="M8.8 3.8v13.4" />
+          <path d="M14 6.25h6" />
+          <path d="M14 12h6" />
+          <path d="M14 17.75h6" />
         </svg>
       );
     case 'employees':
