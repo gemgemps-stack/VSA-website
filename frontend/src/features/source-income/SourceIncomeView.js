@@ -71,7 +71,14 @@ const escapeXml = (value) => String(value ?? '')
   const [liquidationModalOpen, setLiquidationModalOpen] = useState(false);
   const [liquidationAmount, setLiquidationAmount] = useState('');
   const [liquidationReason, setLiquidationReason] = useState('');
-  const [liquidationDate, setLiquidationDate] = useState(new Date().toISOString().slice(0, 10));
+  const getTodayLocalDateKey = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+  const [liquidationDate, setLiquidationDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
   const orderReferenceCacheRef = useRef(orderReferenceCache);
   const autoOpenedPerformanceReportRef = useRef(false);
 
@@ -237,7 +244,13 @@ const escapeXml = (value) => String(value ?? '')
 
   const getIncomeDate = useCallback((entry) => {
     const rawDate = entry.incomeDate || entry.createdAt;
-    const parsedDate = rawDate ? new Date(rawDate) : new Date(0);
+    let parsedDate;
+    if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      const [year, month, day] = rawDate.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day);
+    } else {
+      parsedDate = rawDate ? new Date(rawDate) : new Date(0);
+    }
     return Number.isNaN(parsedDate.getTime()) ? new Date(0) : parsedDate;
   }, []);
 
@@ -542,7 +555,7 @@ const escapeXml = (value) => String(value ?? '')
   const openLiquidationModal = () => {
     setLiquidationAmount('');
     setLiquidationReason('');
-    setLiquidationDate(new Date().toISOString().slice(0, 10));
+    setLiquidationDate(getTodayLocalDateKey());
     setLiquidationModalOpen(true);
   };
 
@@ -589,7 +602,7 @@ const escapeXml = (value) => String(value ?? '')
 
       setLiquidationAmount('');
       setLiquidationReason('');
-      setLiquidationDate(new Date().toISOString().slice(0, 10));
+      setLiquidationDate(getTodayLocalDateKey());
       setLiquidationModalOpen(false);
       await loadIncomeEntries();
       notifySuccess('Liquidation recorded successfully.');
