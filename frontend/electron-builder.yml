@@ -1,0 +1,23 @@
+appId: com.verdida.sportsapparel
+productName: Verdida Sports Apparel
+copyright: Verdida Sports Apparel
+extends: null
+directories:
+  output: dist
+files:
+  - electron/**/*
+  - build/**/*
+  - package.json
+win:
+  icon: public/verdida-logo.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Verdida Sports Apparel
+  artifactName: Verdida-Setup-${version}.exe
