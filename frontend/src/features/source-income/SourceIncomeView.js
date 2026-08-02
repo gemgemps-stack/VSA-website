@@ -1884,9 +1884,6 @@ const escapeXml = (value) => String(value ?? '')
                       ))
                     ) : (
                       <div className="income-details-empty">
-                        <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: '10px' }} aria-hidden="true">
-                          <SectionIcon variant="search" />
-                        </span>
                         <p>No income transaction history found for this period.</p>
                       </div>
                     )}
