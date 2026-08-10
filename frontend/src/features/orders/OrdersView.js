@@ -45,7 +45,7 @@ const ORDER_FILTERS = [
   { key: ORDER_STATUS.IN_PRODUCTION, label: 'To Be Packaged' },
   { key: ORDER_STATUS.NOT_YET_FULLY_PAID, label: 'Not Yet Fully Paid' },
   { key: ORDER_STATUS.FULLY_PAID, label: 'Fully Paid' },
-  { key: ORDER_STATUS.CANCELLED, label: 'Cancelled Orders' },
+  { key: ORDER_STATUS.CANCELLED, label: 'Cancelled' },
 ];
 
 const INITIAL_PAGE_SIZE = 100;
