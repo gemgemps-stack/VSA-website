@@ -56,6 +56,7 @@ const Employees = () => {
     { key: 'CLIENTS', label: 'Clients' },
     { key: 'ATTENDANCE', label: 'Attendance' },
     { key: 'SOURCE_OF_INCOME', label: 'Finance' },
+    { key: 'FINANCE_ARCHIVE', label: 'Finance Archive' },
     { key: 'EMPLOYEES', label: 'Employees' },
   ];
 

@@ -11,6 +11,7 @@ import CustomizedOrders from './features/customized-orders/CustomizedOrdersView'
 import Inventory from './features/inventory/InventoryView';
 import Clients from './features/clients/ClientsView';
 import SourceIncome from './features/source-income/SourceIncomeView';
+import FinanceArchive from './features/finance-archive/FinanceArchiveView';
 import Employees from './features/employees/EmployeesView';
 import Attendance from './features/attendance/AttendanceView';
 import './App.css';
@@ -112,6 +113,16 @@ function App() {
           <Route 
             path="/payment-methods" 
             element={<Navigate to="/income" replace />} 
+          />
+          <Route
+            path="/finance-archive"
+            element={
+              <ProtectedRoute>
+                <PermissionGuard permission="FINANCE_ARCHIVE">
+                  <FinanceArchive />
+                </PermissionGuard>
+              </ProtectedRoute>
+            }
           />
           <Route 
             path="/employees" 

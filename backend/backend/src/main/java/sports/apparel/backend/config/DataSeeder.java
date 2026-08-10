@@ -25,7 +25,8 @@ public class DataSeeder {
             "CLIENTS",
             "SOURCE_OF_INCOME",
             "EMPLOYEES",
-            "ATTENDANCE"
+            "ATTENDANCE",
+            "FINANCE_ARCHIVE"
     };
 
     @Bean

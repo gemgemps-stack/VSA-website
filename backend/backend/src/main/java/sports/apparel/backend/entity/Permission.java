@@ -33,6 +33,7 @@ public class Permission {
         INVENTORY,
         CLIENTS,
         SOURCE_OF_INCOME,
-        ATTENDANCE
+        ATTENDANCE,
+        FINANCE_ARCHIVE
     }
 }
