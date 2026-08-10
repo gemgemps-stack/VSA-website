@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
+import ConfirmModal from '../../components/ConfirmModal';
 import PermissionGuard from '../../components/PermissionGuard';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import { useLocation } from 'react-router-dom';
@@ -130,6 +131,7 @@ const Orders = () => {
   const [editingOrder, setEditingOrder] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [remarks, setRemarks] = useState('');
   const [paymentUpdateAmount, setPaymentUpdateAmount] = useState('');
@@ -526,7 +528,12 @@ const Orders = () => {
       alert('Fully Paid orders cannot be deleted.');
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this order?')) return;
+    setConfirmDeleteId(id);
+  };
+
+  const performDelete = async () => {
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await orderService.deleteOrder(id);
       alert('Order deleted successfully');
@@ -1625,6 +1632,14 @@ const Orders = () => {
               </div>
             )}
           </Modal>
+
+          <ConfirmModal
+            isOpen={!!confirmDeleteId}
+            title="Confirm Delete"
+            message="Are you sure you want to delete this order? This action cannot be undone."
+            onConfirm={performDelete}
+            onCancel={() => setConfirmDeleteId(null)}
+          />
         </div>
       </DashboardLayout>
     </PermissionGuard>

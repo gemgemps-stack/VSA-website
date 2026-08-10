@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/DataTable.css';
+import ConfirmModal from './ConfirmModal';
 
 const DataTable = ({
   columns,
@@ -14,6 +15,7 @@ const DataTable = ({
   totalPages = 1,
   onPageChange,
 }) => {
+  const [deleteTarget, setDeleteTarget] = useState(null);
   if (loading) {
     return (
       <div className="loading">
@@ -75,11 +77,7 @@ const DataTable = ({
                 {onDelete && (!canDelete || canDelete(row)) && (
                   <button
                     className="btn-delete"
-                    onClick={() => {
-                      if (window.confirm('Are you sure?')) {
-                        onDelete(row.id);
-                      }
-                    }}
+                    onClick={() => setDeleteTarget(row)}
                     title="Delete"
                     type="button"
                   >
@@ -113,6 +111,17 @@ const DataTable = ({
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Confirm Delete"
+        message="Are you sure you want to delete this record? This action cannot be undone."
+        onConfirm={() => {
+          onDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

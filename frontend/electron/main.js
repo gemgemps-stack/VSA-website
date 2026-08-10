@@ -115,8 +115,11 @@ function createWindow(port) {
   mainWindow.loadURL(`http://127.0.0.1:${port}`);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: 'deny' };
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
   });
 
   mainWindow.on('closed', () => {

@@ -1,6 +1,7 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
+  "productName": "VSA",
+  "version": "0.1.2",
   "private": true,
   "main": "electron/main.js",
   "dependencies": {

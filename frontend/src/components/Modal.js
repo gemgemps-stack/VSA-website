@@ -12,6 +12,7 @@ const Modal = ({
   loading = false,
   size = 'default',
   zIndex = 1000,
+  submitClass = '',
 }) => {
   if (!isOpen) return null;
 
@@ -33,7 +34,7 @@ const Modal = ({
           </button>
           {onSubmit && (
             <button
-              className="btn-submit"
+              className={`btn-submit ${submitClass}`}
               onClick={onSubmit}
               disabled={loading}
               type="button"
