@@ -31,10 +31,19 @@ const isLiquidationEntry = (entry) => {
   return paymentCategory === LIQUIDATION_CATEGORY || paymentMethod === LIQUIDATION_PAYMENT_METHOD.toLowerCase();
 };
 
+const matchesSearch = (entry, searchQuery) => {
+  const term = String(searchQuery || '').trim().toLowerCase();
+  if (!term) return true;
+  return [entry.jobOrderNo, entry.referenceNumber, entry.checkNumber]
+    .filter(Boolean)
+    .some((value) => String(value).toLowerCase().includes(term));
+};
+
 const FinanceArchive = () => {
   const { error: notifyError, success: notifySuccess } = useNotification();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadEntries = useCallback(async () => {
     try {
@@ -57,8 +66,9 @@ const FinanceArchive = () => {
     loadEntries();
   }, [loadEntries]);
 
-  const receipts = entries.filter((entry) => !isLiquidationEntry(entry));
-  const liquidations = entries.filter((entry) => isLiquidationEntry(entry));
+  const filteredEntries = entries.filter((entry) => matchesSearch(entry, searchQuery));
+  const receipts = filteredEntries.filter((entry) => !isLiquidationEntry(entry));
+  const liquidations = filteredEntries.filter((entry) => isLiquidationEntry(entry));
 
   const receiptColumns = [
     { key: 'incomeDate', label: 'Date', render: formatDate },
@@ -80,7 +90,7 @@ const FinanceArchive = () => {
 
   const liquidationColumns = [
     { key: 'incomeDate', label: 'Date', render: formatDate },
-    { key: 'referenceNumber', label: 'Ref No', render: (value) => value || '-' },
+    { key: 'referenceNumber', label: 'Liquidation No', render: (value) => value || '-' },
     {
       key: 'amount',
       label: 'Amount',
@@ -138,6 +148,22 @@ const FinanceArchive = () => {
                     <small>{stat.detail}</small>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="search-and-filter-row">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
+                <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: 0 }} aria-hidden="true">
+                  <SectionIcon variant="search" />
+                </span>
+                <div className="client-search-bar" aria-label="Finance archive search">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by job order number or reference/check number"
+                  />
+                </div>
               </div>
             </div>
 
