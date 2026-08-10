@@ -114,7 +114,7 @@ const FinanceArchive = () => {
           <div className="page-header">
             <div className="page-title-block">
               <span style={sectionIconBadgeStyle} aria-hidden="true">
-                <SectionIcon variant="finance" />
+                <SectionIcon variant="archive" />
               </span>
               <span className="page-eyebrow">Admin only</span>
               <h1>Finance Archive</h1>

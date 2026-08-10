@@ -97,6 +97,14 @@ const SectionIcon = ({ variant }) => {
           <circle cx="12" cy="12" r="1.4" />
         </svg>
       );
+    case 'archive':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" {...iconProps}>
+          <rect width="18" height="4" x="3" y="3.5" rx="1.5" />
+          <path d="M4.5 8.5v9A2 2 0 0 0 6.5 19.5h11a2 2 0 0 0 2-2v-9" />
+          <path d="M10 12h4" />
+        </svg>
+      );
     case 'search':
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true" {...iconProps}>
