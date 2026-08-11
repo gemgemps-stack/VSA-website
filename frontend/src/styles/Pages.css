@@ -217,12 +217,14 @@
 }
 
 .inventory-search-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
   margin-bottom: 20px;
 }
 
 .inventory-search-bar input {
   width: 100%;
-  max-width: 420px;
   padding: 12px 14px;
   border: 1px solid #dfe7e3;
   border-radius: 12px;
@@ -3218,5 +3220,11 @@
 }
 
 .inventory-search-bar .search-field-with-icon {
-  max-width: 420px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .inventory-search-bar {
+    grid-template-columns: 1fr;
+  }
 }
