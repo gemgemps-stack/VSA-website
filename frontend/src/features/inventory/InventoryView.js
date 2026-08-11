@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
+import SearchField from '../../components/SearchField';
 import { useNotification } from '../../context/NotificationContext';
 import inventoryService from '../../services/inventoryService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
@@ -299,51 +300,46 @@ const Inventory = () => {
               </div>
             </div>
 
-            <div className="search-and-filter-row">
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
-                <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: 0 }} aria-hidden="true">
-                  <SectionIcon variant="search" />
-                </span>
-                <div className="inventory-search-bar" aria-label="Inventory search filters">
-                  <input
-                    type="text"
-                    value={searchFilters.itemType}
-                    onChange={(e) => setSearchFilters((prev) => ({ ...prev, itemType: e.target.value }))}
-                    placeholder="Search item type"
-                  />
-                  <input
-                    type="text"
-                    value={searchFilters.name}
-                    onChange={(e) => setSearchFilters((prev) => ({ ...prev, name: e.target.value }))}
-                    placeholder="Search name"
-                  />
-                  <input
-                    type="text"
-                    value={searchFilters.jerseyType}
-                    onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
-                    placeholder="Search version"
-                  />
-                  <input
-                    type="text"
-                    value={searchFilters.size}
-                    onChange={(e) => setSearchFilters((prev) => ({ ...prev, size: e.target.value }))}
-                    placeholder="Search size"
-                  />
-                  <input
-                    type="text"
-                    value={searchFilters.shop}
-                    onChange={(e) => setSearchFilters((prev) => ({ ...prev, shop: e.target.value }))}
-                    placeholder="Search shop"
-                  />
-                  <input
-                    type="text"
-                    value={searchFilters.createdAt}
-                    onChange={(e) => setSearchFilters((prev) => ({ ...prev, createdAt: e.target.value }))}
-                    placeholder="Search date created"
-                  />
-                </div>
-              </div>
-            </div>
+        <div className="search-and-filter-row">
+          <div className="inventory-search-bar" aria-label="Inventory search filters">
+            <SearchField
+              type="text"
+              value={searchFilters.itemType}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, itemType: e.target.value }))}
+              placeholder="Search item type"
+            />
+            <SearchField
+              type="text"
+              value={searchFilters.name}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Search name"
+            />
+            <SearchField
+              type="text"
+              value={searchFilters.jerseyType}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
+              placeholder="Search version"
+            />
+            <SearchField
+              type="text"
+              value={searchFilters.size}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, size: e.target.value }))}
+              placeholder="Search size"
+            />
+            <SearchField
+              type="text"
+              value={searchFilters.shop}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, shop: e.target.value }))}
+              placeholder="Search shop"
+            />
+            <SearchField
+              type="text"
+              value={searchFilters.dateCreated}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, dateCreated: e.target.value }))}
+              placeholder="Search date created"
+            />
+          </div>
+        </div>
 
             {filteredInventory.length === 0 ? (
               <div className="empty-state">

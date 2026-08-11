@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
+import SearchField from '../../components/SearchField';
 import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
 import { expandPermissions } from '../../utils/permissions';
@@ -142,8 +143,12 @@ const Employees = () => {
     const permissionsToGrant = nextPermissions.filter((permission) => !currentSet.has(permission));
     const permissionsToRevoke = currentPermissions.filter((permission) => !nextSet.has(permission));
 
-    await Promise.all(permissionsToGrant.map((permission) => userService.grantPermission(userId, permission)));
-    await Promise.all(permissionsToRevoke.map((permission) => userService.revokePermission(userId, permission)));
+    for (const permission of permissionsToGrant) {
+      await userService.grantPermission(userId, permission);
+    }
+    for (const permission of permissionsToRevoke) {
+      await userService.revokePermission(userId, permission);
+    }
   };
 
   const handleRegisterEmployee = async () => {
@@ -314,22 +319,17 @@ const Employees = () => {
             </div>
 
             <div className="search-and-filter-row">
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
-                <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: 0 }} aria-hidden="true">
-                  <SectionIcon variant="search" />
-                </span>
-                <div className="employee-search-bar" aria-label="Employee search">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    placeholder="Search employees by name, email, or role"
-                  />
-                </div>
-              </div>
+              <SearchField
+                className="employee-search-bar"
+                wrapperProps={{ 'aria-label': 'Employee search' }}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search employees by name, email, or role"
+              />
 
               <div className="orders-filter-bar">
                 {employeeFilters.map((filter) => (
@@ -393,7 +393,7 @@ const Employees = () => {
                 {registerMode === 'admin' ? (
                   <>
                     <div className="form-group">
-                      <label>Email (Optional)</label>
+                      <label>Email</label>
                       <input
                         type="email"
                         value={formData.email}
@@ -403,7 +403,7 @@ const Employees = () => {
                     </div>
 
                     <div className="form-group">
-                      <label>Password (Optional)</label>
+                      <label>Password</label>
                       <input
                         type="password"
                         value={formData.password}

@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
+import SearchField from '../../components/SearchField';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import userService from '../../services/userService';
@@ -637,32 +638,22 @@ const calculateDayType = (hours) => {
           >
             <div className="attendance-control attendance-record-search">
               <label>Employee Name</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
-                  <SectionIcon variant="search" />
-                </span>
-                <input
-                  type="text"
-                  value={employeeNameQuery}
-                  onChange={(e) => setEmployeeNameQuery(e.target.value)}
-                  placeholder="Search employee name"
-                />
-              </div>
+              <SearchField
+                type="text"
+                value={employeeNameQuery}
+                onChange={(e) => setEmployeeNameQuery(e.target.value)}
+                placeholder="Search employee name"
+              />
             </div>
 
             <div className="attendance-control attendance-record-search">
               <label>Status</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
-                  <SectionIcon variant="search" />
-                </span>
-                <input
-                  type="text"
-                  value={statusQuery}
-                  onChange={(e) => setStatusQuery(e.target.value)}
-                  placeholder="Search status"
-                />
-              </div>
+              <SearchField
+                type="text"
+                value={statusQuery}
+                onChange={(e) => setStatusQuery(e.target.value)}
+                placeholder="Search status"
+              />
             </div>
 
             {employeeNameQuery.trim() && (

@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import PermissionGuard from '../../components/PermissionGuard';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
+import SearchField from '../../components/SearchField';
 import { useNotification } from '../../context/NotificationContext';
 import incomeService from '../../services/incomeService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
@@ -152,19 +153,14 @@ const FinanceArchive = () => {
             </div>
 
             <div className="search-and-filter-row">
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
-                <span style={{ ...sectionIconBadgeStyle, width: '36px', height: '36px', marginBottom: 0 }} aria-hidden="true">
-                  <SectionIcon variant="search" />
-                </span>
-                <div className="client-search-bar" aria-label="Finance archive search">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by job order number or reference/check number"
-                  />
-                </div>
-              </div>
+              <SearchField
+                className="client-search-bar"
+                wrapperProps={{ 'aria-label': 'Finance archive search' }}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by job order number or reference/check number"
+              />
             </div>
 
             <div className="archive-section">

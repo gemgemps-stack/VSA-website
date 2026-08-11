@@ -5,6 +5,7 @@ import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
+import SearchField from '../../components/SearchField';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import customizedOrderService from '../../services/customizedOrderService';
@@ -1259,14 +1260,13 @@ const escapeXml = (value) => String(value ?? '')
             </div>
           </div>
 
-          <div className="order-search-bar finance-search-field">
-            <input
-              type="text"
-              value={chequeSearchNumber}
-              onChange={(e) => setChequeSearchNumber(e.target.value)}
-              placeholder="Search by check number..."
-            />
-          </div>
+          <SearchField
+            className="order-search-bar finance-search-field"
+            type="text"
+            value={chequeSearchNumber}
+            onChange={(e) => setChequeSearchNumber(e.target.value)}
+            placeholder="Search by check number..."
+          />
 
           <h3 className="transaction-histories-title finance-section-title">Transaction Histories</h3>
           <div className="income-details-list transaction-histories-grid finance-history-grid">
@@ -1808,19 +1808,13 @@ const escapeXml = (value) => String(value ?? '')
                       ))}
                     </div>
 
-                  <div className="order-search-bar finance-search-field">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
-                        <SectionIcon variant="search" />
-                      </span>
-                      <input
-                        type="text"
-                        value={searchReferenceNumber}
-                        onChange={(e) => setSearchReferenceNumber(e.target.value)}
-                        placeholder="Search by reference number..."
-                      />
-                    </div>
-                  </div>
+                  <SearchField
+                    className="order-search-bar finance-search-field"
+                    type="text"
+                    value={searchReferenceNumber}
+                    onChange={(e) => setSearchReferenceNumber(e.target.value)}
+                    placeholder="Search by reference number..."
+                  />
                 </div>
 
                   <div className="income-details-summary finance-summary-grid">
@@ -1913,17 +1907,12 @@ const escapeXml = (value) => String(value ?? '')
 
                 <div className="finance-toolbar">
                   <div className="finance-search-bar">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ ...sectionIconBadgeStyle, width: '34px', height: '34px', marginBottom: 0 }} aria-hidden="true">
-                        <SectionIcon variant="search" />
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="Search by liquidation reference number..."
-                        value={searchReferenceNumber}
-                        onChange={(e) => setSearchReferenceNumber(e.target.value)}
-                      />
-                    </div>
+                    <SearchField
+                      type="text"
+                      placeholder="Search by liquidation reference number..."
+                      value={searchReferenceNumber}
+                      onChange={(e) => setSearchReferenceNumber(e.target.value)}
+                    />
                     {searchReferenceNumber && (
                       <button
                         type="button"
