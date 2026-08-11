@@ -20,7 +20,8 @@ const isLocalUrl = (value) => {
   }
 };
 
-const preferLocalDiscovery = isBrowserLocalhost && !isLocalUrl(EXPLICIT_API_BASE_URL);
+const preferLocalDiscovery =
+  isBrowserLocalhost && process.env.NODE_ENV === 'development' && !isLocalUrl(EXPLICIT_API_BASE_URL);
 let resolvedApiBaseUrl = EXPLICIT_API_BASE_URL;
 let resolveApiBaseUrlPromise = null;
 
