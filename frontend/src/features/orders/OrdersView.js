@@ -208,16 +208,6 @@ const Orders = () => {
   }, []);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (e.target.matches && e.target.matches('input[type="number"]')) {
-        e.preventDefault();
-      }
-    };
-    document.addEventListener('wheel', handler, { passive: false });
-    return () => document.removeEventListener('wheel', handler);
-  }, []);
-
-  useEffect(() => {
     loadClients();
     loadInventory();
     loadOrders();
@@ -893,7 +883,6 @@ const Orders = () => {
   return (
     <PermissionGuard permission="INVENTORY_ORDERS">
       <DashboardLayout>
-        <style>{`input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type="number"] { -moz-appearance: textfield; }`}</style>
         <div style={styles.pageContainer}>
           <div style={styles.heroCard}>
             <div style={styles.heroContent}>
@@ -1102,23 +1091,22 @@ const Orders = () => {
                     <div style={styles.formGroup}>
                       <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         style={{ ...styles.input, backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                         value={item.unitPrice}
                         readOnly
                         placeholder="0.00"
-                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       />
                     </div>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>{index === 0 ? 'Quantity *' : ''}</label>
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
+                        inputMode="numeric"
                         style={styles.input}
                         value={item.quantity}
                         onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         max={(() => {
                           const inv = inventoryItems.find(i => getInventoryLabel(i) === item.productName);
                           return inv ? inv.quantity : undefined;
@@ -1145,8 +1133,8 @@ const Orders = () => {
                   <label style={styles.label}>Discount %</label>
                   {fieldErrors.discount ? <div style={styles.fieldError}>{fieldErrors.discount}</div> : null}
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     style={styles.input}
                     value={formData.discount}
                     onChange={(e) => {
@@ -1156,14 +1144,13 @@ const Orders = () => {
                       if (!Number.isFinite(n)) return;
                       setFormData(p => ({ ...p, discount: String(Math.max(0, n)) }));
                     }}
-                    onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     placeholder="0"
                   />
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Down Payment</label>
                   {fieldErrors.downPayment ? <div style={styles.fieldError}>{fieldErrors.downPayment}</div> : null}
-                  <input type="number" style={styles.input} value={formData.downPayment} onChange={handleDownPaymentChange} disabled={isVipClient} placeholder="0" onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }} />
+                  <input type="text" inputMode="decimal" style={styles.input} value={formData.downPayment} onChange={handleDownPaymentChange} disabled={isVipClient} placeholder="0" />
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Total Price</label>
@@ -1455,7 +1442,8 @@ const Orders = () => {
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Enter Down Payment Amount</label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={downPaymentAmount}
                           onChange={(e) => {
                             const rawValue = e.target.value;
@@ -1468,9 +1456,7 @@ const Orders = () => {
                             if (!Number.isFinite(numValue) || numValue < 0) return;
                             setDownPaymentAmount(String(Math.min(numValue, remainingBalance)));
                           }}
-                          onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           placeholder="0"
-                          min="0"
                           style={styles.input}
                         />
                       </div>
@@ -1534,7 +1520,8 @@ const Orders = () => {
                     <h4 style={{ margin: '0 0 10px 0' }}>Payment Update</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         style={styles.input}
                         placeholder="Input payment update"
                         value={paymentUpdateAmount}
@@ -1549,7 +1536,6 @@ const Orders = () => {
                           if (!Number.isFinite(amount) || amount < 0) return;
                           setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
                         }}
-                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       />
                       <div style={styles.formGroup}>
                         <select

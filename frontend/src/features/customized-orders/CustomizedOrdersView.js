@@ -175,16 +175,6 @@ const CustomizedOrders = () => {
   }, []);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (e.target.matches && e.target.matches('input[type="number"]')) {
-        e.preventDefault();
-      }
-    };
-    document.addEventListener('wheel', handler, { passive: false });
-    return () => document.removeEventListener('wheel', handler);
-  }, []);
-
-  useEffect(() => {
     loadClients();
     loadIncomeEntries();
   }, [loadClients, loadIncomeEntries]);
@@ -870,7 +860,6 @@ const CustomizedOrders = () => {
   return (
     <PermissionGuard permission="CUSTOMIZED_ORDERS">
       <DashboardLayout>
-        <style>{`input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type="number"] { -moz-appearance: textfield; }`}</style>
         <div style={styles.container}>
           <div style={styles.heroCard}>
             <div style={styles.heroContent}>
@@ -1079,26 +1068,24 @@ const CustomizedOrders = () => {
 	                      <div style={styles.formGroup}>
 	                        <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>
 	                        <input
-	                          type="number"
+	                          type="text"
+	                          inputMode="decimal"
 	                          value={item.unitPrice}
 	                          onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
 	                          placeholder="0.00"
-	                          step="0.01"
 	                          style={styles.input}
-	                          onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
 	                        />
 	                      </div>
 	
                         <div style={styles.formGroup}>
                           <label style={styles.label}>{index === 0 ? 'Qty *' : ''}</label>
                           <input
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
                             value={item.quantity}
                             onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                             placeholder="0"
                             style={styles.input}
-                            onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           />
                         </div>
 	
@@ -1151,8 +1138,8 @@ const CustomizedOrders = () => {
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Discount %</label>
                       <input
-                        type="number"
-                        min="0"
+                        type="text"
+                        inputMode="decimal"
                         value={formData.discount}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -1164,9 +1151,7 @@ const CustomizedOrders = () => {
                           if (!Number.isFinite(n)) return;
                           setFormData({ ...formData, discount: String(Math.max(0, n)) });
                         }}
-                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         placeholder="0"
-                        step="0.01"
                         style={styles.input}
                       />
                     </div>
@@ -1174,14 +1159,12 @@ const CustomizedOrders = () => {
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Down Payment</label>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={formData.downPayment}
                         onChange={handleDownPaymentChange}
                         placeholder="0.00"
-                        step="0.01"
-                        min="0"
                         style={styles.input}
-                        onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                       />
                     </div>
 
@@ -1534,7 +1517,8 @@ const CustomizedOrders = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                           <div style={styles.formGroup}>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={paymentUpdateAmount}
                               onChange={(e) => {
                                 const rawValue = e.target.value;
@@ -1547,7 +1531,6 @@ const CustomizedOrders = () => {
                                 if (!Number.isFinite(amount) || amount < 0) return;
                                 setPaymentUpdateAmount(String(Math.min(amount, remainingBalance)));
                               }}
-                              onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               placeholder="Input payment update"
                               style={styles.input}
                             />
@@ -1674,7 +1657,8 @@ const CustomizedOrders = () => {
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Enter Down Payment Amount</label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={downPaymentAmount}
                           onChange={(e) => {
                             const rawValue = e.target.value;
@@ -1687,9 +1671,7 @@ const CustomizedOrders = () => {
                             if (!Number.isFinite(numValue) || numValue < 0) return;
                             setDownPaymentAmount(String(Math.min(numValue, remainingBalance)));
                           }}
-                          onWheelCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           placeholder="0"
-                          min="0"
                           style={styles.input}
                         />
                       </div>
