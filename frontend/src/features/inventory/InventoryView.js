@@ -425,7 +425,8 @@ const Inventory = () => {
                 <div className="form-group">
                   <label>Size Number (Optional )</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.number}
                     onChange={(e) => setFormData({ ...formData, number: e.target.value })}
                     placeholder="Enter size number"
@@ -437,8 +438,8 @@ const Inventory = () => {
                 <div className="form-group">
                   <label>Quantity</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.quantity}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -457,8 +458,8 @@ const Inventory = () => {
                 <div className="form-group">
                   <label>Price</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     required
