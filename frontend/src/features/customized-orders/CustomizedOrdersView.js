@@ -450,6 +450,8 @@ const CustomizedOrders = () => {
       freebie: order?.freebie || '',
       discount: order?.discount != null ? String(order.discount) : '0',
       downPayment: order?.downPayment != null ? String(order.downPayment) : '0',
+      referenceNumber: order?.referenceNumber || '',
+      checkNumber: order?.checkNumber || '',
       shop: order?.shop || '',
       orderDate: order?.orderDate || new Date().toISOString().split('T')[0],
       modeOfPayment: order?.modeOfPayment || '',
