@@ -702,103 +702,108 @@ const escapeXml = (value) => String(value ?? '')
     };
   }, [getOrderItems, getReceiptNumber, isLiquidationEntry, receiptError, receiptLoading, receiptTarget]);
 
-  const buildReceiptPdfLines = useCallback((data) => {
-    if (!data) return [];
-
+  const buildReceiptPdfBlob = useCallback((data) => {
     const { order, entry, receiptDate, receiptNumber } = data;
-    const lines = [
-      'VERDIDA SPORTS APPAREL',
-      'OFFICIAL FINANCE RECEIPT',
-      '----------------------------------------',
-      'Premium teamwear and custom apparel',
-      '----------------------------------------',
-      '',
-      'BRAND SNAPSHOT',
-      'VSA | Trusted by athletes, teams, and communities',
-      '',
-      `Receipt No.: ${receiptNumber || 'N/A'}`,
-      `Job Order No.: ${order?.jobOrderNo || 'N/A'}`,
-      `Receipt Date: ${receiptDate ? new Date(receiptDate).toLocaleString() : 'No date available'}`,
-      `Source Type: ${order?.sourceType || 'Order'}`,
-      `Shop: ${order?.shop || 'Unknown shop'}`,
-      `Client: ${order?.clientName || 'Walk-in Client'}`,
-      `Payment Method: ${order?.modeOfPayment || entry.paymentMethod || 'N/A'}`,
-      `Reference Number: ${entry.referenceNumber || order?.referenceNumber || 'N/A'}`,
-      `Payment Status: ${entry.checkNumber ? 'With Check' : 'Recorded Payment'}`,
-      '',
-      'Items',
-    ];
+    const pageHeight = 842;
+    const commands = [];
+    const color = (red, green, blue) => `${red} ${green} ${blue}`;
+    const text = (value, x, top, size, font = 'F1', fill = color(0.11, 0.16, 0.15)) => {
+      const safeValue = toAscii(value);
+      const baseline = pageHeight - top - size;
+      commands.push(`BT /${font} ${size} Tf ${fill} rg 1 0 0 1 ${x} ${baseline} Tm (${escapePdfText(safeValue)}) Tj ET`);
+    };
+    const rectangle = (x, top, width, height, fill) => {
+      commands.push(`${fill} rg ${x} ${pageHeight - top - height} ${width} ${height} re f`);
+    };
+    const line = (x, top, width, stroke = color(0.80, 0.86, 0.83)) => {
+      commands.push(`${stroke} RG 0.7 w ${x} ${pageHeight - top} m ${x + width} ${pageHeight - top} l S`);
+    };
+    const label = (value, x, top) => text(value.toUpperCase(), x, top, 7, 'F2', color(0.01, 0.40, 0.40));
+    const value = (content, x, top, width = 220) => {
+      const safeValue = toAscii(content || 'N/A');
+      text(safeValue.length > 34 ? `${safeValue.slice(0, width > 200 ? 31 : 19)}...` : safeValue, x, top, 9, 'F2');
+    };
 
+    rectangle(0, 0, 595, 5, color(0.01, 0.40, 0.40));
+    text('VERDIDA SPORTS APPAREL', 48, 34, 9, 'F2', color(0.01, 0.40, 0.40));
+    text('Payment receipt', 48, 49, 22, 'F2');
+    text('A clear record of your transaction', 48, 78, 9, 'F1', color(0.44, 0.50, 0.48));
+    rectangle(495, 32, 48, 48, color(0.91, 0.96, 0.94));
+    text('VSA', 507, 50, 11, 'F2', color(0.01, 0.40, 0.40));
+
+    rectangle(48, 108, 499, 70, color(0.94, 0.97, 0.96));
+    label('Amount received', 68, 124);
+    text(formatMoney(entry?.amount), 68, 140, 22, 'F2', color(0.01, 0.40, 0.40));
+    rectangle(448, 130, 80, 20, color(0.85, 0.93, 0.90));
+    text('RECORDED', 459, 136, 7, 'F2', color(0.01, 0.40, 0.40));
+
+    label('Receipt number', 48, 204); value(receiptNumber, 48, 216);
+    label('Date issued', 190, 204); value(receiptDate ? new Date(receiptDate).toLocaleString() : 'No date available', 190, 216, 180);
+    label('Job order', 382, 204); value(order?.jobOrderNo || 'N/A', 382, 216, 160);
+    label('Payment method', 48, 251); value(entry?.paymentMethod || order?.modeOfPayment || 'N/A', 48, 263);
+    label('Received from', 300, 251); value(order?.clientName || (isLiquidationEntry(entry) ? 'Liquidation Withdrawal' : 'Walk-in Client'), 300, 263, 240);
+    line(48, 292, 499);
+
+    label('Item description', 48, 312);
+    label('Amount', 470, 312);
+    line(48, 328, 499, color(0.58, 0.68, 0.63));
+    let itemTop = 344;
     if (order?.items?.length > 0) {
-      order.items.forEach((item) => {
+      order.items.slice(0, 10).forEach((item) => {
+        const details = [item.size && `Size: ${item.size}`, item.number && `Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' · ') || 'Apparel item';
         const subtotal = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
-        const details = [
-          item.productName || 'Unnamed item',
-          item.size && `Size: ${item.size}`,
-          item.number && `Size Number: ${item.number}`,
-          item.jerseyType && `Version: ${item.jerseyType}`,
-        ].filter(Boolean).join(' | ');
-        lines.push(
-          `${details} | ${formatMoney(item.unitPrice)} x ${item.quantity || 0} = ${formatMoney(subtotal)}`,
-        );
+        text(item.productName || 'Unnamed item', 48, itemTop, 9, 'F2');
+        text(details, 48, itemTop + 13, 8, 'F1', color(0.44, 0.50, 0.48));
+        text(`${item.quantity || 0} x ${formatMoney(item.unitPrice)}`, 48, itemTop + 25, 8, 'F1', color(0.44, 0.50, 0.48));
+        text(formatMoney(subtotal), 470, itemTop, 9, 'F2');
+        line(48, itemTop + 40, 499, color(0.91, 0.94, 0.92));
+        itemTop += 48;
       });
     } else {
-      lines.push('No line items available.');
+      text(isLiquidationEntry(entry) ? 'No order items for this liquidation withdrawal.' : 'No line items available for this receipt.', 48, itemTop, 9, 'F1', color(0.44, 0.50, 0.48));
+      itemTop += 30;
     }
 
-    lines.push(
-      '',
-      `Total Amount: ${formatMoney(order?.total || 0)}`,
-      `After Discount: ${formatMoney(order?.afterDiscountTotal || 0)}`,
-      `Paid: ${formatMoney(order?.paidAmount || 0)}`,
-      `Remaining Balance: ${formatMoney(order?.remainingBalance || 0)}`,
-      '',
-      'Transaction Entry',
-      `Job Order No.: ${entry.jobOrderNo || 'N/A'}`,
-      `Amount: ${formatMoney(entry.amount)}`,
-      `Shop Type: ${entry.shopType || 'Unknown source'}`,
-      `Payment Method: ${entry.paymentMethod || 'N/A'}`,
-      '',
-      'Notes',
-      'Please keep this receipt for your records.',
-      'Payments are subject to confirmation and accounting review.',
-      'Thank you for supporting Verdida Sports Apparel.',
-    );
+    const totalsTop = Math.min(itemTop + 12, 690);
+    line(310, totalsTop, 237, color(0.58, 0.68, 0.63));
+    text('Order total', 310, totalsTop + 14, 9, 'F1', color(0.44, 0.50, 0.48));
+    text(formatMoney(order?.total || entry?.amount), 458, totalsTop + 14, 9, 'F2');
+    text('Payment recorded', 310, totalsTop + 31, 9, 'F1', color(0.44, 0.50, 0.48));
+    text(formatMoney(entry?.amount), 458, totalsTop + 31, 9, 'F2');
+    if (order) {
+      line(310, totalsTop + 49, 237, color(0.86, 0.91, 0.88));
+      text('Remaining balance', 310, totalsTop + 63, 9, 'F2');
+      text(formatMoney(order.remainingBalance || 0), 450, totalsTop + 62, 11, 'F2', color(0.01, 0.40, 0.40));
+    }
 
-    return lines.flatMap((line) => {
-      const safeLine = toAscii(line);
-      if (!safeLine) return [''];
-      const maxChars = 88;
-      const chunks = [];
-      for (let i = 0; i < safeLine.length; i += maxChars) {
-        chunks.push(safeLine.substring(i, i + maxChars));
-      }
-      return chunks;
-    });
-  }, []);
+    rectangle(0, 770, 595, 72, color(0.97, 0.98, 0.97));
+    text('Keep this receipt for your records.', 48, 788, 9, 'F2');
+    text('Payments are subject to confirmation and accounting review.', 48, 806, 8, 'F1', color(0.44, 0.50, 0.48));
+    text('Thank you for supporting Verdida Sports Apparel.', 48, 819, 8, 'F1', color(0.44, 0.50, 0.48));
 
-  const buildReceiptPdfBlob = useCallback((data) => {
-    const lines = buildReceiptPdfLines(data);
-    const content = lines.join('\n');
-
-    const pdfTemplate = [
-      '%PDF-1.4',
-      '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
-      '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
-      '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj',
-      '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Courier >> endobj',
-      '5 0 obj << /Length ' + (content.length + 100) + ' >> stream',
-      'BT /F1 10 Tf 50 800 Td 12 TL',
+    const stream = commands.join('\n');
+    const objects = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
     ];
-
-    lines.forEach((line) => {
-      pdfTemplate.push(`(${escapePdfText(line)}) Tj T*`);
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    objects.forEach((object, index) => {
+      offsets.push(pdf.length);
+      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
     });
-
-    pdfTemplate.push('ET endstream endobj', 'xref', '0 6', '0000000000 65535 f', '0000000010 00000 n', '0000000060 00000 n', '0000000115 00000 n', '0000000225 00000 n', '0000000290 00000 n', 'trailer << /Size 6 /Root 1 0 R >>', 'startxref', '450', '%%EOF');
-
-    return new Blob([pdfTemplate.join('\n')], { type: 'application/pdf' });
-  }, [buildReceiptPdfLines]);
+    const xrefOffset = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    offsets.slice(1).forEach((offset) => {
+      pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
+    });
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    return new Blob([pdf], { type: 'application/pdf' });
+  }, [isLiquidationEntry]);
 
   const handlePrintReceipt = useCallback(() => {
     const data = getReceiptDocumentData();

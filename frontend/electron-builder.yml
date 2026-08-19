@@ -9,7 +9,7 @@ files:
   - build/**/*
   - package.json
 win:
-  icon: public/verdida-logo.png
+  icon: public/verdida-logo.ico
   target:
     - target: nsis
       arch:
