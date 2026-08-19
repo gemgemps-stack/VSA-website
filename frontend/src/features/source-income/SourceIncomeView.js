@@ -1035,57 +1035,75 @@ const escapeXml = (value) => String(value ?? '')
       );
     }
 
+    const clientName = data.order?.clientName || (isLiquidationEntry(data.entry) ? 'Liquidation Withdrawal' : 'Walk-in Client');
+    const shopName = data.order?.shop || (isLiquidationEntry(data.entry) ? 'Finance' : 'Unknown shop');
+    const sourceName = data.order?.sourceType || (isLiquidationEntry(data.entry) ? 'Liquidation' : 'Order');
+    const paymentMethod = data.entry?.paymentMethod || data.order?.modeOfPayment || 'N/A';
+
     return (
-      <div className="income-details-modal">
-        <div className="income-details-summary">
-          <div>
-            <span className="income-details-label">Receipt No.</span>
-            <strong>{data.receiptNumber}</strong>
-          </div>
-          <div>
-            <span className="income-details-label">Date</span>
-            <strong>{data.receiptDate ? new Date(data.receiptDate).toLocaleString() : 'No date available'}</strong>
-          </div>
-          <div>
-            <span className="income-details-label">Job Order</span>
-            <strong>{data.order?.jobOrderNo || 'N/A'}</strong>
-          </div>
-        </div>
-
-        <div className="income-details-list">
-          <div className="income-detail-row">
+      <div className="receipt-modal">
+        <div className="receipt-paper">
+          <header className="receipt-brand">
             <div>
-              <strong>{data.order?.clientName || (isLiquidationEntry(data.entry) ? 'Liquidation Withdrawal' : 'Walk-in Client')}</strong>
-              <div className="finance-entry-subtext">
-                {data.order?.shop || (isLiquidationEntry(data.entry) ? 'Finance' : 'Unknown shop')} - {data.order?.sourceType || (isLiquidationEntry(data.entry) ? 'Liquidation' : 'Order')}
-              </div>
+              <span className="receipt-eyebrow">Verdida Sports Apparel</span>
+              <h3>Payment receipt</h3>
+              <p className="receipt-muted">A clear record of your transaction</p>
             </div>
-            <strong>{formatMoney(data.entry?.amount)}</strong>
-          </div>
+            <div className="receipt-brand-mark" aria-hidden="true">VSA</div>
+          </header>
 
-          {data.order?.items?.length > 0 ? (
-            data.order.items.map((item, index) => (
-              <div key={`${item.productName || 'item'}-${index}`} className="income-detail-row">
-                <div>
-                  <strong>{item.productName || 'Unnamed item'}</strong>
-                  <div className="finance-entry-subtext">
-                    {[item.size && `Size: ${item.size}`, item.number && `Size Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' - ')}
-                    {([item.size, item.number, item.jerseyType].some(Boolean) ? ' - ' : '') + `${item.quantity || 0} x ${formatMoney(item.unitPrice)}`}
-                  </div>
-                </div>
-                <strong>{formatMoney((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0))}</strong>
-              </div>
-            ))
-          ) : (
-            <div className="income-details-empty">
-              {isLiquidationEntry(data.entry)
-                ? 'No order items available for this liquidation withdrawal.'
-                : 'No line items available for this receipt.'}
+          <section className="receipt-amount-panel">
+            <div>
+              <span className="receipt-label">Amount received</span>
+              <strong>{formatMoney(data.entry?.amount)}</strong>
             </div>
-          )}
+            <span className="receipt-status">Recorded payment</span>
+          </section>
+
+          <section className="receipt-meta-grid" aria-label="Receipt details">
+            <div><span className="receipt-label">Receipt number</span><strong>{data.receiptNumber}</strong></div>
+            <div><span className="receipt-label">Date issued</span><strong>{data.receiptDate ? new Date(data.receiptDate).toLocaleString() : 'No date available'}</strong></div>
+            <div><span className="receipt-label">Job order</span><strong>{data.order?.jobOrderNo || 'N/A'}</strong></div>
+            <div><span className="receipt-label">Payment method</span><strong>{paymentMethod}</strong></div>
+          </section>
+
+          <section className="receipt-customer-row">
+            <div><span className="receipt-label">Received from</span><strong>{clientName}</strong></div>
+            <div><span className="receipt-label">Source</span><strong>{shopName} <span aria-hidden="true">/</span> {sourceName}</strong></div>
+          </section>
+
+          <section className="receipt-items">
+            <div className="receipt-section-heading"><span>Item description</span><span>Amount</span></div>
+            {data.order?.items?.length > 0 ? (
+              data.order.items.map((item, index) => (
+                <div key={`${item.productName || 'item'}-${index}`} className="receipt-item-row">
+                  <div>
+                    <strong>{item.productName || 'Unnamed item'}</strong>
+                    <span>{[item.size && `Size: ${item.size}`, item.number && `Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' · ') || 'Apparel item'}</span>
+                    <span>{item.quantity || 0} × {formatMoney(item.unitPrice)}</span>
+                  </div>
+                  <strong>{formatMoney((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0))}</strong>
+                </div>
+              ))
+            ) : (
+              <p className="receipt-empty-cell">{isLiquidationEntry(data.entry) ? 'No order items for this liquidation withdrawal.' : 'No line items available for this receipt.'}</p>
+            )}
+          </section>
+
+          <section className="receipt-totals">
+            <div><span>Order total</span><strong>{formatMoney(data.order?.total || data.entry?.amount)}</strong></div>
+            <div><span>Payment recorded</span><strong>{formatMoney(data.entry?.amount)}</strong></div>
+            {data.order && <div className="receipt-total-emphasis"><span>Remaining balance</span><strong>{formatMoney(data.order.remainingBalance || 0)}</strong></div>}
+          </section>
+
+          <footer className="receipt-footer-notes">
+            <strong>Keep this receipt for your records.</strong>
+            <p>Payments are subject to confirmation and accounting review.</p>
+            <p>Thank you for supporting Verdida Sports Apparel.</p>
+          </footer>
         </div>
 
-        <div className="finance-entry-actions">
+        <div className="receipt-actions">
           <button type="button" className="income-details-btn" onClick={handlePrintReceipt}>
             Print Receipt
           </button>
