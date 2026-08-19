@@ -884,7 +884,7 @@ const escapeXml = (value) => String(value ?? '')
       printWindow.print();
       printWindow.close();
     }, 250);
-  }, [buildReceiptPdfLines, getReceiptDocumentData]);
+  }, [getReceiptDocumentData, isLiquidationEntry]);
 
   const handleDownloadReceiptPdf = useCallback(() => {
     const data = getReceiptDocumentData();
