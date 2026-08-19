@@ -1950,11 +1950,11 @@
 }
 
 .finance-legend-dot.income {
-  color: #016667;
+  background-color: #16a34a;
 }
 
 .finance-legend-dot.withdrawal {
-  color: #c62828;
+  background-color: #ef4444;
 }
 
 .finance-performance-stack {

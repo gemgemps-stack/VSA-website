@@ -1533,14 +1533,14 @@ const escapeXml = (value) => String(value ?? '')
           ))}
           <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#9fb7b2" strokeWidth="1.2" />
           <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="#9fb7b2" strokeWidth="1.2" />
-          <path d={salesPath} fill="none" stroke="#016667" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />
-          <path d={liquidationPath} fill="none" stroke="#c62828" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={salesPath} fill="none" stroke="#16a34a" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={liquidationPath} fill="none" stroke="#ef4444" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />
           {performanceTimelineData.map((bucket, index) => {
             const x = xScale(index);
             return (
               <g key={bucket.key}>
-                <circle cx={x} cy={yScale(bucket.sales)} r="4.5" fill="#016667" />
-                <circle cx={x} cy={yScale(bucket.liquidation)} r="4.5" fill="#c62828" />
+                <circle cx={x} cy={yScale(bucket.sales)} r="4.5" fill="#16a34a" />
+                <circle cx={x} cy={yScale(bucket.liquidation)} r="4.5" fill="#ef4444" />
                 <text
                   x={x}
                   y={height - 18}
