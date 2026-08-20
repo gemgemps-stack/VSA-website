@@ -742,12 +742,15 @@ const escapeXml = (value) => String(value ?? '')
     label('Job order', 382, 204); value(order?.jobOrderNo || 'N/A', 382, 216, 160);
     label('Payment method', 48, 251); value(entry?.paymentMethod || order?.modeOfPayment || 'N/A', 48, 263);
     label('Received from', 300, 251); value(order?.clientName || (isLiquidationEntry(entry) ? 'Liquidation Withdrawal' : 'Walk-in Client'), 300, 263, 240);
-    line(48, 292, 499);
+    label('Reference no.', 48, 298); value(entry?.referenceNumber || 'N/A', 48, 310, 240);
+    const isCheque = String(entry?.paymentMethod || order?.modeOfPayment || '').toLowerCase().includes('cheque');
+    if (isCheque) { label('Check no.', 300, 298); value(entry?.checkNumber || 'N/A', 300, 310, 180); }
+    line(48, 338, 499);
 
-    label('Item description', 48, 312);
-    label('Amount', 470, 312);
-    line(48, 328, 499, color(0.58, 0.68, 0.63));
-    let itemTop = 344;
+    label('Item description', 48, 358);
+    label('Amount', 470, 358);
+    line(48, 374, 499, color(0.58, 0.68, 0.63));
+    let itemTop = 390;
     if (order?.items?.length > 0) {
       order.items.slice(0, 10).forEach((item) => {
         const details = [item.size && `Size: ${item.size}`, item.number && `Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' · ') || 'Apparel item';
@@ -814,6 +817,9 @@ const escapeXml = (value) => String(value ?? '')
     const shopName = data.order?.shop || (isLiquidationEntry(data.entry) ? 'Finance' : 'Unknown shop');
     const sourceName = data.order?.sourceType || (isLiquidationEntry(data.entry) ? 'Liquidation' : 'Order');
     const paymentMethod = data.entry?.paymentMethod || data.order?.modeOfPayment || 'N/A';
+    const referenceNumber = data.entry?.referenceNumber || 'N/A';
+    const checkNumber = data.entry?.checkNumber || 'N/A';
+    const isChequePayment = paymentMethod.toLowerCase().includes('cheque');
     const itemMarkup = data.order?.items?.length > 0
       ? data.order.items.map((item) => {
         const details = [
@@ -874,7 +880,7 @@ const escapeXml = (value) => String(value ?? '')
           <main class="receipt">
             <header class="brand"><div><span class="eyebrow">Verdida Sports Apparel</span><h1>Payment receipt</h1><p class="muted">A clear record of your transaction</p></div><div class="mark">VSA</div></header>
             <section class="amount"><div><span class="label">Amount received</span><strong>${escapeXml(formatMoney(data.entry?.amount))}</strong></div><span class="status">Recorded payment</span></section>
-            <section class="meta"><div><span class="label">Receipt number</span><span class="value">${escapeXml(data.receiptNumber)}</span></div><div><span class="label">Date issued</span><span class="value">${escapeXml(data.receiptDate ? new Date(data.receiptDate).toLocaleString() : 'No date available')}</span></div><div><span class="label">Job order</span><span class="value">${escapeXml(data.order?.jobOrderNo || 'N/A')}</span></div><div><span class="label">Payment method</span><span class="value">${escapeXml(paymentMethod)}</span></div></section>
+            <section class="meta"><div><span class="label">Receipt number</span><span class="value">${escapeXml(data.receiptNumber)}</span></div><div><span class="label">Date issued</span><span class="value">${escapeXml(data.receiptDate ? new Date(data.receiptDate).toLocaleString() : 'No date available')}</span></div><div><span class="label">Job order</span><span class="value">${escapeXml(data.order?.jobOrderNo || 'N/A')}</span></div><div><span class="label">Payment method</span><span class="value">${escapeXml(paymentMethod)}</span></div><div><span class="label">Reference no.</span><span class="value">${escapeXml(referenceNumber)}</span></div>${isChequePayment ? `<div><span class="label">Check no.</span><span class="value">${escapeXml(checkNumber)}</span></div>` : ''}</section>
             <section class="customer"><div><span class="label">Received from</span><span class="value">${escapeXml(clientName)}</span></div><div><span class="label">Source</span><span class="value">${escapeXml(`${shopName} / ${sourceName}`)}</span></div></section>
             <section class="items"><div class="heading"><span>Item description</span><span>Amount</span></div>${itemMarkup}</section>
             <section class="totals"><div class="total-row"><span>Order total</span><strong>${escapeXml(formatMoney(data.order?.total || data.entry?.amount))}</strong></div><div class="total-row"><span>Payment recorded</span><strong>${escapeXml(formatMoney(data.entry?.amount))}</strong></div>${data.order ? `<div class="total-row emphasis"><span>Remaining balance</span><strong>${escapeXml(formatMoney(data.order.remainingBalance || 0))}</strong></div>` : ''}</section>
@@ -1103,6 +1109,9 @@ const escapeXml = (value) => String(value ?? '')
     const shopName = data.order?.shop || (isLiquidationEntry(data.entry) ? 'Finance' : 'Unknown shop');
     const sourceName = data.order?.sourceType || (isLiquidationEntry(data.entry) ? 'Liquidation' : 'Order');
     const paymentMethod = data.entry?.paymentMethod || data.order?.modeOfPayment || 'N/A';
+    const referenceNumber = data.entry?.referenceNumber || 'N/A';
+    const checkNumber = data.entry?.checkNumber || 'N/A';
+    const isChequePayment = paymentMethod.toLowerCase().includes('cheque');
 
     return (
       <div className="receipt-modal">
@@ -1129,6 +1138,8 @@ const escapeXml = (value) => String(value ?? '')
             <div><span className="receipt-label">Date issued</span><strong>{data.receiptDate ? new Date(data.receiptDate).toLocaleString() : 'No date available'}</strong></div>
             <div><span className="receipt-label">Job order</span><strong>{data.order?.jobOrderNo || 'N/A'}</strong></div>
             <div><span className="receipt-label">Payment method</span><strong>{paymentMethod}</strong></div>
+            <div><span className="receipt-label">Reference no.</span><strong>{referenceNumber}</strong></div>
+            {isChequePayment && <div><span className="receipt-label">Check no.</span><strong>{checkNumber}</strong></div>}
           </section>
 
           <section className="receipt-customer-row">
