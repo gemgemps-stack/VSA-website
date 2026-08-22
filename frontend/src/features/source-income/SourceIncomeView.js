@@ -27,6 +27,7 @@ const SOURCE_GRIDS = [
   { key: 'vsaOnline', label: 'VSA Online Shop', color: '#016667' },
   { key: 'tiktokShop', label: 'Tiktok Shop', color: '#d9b26f' },
   { key: 'shopeeShop', label: 'Shoppee', color: '#f77f00' },
+  { key: 'lazadaShop', label: 'Lazada', color: '#0f146d' },
   { key: 'sportsApparelShop', label: 'Verdida Sports Apparel', color: '#2d6a4f' },
 ];
 
@@ -67,6 +68,7 @@ const escapeXml = (value) => String(value ?? '')
   const [receiptError, setReceiptError] = useState('');
   const [searchReferenceNumber, setSearchReferenceNumber] = useState('');
   const [chequeSearchNumber, setChequeSearchNumber] = useState('');
+  const [creditSearchQuery, setCreditSearchQuery] = useState('');
   const [performanceReportOpen, setPerformanceReportOpen] = useState(false);
   const [performanceReportPeriod, setPerformanceReportPeriod] = useState('MONTHLY');
   const [liquidationModalOpen, setLiquidationModalOpen] = useState(false);
@@ -493,6 +495,18 @@ const escapeXml = (value) => String(value ?? '')
     })
     .filter((order) => !isCancelledOrder(order) && order.remainingBalance > 0)
     .sort((a, b) => b.remainingBalance - a.remainingBalance);
+
+  const filteredCreditEntries = creditSearchQuery.trim()
+    ? creditEntries.filter((order) => {
+        const query = creditSearchQuery.toLowerCase().trim();
+        return (
+          (order.jobOrderNo || '').toLowerCase().includes(query) ||
+          (order.clientName || '').toLowerCase().includes(query) ||
+          (order.sourceType || '').toLowerCase().includes(query) ||
+          (order.shop || '').toLowerCase().includes(query)
+        );
+      })
+    : creditEntries;
 
   const getTotalCredit = () =>
     creditEntries.reduce((total, order) => total + order.remainingBalance, 0);
@@ -1087,6 +1101,7 @@ const escapeXml = (value) => String(value ?? '')
   const closeDetails = () => {
     setDetailsTarget(null);
     setChequeSearchNumber('');
+    setCreditSearchQuery('');
   };
 
   const renderReceiptContent = () => {
@@ -1299,14 +1314,21 @@ const escapeXml = (value) => String(value ?? '')
             </div>
           </div>
 
+          <SearchField
+            className="order-search-bar finance-search-field"
+            type="text"
+            value={creditSearchQuery}
+            onChange={(e) => setCreditSearchQuery(e.target.value)}
+            placeholder="Search by job order, client, source, or shop..."
+          />
+
           <h3 className="transaction-histories-title finance-section-title">Outstanding Credit Orders</h3>
           <div className="income-details-list transaction-histories-grid finance-history-grid">
-            {creditEntries.length > 0 ? (
-              creditEntries.map((order) => (
+            {filteredCreditEntries.length > 0 ? (
+              filteredCreditEntries.map((order) => (
                 <div
                   key={`${order.sourceType}-${order.id}`}
                   className="income-detail-row"
-                  onClick={() => openCreditDetails(order)}
                 >
                   <div className="transaction-history-meta">
                     <div className="finance-reference-block">
@@ -1318,15 +1340,38 @@ const escapeXml = (value) => String(value ?? '')
                     <div className="finance-entry-subtext">
                       {order.shop || 'Unknown shop'} - {order.orderDate || 'No date'}
                     </div>
+                    <div className="finance-entry-actions">
+                      <button
+                        type="button"
+                        className="income-details-btn"
+                        onClick={() => openCreditDetails(order)}
+                        style={{ padding: '8px 14px', fontSize: '12px' }}
+                      >
+                        Details
+                      </button>
+                      {order.jobOrderNo && (
+                        <button
+                          type="button"
+                          className="income-details-btn"
+                          onClick={() => handleViewOrder(order.jobOrderNo)}
+                          style={{ padding: '8px 14px', fontSize: '12px' }}
+                        >
+                          View Order
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="finance-text-right">
                     <strong>PHP {order.remainingBalance.toFixed(2)}</strong>
-                    <div className="finance-entry-subtext">Click to view history</div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="income-details-empty">No outstanding credit balances found.</p>
+              <p className="income-details-empty">
+                {creditSearchQuery
+                  ? `No credit orders found matching "${creditSearchQuery}".`
+                  : 'No outstanding credit balances found.'}
+              </p>
             )}
           </div>
         </div>

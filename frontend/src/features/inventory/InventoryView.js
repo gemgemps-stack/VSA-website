@@ -8,8 +8,8 @@ import SearchField from '../../components/SearchField';
 import { useNotification } from '../../context/NotificationContext';
 import inventoryService from '../../services/inventoryService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
-const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopee', 'Verdida Sports Apparel'];
-const SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'XL', 'XXL'];
+const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopee', 'Lazada', 'Verdida Sports Apparel'];
+const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const INITIAL_PAGE_SIZE = 100;
 
 const formatDateCreated = (value) => {

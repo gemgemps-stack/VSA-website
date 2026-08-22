@@ -11,7 +11,7 @@ import clientService from '../../services/clientService';
 import authService from '../../services/authService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
-const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Verdida Sports Apparel'];
+const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Lazada', 'Verdida Sports Apparel'];
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 
 const ORDER_STATUS = {
@@ -1058,9 +1058,10 @@ const CustomizedOrders = () => {
 	                          style={styles.input}
 	                        >
 	                          <option value="">N/A</option>
-	                          <option value="Small">Small</option>
-	                          <option value="Medium">Medium</option>
-	                          <option value="Large">Large</option>
+	                          <option value="XS">XS</option>
+	                          <option value="S">S</option>
+	                          <option value="M">M</option>
+	                          <option value="L">L</option>
 	                          <option value="XL">XL</option>
 	                          <option value="XXL">XXL</option>
 	                          <option value="XXXL">XXXL</option>
