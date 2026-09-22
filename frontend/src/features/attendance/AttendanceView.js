@@ -60,6 +60,13 @@ const formatTimeForInput = (value) => {
   return String(value).slice(0, 5);
 };
 
+const getAmPmFromTime = (value) => {
+  if (!value) return '';
+  const [hours] = String(value).split(':').map(Number);
+  if (Number.isNaN(hours)) return '';
+  return hours < 12 ? 'AM' : 'PM';
+};
+
 const formatDateLabel = (value) => {
   if (!value) return '-';
   const date = new Date(`${value}T00:00:00`);
@@ -482,22 +489,22 @@ let hours = 0;
     },
 {
       key: 'timeInAM',
-      label: 'Time In (AM)',
+      label: 'Time In (Morning)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
       key: 'timeOutAM',
-      label: 'Time Out (AM)',
+      label: 'Time Out (Morning)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
       key: 'timeInPM',
-      label: 'Time In (PM)',
+      label: 'Time In (Afternoon)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
       key: 'timeOutPM',
-      label: 'Time Out (PM)',
+      label: 'Time Out (Afternoon)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
@@ -771,10 +778,7 @@ let hours = 0;
                 <input
                   type="date"
                   value={formData.attendanceDate}
-                  min={!editingRecord ? getTodayInputValue() : undefined}
-                  max={!editingRecord ? getTodayInputValue() : undefined}
                   onChange={(e) => setFormData({ ...formData, attendanceDate: e.target.value })}
-                  disabled={!editingRecord}
                 />
               </div>
             </div>
@@ -782,40 +786,52 @@ let hours = 0;
 <div className="form-group-2-col">
               <div className="form-group">
                 <label>Time In (AM)</label>
-                <input
-                  type="time"
-                  value={formData.timeInAM}
-                  onChange={(e) => setFormData({ ...formData, timeInAM: e.target.value })}
-                />
+                <div className="attendance-time-field">
+                  <input
+                    type="time"
+                    value={formData.timeInAM}
+                    onChange={(e) => setFormData({ ...formData, timeInAM: e.target.value })}
+                  />
+                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeInAM)}</span>
+                </div>
               </div>
 
               <div className="form-group">
                 <label>Time Out (AM)</label>
-                <input
-                  type="time"
-                  value={formData.timeOutAM}
-                  onChange={(e) => setFormData({ ...formData, timeOutAM: e.target.value })}
-                />
+                <div className="attendance-time-field">
+                  <input
+                    type="time"
+                    value={formData.timeOutAM}
+                    onChange={(e) => setFormData({ ...formData, timeOutAM: e.target.value })}
+                  />
+                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeOutAM)}</span>
+                </div>
               </div>
             </div>
 
             <div className="form-group-2-col">
               <div className="form-group">
                 <label>Time In (PM)</label>
-                <input
-                  type="time"
-                  value={formData.timeInPM}
-                  onChange={(e) => setFormData({ ...formData, timeInPM: e.target.value })}
-                />
+                <div className="attendance-time-field">
+                  <input
+                    type="time"
+                    value={formData.timeInPM}
+                    onChange={(e) => setFormData({ ...formData, timeInPM: e.target.value })}
+                  />
+                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeInPM)}</span>
+                </div>
               </div>
 
               <div className="form-group">
                 <label>Time Out (PM)</label>
-                <input
-                  type="time"
-                  value={formData.timeOutPM}
-                  onChange={(e) => setFormData({ ...formData, timeOutPM: e.target.value })}
-                />
+                <div className="attendance-time-field">
+                  <input
+                    type="time"
+                    value={formData.timeOutPM}
+                    onChange={(e) => setFormData({ ...formData, timeOutPM: e.target.value })}
+                  />
+                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeOutPM)}</span>
+                </div>
               </div>
             </div>
 
@@ -866,37 +882,43 @@ let hours = 0;
           title="Attendance Details"
           onClose={closeDetails}
           cancelText="Close"
-          size="large"
+          size="attendance"
           zIndex={1200}
         >
           {detailsRecord && (
             <div className="attendance-detail-panel">
-              <div className="income-details-summary">
-                <div>
-                  <span className="income-details-label">Employee</span>
-                  <strong>{detailsRecord.username || '-'}</strong>
+              <div className="attendance-details-summary">
+                <div className="attendance-details-row attendance-details-row-60-37">
+                  <div className="attendance-detail-card">
+                    <span className="income-details-label">Employee</span>
+                    <strong>{detailsRecord.username || '-'}</strong>
+                  </div>
+                  <div className="attendance-detail-card">
+                    <span className="income-details-label">Date</span>
+                    <strong>{formatDateLabel(detailsRecord.attendanceDate)}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span className="income-details-label">Date</span>
-                  <strong>{formatDateLabel(detailsRecord.attendanceDate)}</strong>
+                <div className="attendance-details-row">
+                  <div className="attendance-detail-card">
+                    <span className="income-details-label">Time In (Morning)</span>
+                    <strong>{detailsRecord.timeInAM ? String(detailsRecord.timeInAM).slice(0, 5) : '-'}</strong>
+                  </div>
+                  <div className="attendance-detail-card">
+                    <span className="income-details-label">Time Out (Morning)</span>
+                    <strong>{detailsRecord.timeOutAM ? String(detailsRecord.timeOutAM).slice(0, 5) : '-'}</strong>
+                  </div>
                 </div>
-<div>
-                  <span className="income-details-label">Time In (AM)</span>
-                  <strong>{detailsRecord.timeInAM ? String(detailsRecord.timeInAM).slice(0, 5) : '-'}</strong>
+                <div className="attendance-details-row">
+                  <div className="attendance-detail-card">
+                    <span className="income-details-label">Time In (Afternoon)</span>
+                    <strong>{detailsRecord.timeInPM ? String(detailsRecord.timeInPM).slice(0, 5) : '-'}</strong>
+                  </div>
+                  <div className="attendance-detail-card">
+                    <span className="income-details-label">Time Out (Afternoon)</span>
+                    <strong>{detailsRecord.timeOutPM ? String(detailsRecord.timeOutPM).slice(0, 5) : '-'}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span className="income-details-label">Time Out (AM)</span>
-                  <strong>{detailsRecord.timeOutAM ? String(detailsRecord.timeOutAM).slice(0, 5) : '-'}</strong>
-                </div>
-                <div>
-                  <span className="income-details-label">Time In (PM)</span>
-                  <strong>{detailsRecord.timeInPM ? String(detailsRecord.timeInPM).slice(0, 5) : '-'}</strong>
-                </div>
-                <div>
-                  <span className="income-details-label">Time Out (PM)</span>
-                  <strong>{detailsRecord.timeOutPM ? String(detailsRecord.timeOutPM).slice(0, 5) : '-'}</strong>
-                </div>
-                <div>
+                <div className="attendance-detail-card">
                   <span className="income-details-label">Day Type</span>
                   <strong>{getDayTypeLabel(detailsRecord)}</strong>
                 </div>

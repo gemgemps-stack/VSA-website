@@ -409,6 +409,31 @@
   min-height: 100px;
 }
 
+.attendance-time-field {
+  position: relative;
+}
+
+.attendance-time-field input[type="time"] {
+  width: 100%;
+  padding-right: 54px;
+}
+
+.attendance-time-badge {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(1, 102, 103, 0.12);
+  color: #016667;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
 .form-help-text {
   margin-top: 6px;
   font-size: 12px;
@@ -1586,14 +1611,15 @@
 .finance-back-button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  width: fit-content;
-  padding: 7px 14px;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 18px;
   border: 1px solid #dfe7e3;
-  border-radius: 999px;
+  border-radius: 12px;
   background: #fff;
   color: #055a5b;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -3233,6 +3259,33 @@
   gap: 18px;
 }
 
+.attendance-details-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attendance-details-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.attendance-details-row-60-37 {
+  grid-template-columns: 60fr 37fr;
+}
+
+.attendance-detail-card {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
+  border: 1px solid #dfe7e3;
+  box-shadow: 0 6px 18px rgba(18, 38, 36, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .attendance-status-badge {
   display: inline-flex;
   align-items: center;
@@ -3343,7 +3396,8 @@
 
   .attendance-controls,
   .attendance-row-70-30,
-  .attendance-form-grid .form-group-2-col {
+  .attendance-form-grid .form-group-2-col,
+  .attendance-details-row {
     grid-template-columns: 1fr;
   }
 
