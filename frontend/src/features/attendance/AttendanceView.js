@@ -74,11 +74,41 @@ const getDateKey = (value) => {
   return String(value).slice(0, 10);
 };
 
+const calculateHours = (timeIn, timeOut) => {
+  if (!timeIn || !timeOut) return 0;
+  const [h1, m1] = timeIn.split(':').map(Number);
+  const [h2, m2] = timeOut.split(':').map(Number);
+  const start = h1 * 60 + m1;
+  const end = h2 * 60 + m2;
+  if (end <= start) return 0;
+  let totalMinutes = end - start;
+  const lunchStart = 12 * 60;
+  const lunchEnd = 13 * 60;
+  if (start < lunchEnd && end > lunchStart) {
+    const overlapStart = Math.max(start, lunchStart);
+    const overlapEnd = Math.min(end, lunchEnd);
+    const lunchDuration = overlapEnd - overlapStart;
+    totalMinutes -= lunchDuration;
+  }
+  return totalMinutes / 60;
+};
+
+const calculateRecordHours = (record) => {
+  if (record.timeIn && record.timeOut) {
+    return calculateHours(record.timeIn, record.timeOut);
+  }
+  return calculateHours(record.timeInAM, record.timeOutAM) + calculateHours(record.timeInPM, record.timeOutPM);
+};
+
+const formatRecordTimesForDisplay = (record) =>
+  [record.timeInAM, record.timeOutAM, record.timeInPM, record.timeOutPM]
+    .filter(Boolean)
+    .map((time) => String(time).slice(0, 5))
+    .join(' / ');
+
 const createInitialFormData = () => ({
   userId: '',
   attendanceDate: getTodayInputValue(),
-  timeIn: '',
-  timeOut: '',
   timeInAM: '',
   timeOutAM: '',
   timeInPM: '',
@@ -194,32 +224,6 @@ const AttendanceView = () => {
     }
   }, [currentPage, totalPages]);
 
-  const calculateHours = (timeIn, timeOut) => {
-    if (!timeIn || !timeOut) return 0;
-    const [h1, m1] = timeIn.split(':').map(Number);
-    const [h2, m2] = timeOut.split(':').map(Number);
-    const start = h1 * 60 + m1;
-    const end = h2 * 60 + m2;
-    if (end <= start) return 0;
-    
-    let totalMinutes = end - start;
-    
-    // Subtract lunch break (12:00 PM - 1:00 PM = 720 to 780 minutes)
-    const lunchStart = 12 * 60; // 12:00 PM in minutes
-    const lunchEnd = 13 * 60;   // 1:00 PM in minutes
-    
-    // Check if the work period overlaps with lunch break
-    if (start < lunchEnd && end > lunchStart) {
-      // Calculate the overlap
-      const overlapStart = Math.max(start, lunchStart);
-      const overlapEnd = Math.min(end, lunchEnd);
-      const lunchDuration = overlapEnd - overlapStart;
-      totalMinutes -= lunchDuration;
-    }
-    
-    return totalMinutes / 60;
-  };
-
 const calculateDayType = (hours) => {
     if (hours <= 5) return 'HALF_DAY';
     if (hours <= 8) return 'FULL_DAY';
@@ -236,9 +240,10 @@ const calculateDayType = (hours) => {
         if (status === 'ABSENT') acc.absent += 1;
         if (status === 'LEAVE') acc.leave += 1;
         
-        let hours = 0;
-        if (record.timeIn && record.timeOut) {
-          hours = calculateHours(record.timeIn, record.timeOut);
+let hours = 0;
+        const recordHours = calculateRecordHours(record);
+        if (recordHours > 0) {
+          hours = recordHours;
           acc.totalHours += hours;
         }
         
@@ -293,9 +298,10 @@ const calculateDayType = (hours) => {
       else if (status === 'ABSENT') summaryMap[username].absent += 1;
       else if (status === 'LEAVE') summaryMap[username].leave += 1;
       
-      let hours = 0;
-      if (record.timeIn && record.timeOut) {
-        hours = calculateHours(record.timeIn, record.timeOut);
+let hours = 0;
+      const recordHours = calculateRecordHours(record);
+      if (recordHours > 0) {
+        hours = recordHours;
         summaryMap[username].totalHours += hours;
         
         // Calculate overtime hours (any time beyond 8 hours)
@@ -356,8 +362,6 @@ const calculateDayType = (hours) => {
     setFormData({
       userId: record.userId || '',
       attendanceDate: record.attendanceDate || getTodayInputValue(),
-      timeIn: formatTimeForInput(record.timeIn),
-      timeOut: formatTimeForInput(record.timeOut),
       timeInAM: formatTimeForInput(record.timeInAM),
       timeOutAM: formatTimeForInput(record.timeOutAM),
       timeInPM: formatTimeForInput(record.timeInPM),
@@ -425,8 +429,6 @@ const calculateDayType = (hours) => {
       const payload = {
         userId: formData.userId,
         attendanceDate: formData.attendanceDate,
-        timeIn: formData.timeIn || null,
-        timeOut: formData.timeOut || null,
         timeInAM: formData.timeInAM || null,
         timeOutAM: formData.timeOutAM || null,
         timeInPM: formData.timeInPM || null,
@@ -464,8 +466,8 @@ const calculateDayType = (hours) => {
       const storedOption = DAY_TYPE_SELECT_OPTIONS.find((opt) => opt.key === record.dayType);
       if (storedOption) return storedOption.label;
     }
-    if (!record.timeIn || !record.timeOut) return '-';
-    const hours = calculateHours(record.timeIn, record.timeOut);
+    if (!record.timeIn && !record.timeOut && !record.timeInAM && !record.timeOutAM && !record.timeInPM && !record.timeOutPM) return '-';
+    const hours = calculateRecordHours(record);
     const computed = calculateDayType(hours);
     const option = DAY_TYPE_OPTIONS.find((opt) => opt.key === computed);
     return option ? option.label : '-';
@@ -478,17 +480,7 @@ const calculateDayType = (hours) => {
       label: 'Date',
       render: (value) => formatDateLabel(value),
     },
-    {
-      key: 'timeIn',
-      label: 'Time In',
-      render: (value) => (value ? String(value).slice(0, 5) : '-'),
-    },
-    {
-      key: 'timeOut',
-      label: 'Time Out',
-      render: (value) => (value ? String(value).slice(0, 5) : '-'),
-    },
-    {
+{
       key: 'timeInAM',
       label: 'Time In (AM)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
@@ -787,27 +779,7 @@ const calculateDayType = (hours) => {
               </div>
             </div>
 
-            <div className="form-group-2-col">
-              <div className="form-group">
-                <label>Time In</label>
-                <input
-                  type="time"
-                  value={formData.timeIn}
-                  onChange={(e) => setFormData({ ...formData, timeIn: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Time Out</label>
-                <input
-                  type="time"
-                  value={formData.timeOut}
-                  onChange={(e) => setFormData({ ...formData, timeOut: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="form-group-2-col">
+<div className="form-group-2-col">
               <div className="form-group">
                 <label>Time In (AM)</label>
                 <input
@@ -908,15 +880,7 @@ const calculateDayType = (hours) => {
                   <span className="income-details-label">Date</span>
                   <strong>{formatDateLabel(detailsRecord.attendanceDate)}</strong>
                 </div>
-                <div>
-                  <span className="income-details-label">Time In</span>
-                  <strong>{detailsRecord.timeIn ? String(detailsRecord.timeIn).slice(0, 5) : '-'}</strong>
-                </div>
-                <div>
-                  <span className="income-details-label">Time Out</span>
-                  <strong>{detailsRecord.timeOut ? String(detailsRecord.timeOut).slice(0, 5) : '-'}</strong>
-                </div>
-                <div>
+<div>
                   <span className="income-details-label">Time In (AM)</span>
                   <strong>{detailsRecord.timeInAM ? String(detailsRecord.timeInAM).slice(0, 5) : '-'}</strong>
                 </div>
@@ -1047,7 +1011,7 @@ const calculateDayType = (hours) => {
                       <strong>{record.username || 'Employee'}</strong>
                       <div className="attendance-day-detail-meta">
                         {(record.status || '-') + (getDayTypeLabel(record) !== '-' ? ` | ${getDayTypeLabel(record)}` : '')}
-                        {record.timeIn ? ` | ${String(record.timeIn).slice(0, 5)}` : ' | No time in'}
+                        {formatRecordTimesForDisplay(record) ? ` | ${formatRecordTimesForDisplay(record)}` : ' | No time in'}
                       </div>
                     </div>
                     <button type="button" className="income-details-btn" onClick={() => handleView(record)}>

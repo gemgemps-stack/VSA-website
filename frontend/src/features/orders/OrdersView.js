@@ -1381,6 +1381,7 @@ const Orders = () => {
                   </table>
                 </div>
 
+                {selectedOrder.status === ORDER_STATUS.CANCELLED && (
                 <div style={{ marginBottom: '25px' }}>
                   <label style={styles.label}>Returned Items:</label>
                   {returnedItems.length === 0 ? (
@@ -1486,6 +1487,7 @@ const Orders = () => {
                     </div>
                   </div>
                 </div>
+                )}
 
                 <div style={{ marginBottom: '15px' }}>
                   <button
@@ -1767,6 +1769,14 @@ const Orders = () => {
                       <div style={{ display: 'flex', gap: '10px' }}>
                         <button style={{ ...styles.button, ...styles.buttonPrimary, flex: 1 }} onClick={handlePaymentUpdate}>Save Payment Update</button>
                       </div>
+                    </div>
+                    <div style={{ marginTop: '15px' }}>
+                      <button
+                        style={{ ...styles.button, ...styles.buttonDanger, width: '100%' }}
+                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
+                      >
+                        Order is Cancelled
+                      </button>
                     </div>
                   </div>
                 )}

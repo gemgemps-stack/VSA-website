@@ -1466,6 +1466,7 @@ const CustomizedOrders = () => {
                   </div>
                 </div>
 
+                {selectedOrder?.status === ORDER_STATUS.CANCELLED && (
                 <div style={{ marginBottom: '25px' }}>
                   <label style={styles.label}>Returned Items:</label>
                   {returnedItems.length === 0 ? (
@@ -1574,6 +1575,7 @@ const CustomizedOrders = () => {
                     </div>
                   </div>
                 </div>
+                )}
 
                 <div style={{ marginBottom: '15px' }}>
                   <button
@@ -1793,6 +1795,19 @@ const CustomizedOrders = () => {
                             }}
                           >
                             Save Payment Update
+                          </button>
+                        </div>
+                        <div style={styles.paymentUpdateActions}>
+                          <button
+                            onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
+                            style={{
+                              ...styles.button,
+                              backgroundColor: '#F44336',
+                              color: 'white',
+                              width: '100%',
+                            }}
+                          >
+                            Order is Cancelled
                           </button>
                         </div>
                       </div>
