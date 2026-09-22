@@ -60,11 +60,77 @@ const formatTimeForInput = (value) => {
   return String(value).slice(0, 5);
 };
 
-const getAmPmFromTime = (value) => {
-  if (!value) return '';
-  const [hours] = String(value).split(':').map(Number);
-  if (Number.isNaN(hours)) return '';
-  return hours < 12 ? 'AM' : 'PM';
+const padTimeValue = (value) => {
+  if (!value) return null;
+  const [hours, minutes] = String(value).split(':');
+  const hh = String(hours || '0').padStart(2, '0');
+  const mm = String(minutes || '0').padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
+const AttendanceTimeField = ({ value, onChange, period }) => {
+  const [hours, minutes] = value ? String(value).split(':') : ['', ''];
+
+  const commit = (nextHours, nextMinutes, pad = false) => {
+    if (nextHours === '' && nextMinutes === '') {
+      onChange('');
+      return;
+    }
+    const hh = nextHours === '' ? (pad ? '00' : '') : pad ? String(nextHours).padStart(2, '0') : nextHours;
+    const mm = nextMinutes === '' ? (pad ? '00' : '') : pad ? String(nextMinutes).padStart(2, '0') : nextMinutes;
+    onChange(`${hh}:${mm}`);
+  };
+
+  const handleHoursChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (digits === '') {
+      commit('', minutes);
+      return;
+    }
+    commit(String(Math.min(23, Number(digits))), minutes);
+  };
+
+  const handleMinutesChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (digits === '') {
+      commit(hours, '');
+      return;
+    }
+    commit(hours, String(Math.min(59, Number(digits))));
+  };
+
+  const handleBlur = () => {
+    commit(hours, minutes, true);
+  };
+
+  return (
+    <div className="attendance-time-field">
+      <div className="attendance-time-inputs">
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={2}
+          value={hours}
+          placeholder="00"
+          onChange={handleHoursChange}
+          onBlur={handleBlur}
+          aria-label="Hours"
+        />
+        <span className="attendance-time-colon" aria-hidden="true">:</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={2}
+          value={minutes}
+          placeholder="00"
+          onChange={handleMinutesChange}
+          onBlur={handleBlur}
+          aria-label="Minutes"
+        />
+      </div>
+      <span className="attendance-time-badge">{period}</span>
+    </div>
+  );
 };
 
 const formatDateLabel = (value) => {
@@ -436,10 +502,10 @@ let hours = 0;
       const payload = {
         userId: formData.userId,
         attendanceDate: formData.attendanceDate,
-        timeInAM: formData.timeInAM || null,
-        timeOutAM: formData.timeOutAM || null,
-        timeInPM: formData.timeInPM || null,
-        timeOutPM: formData.timeOutPM || null,
+        timeInAM: padTimeValue(formData.timeInAM),
+        timeOutAM: padTimeValue(formData.timeOutAM),
+        timeInPM: padTimeValue(formData.timeInPM),
+        timeOutPM: padTimeValue(formData.timeOutPM),
         dayType: formData.dayType || null,
         status: formData.status,
         notes: formData.notes || '',
@@ -786,52 +852,40 @@ let hours = 0;
 <div className="form-group-2-col">
               <div className="form-group">
                 <label>Time In (Morning)</label>
-                <div className="attendance-time-field">
-                  <input
-                    type="time"
-                    value={formData.timeInAM}
-                    onChange={(e) => setFormData({ ...formData, timeInAM: e.target.value })}
-                  />
-                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeInAM)}</span>
-                </div>
+                <AttendanceTimeField
+                  value={formData.timeInAM}
+                  onChange={(value) => setFormData({ ...formData, timeInAM: value })}
+                  period="AM"
+                />
               </div>
 
               <div className="form-group">
                 <label>Time Out (Morning)</label>
-                <div className="attendance-time-field">
-                  <input
-                    type="time"
-                    value={formData.timeOutAM}
-                    onChange={(e) => setFormData({ ...formData, timeOutAM: e.target.value })}
-                  />
-                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeOutAM)}</span>
-                </div>
+                <AttendanceTimeField
+                  value={formData.timeOutAM}
+                  onChange={(value) => setFormData({ ...formData, timeOutAM: value })}
+                  period="AM"
+                />
               </div>
             </div>
 
             <div className="form-group-2-col">
               <div className="form-group">
                 <label>Time In (Afternoon)</label>
-                <div className="attendance-time-field">
-                  <input
-                    type="time"
-                    value={formData.timeInPM}
-                    onChange={(e) => setFormData({ ...formData, timeInPM: e.target.value })}
-                  />
-                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeInPM)}</span>
-                </div>
+                <AttendanceTimeField
+                  value={formData.timeInPM}
+                  onChange={(value) => setFormData({ ...formData, timeInPM: value })}
+                  period="PM"
+                />
               </div>
 
               <div className="form-group">
                 <label>Time Out (Afternoon)</label>
-                <div className="attendance-time-field">
-                  <input
-                    type="time"
-                    value={formData.timeOutPM}
-                    onChange={(e) => setFormData({ ...formData, timeOutPM: e.target.value })}
-                  />
-                  <span className="attendance-time-badge">{getAmPmFromTime(formData.timeOutPM)}</span>
-                </div>
+                <AttendanceTimeField
+                  value={formData.timeOutPM}
+                  onChange={(value) => setFormData({ ...formData, timeOutPM: value })}
+                  period="PM"
+                />
               </div>
             </div>
 
