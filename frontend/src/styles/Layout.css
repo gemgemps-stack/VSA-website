@@ -13,6 +13,10 @@
   transition: margin-left 0.25s ease;
 }
 
+.sidebar:not(.open) ~ .main-content {
+  margin-left: 0;
+}
+
 .content-wrapper {
   padding: 28px;
   max-width: 1560px;

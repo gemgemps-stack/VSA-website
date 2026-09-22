@@ -17,6 +17,10 @@
   transition: transform 0.25s ease;
 }
 
+.sidebar:not(.open) {
+  transform: translateX(-100%);
+}
+
 .sidebar::before {
   content: '';
   position: sticky;

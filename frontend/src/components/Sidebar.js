@@ -111,6 +111,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     return hasPermission(user?.permissions, permission);
   };
 
+  const handleNavItemClick = () => {
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      toggleSidebar();
+    }
+  };
+
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-menu">
@@ -123,7 +129,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                     <Link
                       to={item.path}
                       className={location.pathname === item.path ? 'active' : ''}
-                      onClick={toggleSidebar}
+                      onClick={handleNavItemClick}
                     >
                       <span className="menu-icon" aria-hidden="true">
                         <MenuIcon name={item.icon} />
@@ -147,7 +153,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                       <Link
                         to={item.path}
                         className={location.pathname === item.path ? 'active' : ''}
-                        onClick={toggleSidebar}
+                        onClick={handleNavItemClick}
                       >
                         <span className="menu-icon" aria-hidden="true">
                           <MenuIcon name={item.icon} />

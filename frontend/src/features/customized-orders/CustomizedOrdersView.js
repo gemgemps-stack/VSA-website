@@ -1709,6 +1709,7 @@ const CustomizedOrders = () => {
                   <>
                     {(selectedOrder?.status === ORDER_STATUS.IN_PRODUCTION ||
                       selectedOrder?.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
+                      <>
                       <div style={styles.paymentUpdateCard}>
                         <h4 style={styles.paymentUpdateTitle}>Payment Update</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1797,20 +1798,21 @@ const CustomizedOrders = () => {
                             Save Payment Update
                           </button>
                         </div>
-                        <div style={styles.paymentUpdateActions}>
-                          <button
-                            onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
-                            style={{
-                              ...styles.button,
-                              backgroundColor: '#F44336',
-                              color: 'white',
-                              width: '100%',
-                            }}
-                          >
-                            Order is Cancelled
-                          </button>
-                        </div>
                       </div>
+                      <div style={styles.paymentUpdateActions}>
+                        <button
+                          onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
+                          style={{
+                            ...styles.button,
+                            backgroundColor: '#F44336',
+                            color: 'white',
+                            width: '100%',
+                          }}
+                        >
+                          Order is Cancelled
+                        </button>
+                      </div>
+                      </>
                     )}
                     {selectedOrder?.status === ORDER_STATUS.FULLY_PAID && (
                       <div style={styles.notesSection}>

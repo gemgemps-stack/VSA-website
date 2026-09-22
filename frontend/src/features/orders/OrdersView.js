@@ -1695,6 +1695,7 @@ const Orders = () => {
                 )}
 
                 {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION || selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
+                  <>
                   <div style={styles.paymentUpdateCard}>
                     <h4 style={{ margin: '0 0 10px 0' }}>Payment Update</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1770,15 +1771,16 @@ const Orders = () => {
                         <button style={{ ...styles.button, ...styles.buttonPrimary, flex: 1 }} onClick={handlePaymentUpdate}>Save Payment Update</button>
                       </div>
                     </div>
-                    <div style={{ marginTop: '15px' }}>
-                      <button
-                        style={{ ...styles.button, ...styles.buttonDanger, width: '100%' }}
-                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
-                      >
-                        Order is Cancelled
-                      </button>
-                    </div>
                   </div>
+                  <div style={{ marginTop: '15px' }}>
+                    <button
+                      style={{ ...styles.button, ...styles.buttonDanger, width: '100%' }}
+                      onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
+                    >
+                      Order is Cancelled
+                    </button>
+                  </div>
+                  </>
                 )}
 
                 {selectedOrder.status === ORDER_STATUS.FULLY_PAID && (
