@@ -1608,28 +1608,6 @@
   box-shadow: 0 18px 40px rgba(18, 38, 36, 0.07);
 }
 
-.finance-back-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 10px 18px;
-  border: 1px solid #dfe7e3;
-  border-radius: 12px;
-  background: #fff;
-  color: #055a5b;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.finance-back-button:hover {
-  border-color: #016667;
-  background: #eef6f5;
-}
-
 .finance-hero-copy {
   display: flex;
   flex-direction: column;

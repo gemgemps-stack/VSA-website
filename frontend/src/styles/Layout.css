@@ -17,6 +17,32 @@
   margin-left: 0;
 }
 
+.page-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 18px;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  background: #fff;
+  color: #055a5b;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-back-button svg {
+  flex: 0 0 auto;
+}
+
+.page-back-button:hover {
+  border-color: #016667;
+  background: #eef6f5;
+}
+
 .content-wrapper {
   padding: 28px;
   max-width: 1560px;
