@@ -489,22 +489,22 @@ let hours = 0;
     },
 {
       key: 'timeInAM',
-      label: 'Time In (Morning)',
+      label: 'Time In (AM)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
       key: 'timeOutAM',
-      label: 'Time Out (Morning)',
+      label: 'Time Out (AM)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
       key: 'timeInPM',
-      label: 'Time In (Afternoon)',
+      label: 'Time In (PM)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
       key: 'timeOutPM',
-      label: 'Time Out (Afternoon)',
+      label: 'Time Out (PM)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
@@ -785,7 +785,7 @@ let hours = 0;
 
 <div className="form-group-2-col">
               <div className="form-group">
-                <label>Time In (AM)</label>
+                <label>Time In (Morning)</label>
                 <div className="attendance-time-field">
                   <input
                     type="time"
@@ -797,7 +797,7 @@ let hours = 0;
               </div>
 
               <div className="form-group">
-                <label>Time Out (AM)</label>
+                <label>Time Out (Morning)</label>
                 <div className="attendance-time-field">
                   <input
                     type="time"
@@ -811,7 +811,7 @@ let hours = 0;
 
             <div className="form-group-2-col">
               <div className="form-group">
-                <label>Time In (PM)</label>
+                <label>Time In (Afternoon)</label>
                 <div className="attendance-time-field">
                   <input
                     type="time"
@@ -823,7 +823,7 @@ let hours = 0;
               </div>
 
               <div className="form-group">
-                <label>Time Out (PM)</label>
+                <label>Time Out (Afternoon)</label>
                 <div className="attendance-time-field">
                   <input
                     type="time"
