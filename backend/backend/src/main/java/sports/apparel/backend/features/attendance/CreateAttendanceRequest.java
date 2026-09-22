@@ -25,6 +25,16 @@ public class CreateAttendanceRequest {
 
     private LocalTime timeOut;
 
+    private LocalTime timeInAM;
+
+    private LocalTime timeOutAM;
+
+    private LocalTime timeInPM;
+
+    private LocalTime timeOutPM;
+
+    private String dayType;
+
     @NotBlank(message = "Status is required")
     private String status;
 

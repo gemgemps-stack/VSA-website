@@ -67,6 +67,9 @@ public class Order {
     @Column(nullable = false)
     private LocalDate orderDate;
 
+    @Column(name = "pickup_date")
+    private LocalDate pickupDate;
+
     @Column(nullable = false, length = 50)
     private String modeOfPayment;
 

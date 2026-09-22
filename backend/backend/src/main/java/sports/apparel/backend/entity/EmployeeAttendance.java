@@ -52,6 +52,21 @@ public class EmployeeAttendance {
     @Column(name = "time_out")
     private LocalTime timeOut;
 
+    @Column(name = "time_in_am")
+    private LocalTime timeInAM;
+
+    @Column(name = "time_out_am")
+    private LocalTime timeOutAM;
+
+    @Column(name = "time_in_pm")
+    private LocalTime timeInPM;
+
+    @Column(name = "time_out_pm")
+    private LocalTime timeOutPM;
+
+    @Column(name = "day_type", length = 20)
+    private String dayType;
+
     @Column(nullable = false, length = 50)
     private String status;
 

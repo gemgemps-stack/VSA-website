@@ -69,7 +69,12 @@
   height: 38px;
   object-fit: contain;
   flex: 0 0 auto;
+  cursor: pointer;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+}
+
+.navbar-logo:active {
+  transform: scale(0.95);
 }
 
 .navbar-brand {

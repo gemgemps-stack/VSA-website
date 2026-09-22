@@ -8,6 +8,8 @@ const clientService = {
 
   getClientById: (id) => api.get(`/api/clients/${id}`),
 
+  getClientOrders: (id) => api.get(`/api/clients/${id}/orders`),
+
   getVipClients: () => api.get('/api/clients/vip'),
 
   searchClients: (name) => api.get('/api/clients/search', { params: { name } }),

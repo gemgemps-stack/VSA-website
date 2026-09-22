@@ -52,6 +52,9 @@ public class User {
         EMPLOYEE,
         MARKETING,
         PRODUCTION,
-        SEWING
+        SEWING,
+        GRAPHIC_ARTISTS,
+        SALES,
+        MACHINE_OPERATORS
     }
 }

@@ -53,6 +53,11 @@ public class AttendanceService {
         attendance.setAttendanceDate(request.getAttendanceDate());
         attendance.setTimeIn(request.getTimeIn());
         attendance.setTimeOut(request.getTimeOut());
+        attendance.setTimeInAM(request.getTimeInAM());
+        attendance.setTimeOutAM(request.getTimeOutAM());
+        attendance.setTimeInPM(request.getTimeInPM());
+        attendance.setTimeOutPM(request.getTimeOutPM());
+        attendance.setDayType(request.getDayType());
         attendance.setStatus(normalizeStatus(request.getStatus()));
         attendance.setNotes(request.getNotes());
         attendance.setRequestFingerprint(buildCreateDedupeKey(request));
@@ -97,10 +102,16 @@ public class AttendanceService {
         String userId = request.getUserId() != null ? request.getUserId().toString() : "";
         String attendanceDate = request.getAttendanceDate() != null ? request.getAttendanceDate().toString() : "";
         String status = request.getStatus() != null ? request.getStatus() : "";
+        String dayType = request.getDayType() != null ? request.getDayType() : "";
         String timeIn = request.getTimeIn() != null ? request.getTimeIn().toString() : "";
         String timeOut = request.getTimeOut() != null ? request.getTimeOut().toString() : "";
+        String timeInAM = request.getTimeInAM() != null ? request.getTimeInAM().toString() : "";
+        String timeOutAM = request.getTimeOutAM() != null ? request.getTimeOutAM().toString() : "";
+        String timeInPM = request.getTimeInPM() != null ? request.getTimeInPM().toString() : "";
+        String timeOutPM = request.getTimeOutPM() != null ? request.getTimeOutPM().toString() : "";
         String notes = request.getNotes() != null ? request.getNotes() : "";
-        String contentHash = String.join("|", userId, attendanceDate, status, timeIn, timeOut, notes);
+        String contentHash = String.join("|", userId, attendanceDate, status, dayType, timeIn, timeOut,
+                timeInAM, timeOutAM, timeInPM, timeOutPM, notes);
         return "attendance:create:" + Integer.toHexString(contentHash.hashCode());
     }
 
@@ -120,6 +131,11 @@ public class AttendanceService {
         attendance.setAttendanceDate(request.getAttendanceDate());
         attendance.setTimeIn(request.getTimeIn());
         attendance.setTimeOut(request.getTimeOut());
+        attendance.setTimeInAM(request.getTimeInAM());
+        attendance.setTimeOutAM(request.getTimeOutAM());
+        attendance.setTimeInPM(request.getTimeInPM());
+        attendance.setTimeOutPM(request.getTimeOutPM());
+        attendance.setDayType(request.getDayType());
         attendance.setStatus(normalizeStatus(request.getStatus()));
         attendance.setNotes(request.getNotes());
 

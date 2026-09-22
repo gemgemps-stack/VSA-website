@@ -23,6 +23,11 @@ public class AttendanceDTO {
     private LocalDate attendanceDate;
     private LocalTime timeIn;
     private LocalTime timeOut;
+    private LocalTime timeInAM;
+    private LocalTime timeOutAM;
+    private LocalTime timeInPM;
+    private LocalTime timeOutPM;
+    private String dayType;
     private String status;
     private String notes;
     private LocalDateTime createdAt;
@@ -39,6 +44,11 @@ public class AttendanceDTO {
         this.attendanceDate = attendance.getAttendanceDate();
         this.timeIn = attendance.getTimeIn();
         this.timeOut = attendance.getTimeOut();
+        this.timeInAM = attendance.getTimeInAM();
+        this.timeOutAM = attendance.getTimeOutAM();
+        this.timeInPM = attendance.getTimeInPM();
+        this.timeOutPM = attendance.getTimeOutPM();
+        this.dayType = attendance.getDayType();
         this.status = attendance.getStatus();
         this.notes = attendance.getNotes();
         this.createdAt = attendance.getCreatedAt();

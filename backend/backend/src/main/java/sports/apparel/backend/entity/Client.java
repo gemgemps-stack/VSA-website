@@ -29,6 +29,12 @@ public class Client {
     @Column(nullable = false, length = 50)
     private String contactNumber;
 
+    @Column(length = 255)
+    private String companySchool;
+
+    @Column(length = 255)
+    private String cityMunicipality;
+
     @Column(nullable = false)
     private Boolean vip = false;
 

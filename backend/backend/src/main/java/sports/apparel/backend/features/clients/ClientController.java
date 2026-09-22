@@ -56,6 +56,12 @@ public class ClientController {
         return ResponseEntity.ok(clients);
     }
 
+    @GetMapping("/{id}/orders")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CLIENTS')")
+    public ResponseEntity<ClientOrdersDTO> getClientOrders(@PathVariable UUID id) {
+        return ResponseEntity.ok(clientService.getOrdersByClientId(id));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('CLIENTS')")
     public ResponseEntity<ClientDTO> updateClient(@PathVariable UUID id, @Valid @RequestBody CreateClientRequest request) {

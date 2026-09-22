@@ -8,6 +8,10 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sports.apparel.backend.entity.Client;
+import sports.apparel.backend.features.customizedorders.CustomizedOrderDTO;
+import sports.apparel.backend.features.customizedorders.CustomizedOrderRepository;
+import sports.apparel.backend.features.orders.OrderDTO;
+import sports.apparel.backend.features.orders.OrderRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,9 +25,14 @@ public class ClientService {
     private static final Logger log = LoggerFactory.getLogger(ClientService.class);
 
     private final ClientRepository clientRepository;
+    private final OrderRepository orderRepository;
+    private final CustomizedOrderRepository customizedOrderRepository;
 
-    public ClientService(ClientRepository clientRepository) {
+    public ClientService(ClientRepository clientRepository, OrderRepository orderRepository,
+                         CustomizedOrderRepository customizedOrderRepository) {
         this.clientRepository = clientRepository;
+        this.orderRepository = orderRepository;
+        this.customizedOrderRepository = customizedOrderRepository;
     }
 
     @PostConstruct
@@ -62,6 +71,8 @@ public class ClientService {
         client.setClientCode(buildClientCode(request.getClientName(), getNextClientSequence()));
         client.setClientName(request.getClientName());
         client.setContactNumber(request.getContactNumber());
+        client.setCompanySchool(request.getCompanySchool());
+        client.setCityMunicipality(request.getCityMunicipality());
         client.setVip(request.getVip() != null ? request.getVip() : false);
         client.setNotes(request.getNotes());
 
@@ -92,12 +103,28 @@ public class ClientService {
                 .collect(Collectors.toList());
     }
 
+    public ClientOrdersDTO getOrdersByClientId(UUID clientId) {
+        clientRepository.findById(clientId)
+                .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+
+        List<OrderDTO> orders = orderRepository.findByClientId(clientId).stream()
+                .map(OrderDTO::new)
+                .collect(Collectors.toList());
+        List<CustomizedOrderDTO> customizedOrders = customizedOrderRepository.findByClientId(clientId).stream()
+                .map(CustomizedOrderDTO::new)
+                .collect(Collectors.toList());
+
+        return new ClientOrdersDTO(orders, customizedOrders);
+    }
+
     public ClientDTO updateClient(UUID id, CreateClientRequest request) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Client not found"));
 
         client.setClientName(request.getClientName());
         client.setContactNumber(request.getContactNumber());
+        client.setCompanySchool(request.getCompanySchool());
+        client.setCityMunicipality(request.getCityMunicipality());
         client.setVip(request.getVip() != null ? request.getVip() : client.getVip());
         client.setNotes(request.getNotes());
 

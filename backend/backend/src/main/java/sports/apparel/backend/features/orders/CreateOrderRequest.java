@@ -54,6 +54,8 @@ public class CreateOrderRequest {
     @NotNull(message = "Order date is required")
     private LocalDate orderDate;
 
+    private LocalDate pickupDate;
+
     private String modeOfPayment;
 
     private String remarks;

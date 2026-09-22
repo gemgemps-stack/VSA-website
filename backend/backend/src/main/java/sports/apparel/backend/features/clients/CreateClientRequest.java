@@ -16,6 +16,10 @@ public class CreateClientRequest {
     @NotBlank(message = "Contact number is required")
     private String contactNumber;
 
+    private String companySchool;
+
+    private String cityMunicipality;
+
     private Boolean vip = false;
 
     private String notes;

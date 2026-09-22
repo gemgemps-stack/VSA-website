@@ -8,8 +8,8 @@ import SearchField from '../../components/SearchField';
 import { useNotification } from '../../context/NotificationContext';
 import inventoryService from '../../services/inventoryService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
+import SIZE_OPTIONS from '../../utils/sizes';
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopee', 'Lazada', 'Verdida Sports Apparel'];
-const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const INITIAL_PAGE_SIZE = 100;
 
 const formatDateCreated = (value) => {
@@ -129,7 +129,19 @@ const Inventory = () => {
     loadInventory();
   }, [loadInventory]);
 
-  const filteredInventory = inventory.filter((item) =>
+const filteredInventory = inventory
+    .slice()
+    .sort((a, b) => {
+      const versionA = normalizeText(a.jerseyType);
+      const versionB = normalizeText(b.jerseyType);
+      const nameA = normalizeText(a.name);
+      const nameB = normalizeText(b.name);
+      if (versionA !== versionB) {
+        return versionA.localeCompare(versionB);
+      }
+      return nameA.localeCompare(nameB);
+    })
+    .filter((item) =>
     matchesText(item.itemType, searchFilters.itemType) &&
     matchesText(item.name, searchFilters.name) &&
     matchesText(item.jerseyType, searchFilters.jerseyType) &&
@@ -226,14 +238,14 @@ const Inventory = () => {
     }
   };
 
-  const columns = [
+const columns = [
     { key: 'itemType', label: 'Item Type' },
-    { key: 'name', label: 'Name' },
     {
       key: 'jerseyType',
       label: 'Version',
       render: (value) => value || '-',
     },
+    { key: 'name', label: 'Name' },
     { key: 'size', label: 'Size', render: (value) => value || '-' },
     { key: 'quantity', label: 'Quantity', render: (value) => value || '0' },
     {
@@ -320,12 +332,19 @@ const Inventory = () => {
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, jerseyType: e.target.value }))}
               placeholder="Search version"
             />
-            <SearchField
-              type="text"
+            <select
+              className="inventory-size-filter"
               value={searchFilters.size}
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, size: e.target.value }))}
-              placeholder="Search size"
-            />
+              aria-label="Filter by size"
+            >
+              <option value="">All sizes</option>
+              {SIZE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
             <SearchField
               type="text"
               value={searchFilters.shop}

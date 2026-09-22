@@ -9,7 +9,7 @@ import userService from '../../services/userService';
 import { expandPermissions } from '../../utils/permissions';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
-const TEAM_OPTIONS = ['Marketing', 'Production', 'Sewing'];
+const TEAM_OPTIONS = ['Marketing', 'Production', 'Sewing', 'Graphic Artists', 'Sales', 'Machine Operators'];
 
 const extractUsers = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -48,6 +48,9 @@ const Employees = () => {
     { key: 'MARKETING', label: 'Marketing' },
     { key: 'PRODUCTION', label: 'Production' },
     { key: 'SEWING', label: 'Sewing' },
+    { key: 'GRAPHIC_ARTISTS', label: 'Graphic Artists' },
+    { key: 'SALES', label: 'Sales' },
+    { key: 'MACHINE_OPERATORS', label: 'Machine Operators' },
   ];
 
   const pagePermissions = [

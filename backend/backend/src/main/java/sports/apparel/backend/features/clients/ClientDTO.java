@@ -17,6 +17,8 @@ public class ClientDTO {
     private String clientCode;
     private String clientName;
     private String contactNumber;
+    private String companySchool;
+    private String cityMunicipality;
     private Boolean vip;
     private String notes;
     private LocalDateTime createdAt;
@@ -26,6 +28,8 @@ public class ClientDTO {
         this.clientCode = client.getClientCode();
         this.clientName = client.getClientName();
         this.contactNumber = client.getContactNumber();
+        this.companySchool = client.getCompanySchool();
+        this.cityMunicipality = client.getCityMunicipality();
         this.vip = client.getVip();
         this.notes = client.getNotes();
         this.createdAt = client.getCreatedAt();

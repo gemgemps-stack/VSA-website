@@ -17,6 +17,84 @@ const formatPhoneNumber = (value) => {
   return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
 };
 
+const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
+
+const styles = {
+  detailGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: '12px 18px',
+    padding: '14px 0',
+    borderBottom: '1px solid #eee',
+    marginBottom: '8px',
+  },
+  detailItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
+  detailLabel: {
+    fontSize: '0.75rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    color: '#777',
+  },
+  detailValue: { fontSize: '0.95rem', color: '#222' },
+  sectionTitle: { margin: '12px 0 8px', fontSize: '1rem', color: '#333' },
+  subSectionTitle: { margin: '10px 0 6px', fontSize: '0.9rem', color: '#555' },
+  subList: {
+    listStyle: 'none',
+    margin: '0',
+    padding: '0',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  subItem: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '12px',
+    background: '#fff',
+  },
+  subRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+    fontSize: '0.9rem',
+    color: '#444',
+  },
+  subTitle: { fontSize: '0.95rem', fontWeight: '600', color: '#111' },
+  hint: { fontSize: '0.9rem', color: '#666', fontStyle: 'italic', margin: '6px 0' },
+  empty: { padding: '14px 0', fontSize: '0.9rem', color: '#666' },
+};
+
+const OrderSummaryList = ({ orders, label }) => {
+  if (!orders || orders.length === 0) {
+    return <p style={styles.hint}>No {label.toLowerCase()} available for this client yet.</p>;
+  }
+
+  return (
+    <ul style={styles.subList}>
+      {orders.map((order) => (
+        <li key={order.id} style={styles.subItem}>
+          <div style={styles.subRow}>
+            <strong style={styles.subTitle}>{order.jobOrderNo || '-'}</strong>
+            <span>{order.shop || '-'}</span>
+          </div>
+          <div style={styles.subRow}>
+            <span>Ordered: {order.orderDate || '-'}</span>
+            <span>Status: {order.status || '-'}</span>
+          </div>
+          <div style={styles.subRow}>
+            <span>
+              Total: {formatMoney((Number(order.price) || 0) * (Number(order.quantity) || 1))}
+            </span>
+            {order.pickupDate ? <span>Pickup: {order.pickupDate}</span> : null}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 const Clients = () => {
   const { error: notifyError, success: notifySuccess } = useNotification();
   const [clients, setClients] = useState([]);
@@ -26,11 +104,16 @@ const Clients = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [detailsClient, setDetailsClient] = useState(null);
+  const [clientOrders, setClientOrders] = useState(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [formData, setFormData] = useState({
     clientName: '',
     contactNumber: '',
     vip: false,
     notes: '',
+    companySchool: '',
+    cityMunicipality: '',
   });
 
   const loadClients = useCallback(async () => {
@@ -62,6 +145,8 @@ const Clients = () => {
       contactNumber: '',
       vip: false,
       notes: '',
+      companySchool: '',
+      cityMunicipality: '',
     });
   };
 
@@ -72,6 +157,8 @@ const Clients = () => {
       contactNumber: client.contactNumber || '',
       vip: Boolean(client.vip),
       notes: client.notes || '',
+      companySchool: client.companySchool || '',
+      cityMunicipality: client.cityMunicipality || '',
     });
     setModalOpen(true);
   };
@@ -94,6 +181,8 @@ const Clients = () => {
         contactNumber: formData.contactNumber.trim(),
         vip: Boolean(formData.vip),
         notes: formData.notes.trim(),
+        companySchool: formData.companySchool.trim(),
+        cityMunicipality: formData.cityMunicipality.trim(),
       };
 
       if (!payload.clientName || !payload.contactNumber) {
@@ -116,6 +205,32 @@ const Clients = () => {
       console.error('Error saving client:', error);
       const errorMsg = getApiErrorMessage(error, 'Failed to save client');
       notifyError(errorMsg);
+    }
+  };
+
+  const handleViewDetails = (client) => {
+    setDetailsClient(client);
+    setClientOrders(null);
+  };
+
+  const closeDetails = () => {
+    setDetailsClient(null);
+    setClientOrders(null);
+    setOrdersLoading(false);
+  };
+
+  const loadClientOrders = async () => {
+    if (!detailsClient) return;
+    try {
+      setOrdersLoading(true);
+      const response = await clientService.getClientOrders(detailsClient.id);
+      setClientOrders(response.data || {});
+    } catch (error) {
+      console.error('Error loading client orders:', error);
+      const errorMsg = getApiErrorMessage(error, 'Failed to load client orders');
+      alert(`Failed to load orders: ${errorMsg}`);
+    } finally {
+      setOrdersLoading(false);
     }
   };
 
@@ -225,6 +340,7 @@ const Clients = () => {
                 data={filteredClients}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onView={handleViewDetails}
                 loading={loading}
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -269,6 +385,26 @@ const Clients = () => {
                     />
                   </div>
                   <div className="form-group">
+                    <label>Company / School</label>
+                    <input
+                      type="text"
+                      value={formData.companySchool}
+                      onChange={(e) => setFormData({ ...formData, companySchool: e.target.value })}
+                      placeholder="Company or school (optional)"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>City / Municipality</label>
+                    <input
+                      type="text"
+                      value={formData.cityMunicipality}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cityMunicipality: e.target.value })
+                      }
+                      placeholder="City or municipality (optional)"
+                    />
+                  </div>
+                  <div className="form-group">
                     <label className="permission-checkbox">
                       <input
                         type="checkbox"
@@ -289,6 +425,60 @@ const Clients = () => {
                   </div>
                 </div>
               </form>
+            </Modal>
+
+            <Modal
+              isOpen={detailsClient !== null}
+              title={detailsClient ? `${detailsClient.clientName || 'Client'} - Client Overview` : ''}
+              onClose={closeDetails}
+              onSubmit={clientOrders ? loadClientOrders : undefined}
+              submitText={clientOrders ? 'Refresh Orders' : 'View Orders'}
+              loading={ordersLoading}
+              size="large"
+            >
+              {detailsClient && (
+                <div style={{ padding: 0 }}>
+                  <div style={styles.detailGrid}>
+                    {[
+                      { label: 'ID', value: detailsClient.clientCode },
+                      { label: 'Name', value: detailsClient.clientName },
+                      { label: 'Contact', value: detailsClient.contactNumber },
+                      { label: 'Tier', value: detailsClient.vip ? 'VIP' : 'Standard' },
+                      { label: 'Company / School', value: detailsClient.companySchool },
+                      { label: 'City / Municipality', value: detailsClient.cityMunicipality },
+                      { label: 'Notes', value: detailsClient.notes },
+                    ].map((item) => (
+                      <div key={item.label} style={styles.detailItem}>
+                        <span style={styles.detailLabel}>{item.label}</span>
+                        <span style={styles.detailValue}>{item.value || '-'}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <h4 style={styles.sectionTitle}>Orders</h4>
+                  {ordersLoading ? (
+                    <p style={styles.hint}>Loading orders...</p>
+                  ) : clientOrders ? (
+                    !clientOrders.orders?.length && !clientOrders.customizedOrders?.length ? (
+                      <p style={styles.empty}>This client has no orders yet.</p>
+                    ) : (
+                      <>
+                        <h5 style={styles.subSectionTitle}>Regular Orders</h5>
+                        <OrderSummaryList orders={clientOrders.orders} label="Regular orders" />
+                        <h5 style={styles.subSectionTitle}>Customized Orders</h5>
+                        <OrderSummaryList
+                          orders={clientOrders.customizedOrders}
+                          label="Customized orders"
+                        />
+                      </>
+                    )
+                  ) : (
+                    <p style={styles.hint}>
+                      Select "View Orders" below to load this client's order history.
+                    </p>
+                  )}
+                </div>
+              )}
             </Modal>
           </div>
         </div>

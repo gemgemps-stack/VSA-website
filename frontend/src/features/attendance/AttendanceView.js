@@ -23,6 +23,13 @@ const DAY_TYPE_OPTIONS = [
   { key: 'OVERTIME', label: 'Overtime', tone: 'overtime' },
 ];
 
+const DAY_TYPE_SELECT_OPTIONS = [
+  { key: '', label: 'Select Day Type' },
+  { key: 'FULL_DAY', label: 'Full Day' },
+  { key: 'HALF_DAY', label: 'Half Day' },
+  { key: 'UNDERTIME', label: 'Undertime' },
+];
+
 const MONTH_LABELS = [
   'January',
   'February',
@@ -72,6 +79,11 @@ const createInitialFormData = () => ({
   attendanceDate: getTodayInputValue(),
   timeIn: '',
   timeOut: '',
+  timeInAM: '',
+  timeOutAM: '',
+  timeInPM: '',
+  timeOutPM: '',
+  dayType: '',
   status: 'PRESENT',
   notes: '',
 });
@@ -346,6 +358,11 @@ const calculateDayType = (hours) => {
       attendanceDate: record.attendanceDate || getTodayInputValue(),
       timeIn: formatTimeForInput(record.timeIn),
       timeOut: formatTimeForInput(record.timeOut),
+      timeInAM: formatTimeForInput(record.timeInAM),
+      timeOutAM: formatTimeForInput(record.timeOutAM),
+      timeInPM: formatTimeForInput(record.timeInPM),
+      timeOutPM: formatTimeForInput(record.timeOutPM),
+      dayType: record.dayType || '',
       status: (record.status || 'PRESENT').toUpperCase(),
       notes: record.notes || '',
     });
@@ -410,6 +427,11 @@ const calculateDayType = (hours) => {
         attendanceDate: formData.attendanceDate,
         timeIn: formData.timeIn || null,
         timeOut: formData.timeOut || null,
+        timeInAM: formData.timeInAM || null,
+        timeOutAM: formData.timeOutAM || null,
+        timeInPM: formData.timeInPM || null,
+        timeOutPM: formData.timeOutPM || null,
+        dayType: formData.dayType || null,
         status: formData.status,
         notes: formData.notes || '',
       };
@@ -438,10 +460,14 @@ const calculateDayType = (hours) => {
   };
 
   const getDayTypeLabel = (record) => {
+    if (record.dayType) {
+      const storedOption = DAY_TYPE_SELECT_OPTIONS.find((opt) => opt.key === record.dayType);
+      if (storedOption) return storedOption.label;
+    }
     if (!record.timeIn || !record.timeOut) return '-';
     const hours = calculateHours(record.timeIn, record.timeOut);
-    const dayType = calculateDayType(hours);
-    const option = DAY_TYPE_OPTIONS.find((opt) => opt.key === dayType);
+    const computed = calculateDayType(hours);
+    const option = DAY_TYPE_OPTIONS.find((opt) => opt.key === computed);
     return option ? option.label : '-';
   };
 
@@ -460,6 +486,26 @@ const calculateDayType = (hours) => {
     {
       key: 'timeOut',
       label: 'Time Out',
+      render: (value) => (value ? String(value).slice(0, 5) : '-'),
+    },
+    {
+      key: 'timeInAM',
+      label: 'Time In (AM)',
+      render: (value) => (value ? String(value).slice(0, 5) : '-'),
+    },
+    {
+      key: 'timeOutAM',
+      label: 'Time Out (AM)',
+      render: (value) => (value ? String(value).slice(0, 5) : '-'),
+    },
+    {
+      key: 'timeInPM',
+      label: 'Time In (PM)',
+      render: (value) => (value ? String(value).slice(0, 5) : '-'),
+    },
+    {
+      key: 'timeOutPM',
+      label: 'Time Out (PM)',
       render: (value) => (value ? String(value).slice(0, 5) : '-'),
     },
     {
@@ -763,6 +809,46 @@ const calculateDayType = (hours) => {
 
             <div className="form-group-2-col">
               <div className="form-group">
+                <label>Time In (AM)</label>
+                <input
+                  type="time"
+                  value={formData.timeInAM}
+                  onChange={(e) => setFormData({ ...formData, timeInAM: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Time Out (AM)</label>
+                <input
+                  type="time"
+                  value={formData.timeOutAM}
+                  onChange={(e) => setFormData({ ...formData, timeOutAM: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="form-group-2-col">
+              <div className="form-group">
+                <label>Time In (PM)</label>
+                <input
+                  type="time"
+                  value={formData.timeInPM}
+                  onChange={(e) => setFormData({ ...formData, timeInPM: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Time Out (PM)</label>
+                <input
+                  type="time"
+                  value={formData.timeOutPM}
+                  onChange={(e) => setFormData({ ...formData, timeOutPM: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="form-group-2-col">
+              <div className="form-group">
                 <label>Status</label>
                 <select
                   value={formData.status}
@@ -777,16 +863,17 @@ const calculateDayType = (hours) => {
               </div>
 
               <div className="form-group">
-                <label>Day Type (Auto)</label>
-                <div className="attendance-auto-field">
-                  {(() => {
-                    if (!formData.timeIn || !formData.timeOut) return '-';
-                    const hours = calculateHours(formData.timeIn, formData.timeOut);
-                    const dayType = calculateDayType(hours);
-                    const option = DAY_TYPE_OPTIONS.find((opt) => opt.key === dayType);
-                    return option ? option.label : '-';
-                  })()}
-                </div>
+                <label>Day Type</label>
+                <select
+                  value={formData.dayType}
+                  onChange={(e) => setFormData({ ...formData, dayType: e.target.value })}
+                >
+                  {DAY_TYPE_SELECT_OPTIONS.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -828,6 +915,26 @@ const calculateDayType = (hours) => {
                 <div>
                   <span className="income-details-label">Time Out</span>
                   <strong>{detailsRecord.timeOut ? String(detailsRecord.timeOut).slice(0, 5) : '-'}</strong>
+                </div>
+                <div>
+                  <span className="income-details-label">Time In (AM)</span>
+                  <strong>{detailsRecord.timeInAM ? String(detailsRecord.timeInAM).slice(0, 5) : '-'}</strong>
+                </div>
+                <div>
+                  <span className="income-details-label">Time Out (AM)</span>
+                  <strong>{detailsRecord.timeOutAM ? String(detailsRecord.timeOutAM).slice(0, 5) : '-'}</strong>
+                </div>
+                <div>
+                  <span className="income-details-label">Time In (PM)</span>
+                  <strong>{detailsRecord.timeInPM ? String(detailsRecord.timeInPM).slice(0, 5) : '-'}</strong>
+                </div>
+                <div>
+                  <span className="income-details-label">Time Out (PM)</span>
+                  <strong>{detailsRecord.timeOutPM ? String(detailsRecord.timeOutPM).slice(0, 5) : '-'}</strong>
+                </div>
+                <div>
+                  <span className="income-details-label">Day Type</span>
+                  <strong>{getDayTypeLabel(detailsRecord)}</strong>
                 </div>
               </div>
 
@@ -939,7 +1046,8 @@ const calculateDayType = (hours) => {
                     <div>
                       <strong>{record.username || 'Employee'}</strong>
                       <div className="attendance-day-detail-meta">
-                        {record.status || '-'} - {record.timeIn ? String(record.timeIn).slice(0, 5) : 'No time in'}
+                        {(record.status || '-') + (getDayTypeLabel(record) !== '-' ? ` | ${getDayTypeLabel(record)}` : '')}
+                        {record.timeIn ? ` | ${String(record.timeIn).slice(0, 5)}` : ' | No time in'}
                       </div>
                     </div>
                     <button type="button" className="income-details-btn" onClick={() => handleView(record)}>

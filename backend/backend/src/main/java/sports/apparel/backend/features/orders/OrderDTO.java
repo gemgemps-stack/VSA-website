@@ -55,7 +55,8 @@ public class OrderDTO {
     }
     private BigDecimal downPayment;
     private String shop;
-    private LocalDate orderDate;
+private LocalDate orderDate;
+    private LocalDate pickupDate;
     private String modeOfPayment;
     private String remarks;
     private String referenceNumber;
@@ -88,7 +89,8 @@ public class OrderDTO {
         this.price = order.getPrice();
         this.downPayment = order.getDownPayment();
         this.shop = order.getShop();
-        this.orderDate = order.getOrderDate();
+this.orderDate = order.getOrderDate();
+        this.pickupDate = order.getPickupDate();
         this.modeOfPayment = order.getModeOfPayment();
         this.remarks = order.getRemarks();
         this.referenceNumber = order.getReferenceNumber();

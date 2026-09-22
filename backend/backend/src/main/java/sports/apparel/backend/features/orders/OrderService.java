@@ -84,6 +84,7 @@ public class OrderService {
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
+        order.setPickupDate(request.getPickupDate());
         order.setModeOfPayment(resolvedModeOfPayment);
         order.setRemarks(request.getRemarks());
         order.setReferenceNumber(request.getReferenceNumber());
@@ -339,6 +340,7 @@ public class OrderService {
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
         order.setOrderDate(request.getOrderDate());
+        order.setPickupDate(request.getPickupDate());
         order.setModeOfPayment(resolvedModeOfPayment);
         if (request.getRemarks() != null) {
             order.setRemarks(request.getRemarks());

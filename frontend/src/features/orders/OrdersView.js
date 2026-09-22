@@ -11,8 +11,10 @@ import clientService from '../../services/clientService';
 import incomeService from '../../services/incomeService';
 import orderService from '../../services/orderService';
 import authService from '../../services/authService';
+import returnedItemService from '../../services/returnedItemService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 import { useNotification } from '../../context/NotificationContext';
+import SIZE_OPTIONS from '../../utils/sizes';
 
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 const ORDER_STATUS = {
@@ -116,6 +118,7 @@ const createInitialFormData = () => ({
   checkNumber: '',
   shop: '',
   orderDate: new Date().toISOString().split('T')[0],
+  pickupDate: '',
   modeOfPayment: '',
   notes: '',
 });
@@ -156,6 +159,8 @@ const Orders = () => {
   const [retailSearchIndex, setRetailSearchIndex] = useState(null);
   const [retailSearchText, setRetailSearchText] = useState('');
   const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
+  const [returnedItems, setReturnedItems] = useState([]);
+  const [returnedItemForm, setReturnedItemForm] = useState({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
   const location = useLocation();
   const openedCreditJobOrderRef = useRef(null);
   const { success: notifySuccess, error: notifyError } = useNotification();
@@ -406,6 +411,20 @@ const Orders = () => {
     setFormData({ ...formData, downPayment: String(Math.min(numValue, maxDownPayment)) });
   };
 
+  const loadReturnedItems = useCallback(async (orderId) => {
+    if (!orderId) {
+      setReturnedItems([]);
+      return;
+    }
+    try {
+      const response = await returnedItemService.getReturnedItemsByOrderId(orderId);
+      setReturnedItems(Array.isArray(response?.data) ? response.data : []);
+    } catch (error) {
+      console.error('Error loading returned items:', error);
+      setReturnedItems([]);
+    }
+  }, []);
+
   const populateOrderDetails = useCallback((order) => {
     if (!order) return;
 
@@ -416,8 +435,10 @@ const Orders = () => {
     setPaymentCheckNumber('');
     setPaymentModeOfPayment(order.modeOfPayment || '');
     setDownPaymentAmount('');
+    setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
+    loadReturnedItems(order.id);
     setDetailsOpen(true);
-  }, []);
+  }, [loadReturnedItems]);
 
   useEffect(() => {
     if (selectedOrder?.status === ORDER_STATUS.DOWN_PAYMENT_PENDING) {
@@ -501,6 +522,7 @@ const Orders = () => {
       checkNumber: order.checkNumber || '',
       shop: order.shop || '',
       orderDate: order.orderDate || new Date().toISOString().split('T')[0],
+      pickupDate: order.pickupDate || '',
       modeOfPayment: order.modeOfPayment || '',
       notes: order.remarks || '',
     });
@@ -617,6 +639,7 @@ const Orders = () => {
           : null,
         shop: formData.shop.trim(),
         orderDate: formData.orderDate,
+        pickupDate: formData.pickupDate || null,
         modeOfPayment: downPaymentAmount > 0
           ? selectedModeOfPayment
           : null,
@@ -644,8 +667,51 @@ const Orders = () => {
   const closeDetails = () => {
     setDetailsOpen(false);
     setSelectedOrder(null);
+    setReturnedItems([]);
+    setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
     resetPaymentInputFields();
     openedCreditJobOrderRef.current = null;
+  };
+
+  const handleAddReturnedItem = async () => {
+    if (!selectedOrder) {
+      return;
+    }
+    if (!returnedItemForm.productName.trim()) {
+      alert('Please enter a product name.');
+      return;
+    }
+    const qty = Number(returnedItemForm.quantity);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      alert('Quantity must be greater than zero.');
+      return;
+    }
+    try {
+      await returnedItemService.createReturnedItem({
+        orderId: selectedOrder.id,
+        productName: returnedItemForm.productName.trim(),
+        size: returnedItemForm.size || null,
+        quantity: qty,
+        reason: returnedItemForm.reason.trim() || null,
+        returnDate: returnedItemForm.returnDate || null,
+      });
+      setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
+      loadReturnedItems(selectedOrder.id);
+    } catch (error) {
+      alert(`Failed to add returned item: ${getApiErrorMessage(error)}`);
+    }
+  };
+
+  const handleDeleteReturnedItem = async (id) => {
+    if (!window.confirm('Delete this returned item?')) {
+      return;
+    }
+    try {
+      await returnedItemService.deleteReturnedItem(id);
+      loadReturnedItems(selectedOrder?.id);
+    } catch (error) {
+      alert(`Failed to delete returned item: ${getApiErrorMessage(error)}`);
+    }
   };
 
   const updateSelectedOrderStatus = async (newStatus, options = {}) => {
@@ -1212,7 +1278,7 @@ const Orders = () => {
                 </div>
               )}
 
-              <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr' }}>
+              <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr' }}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Shop *</label>
                   {fieldErrors.shop ? <div style={styles.fieldError}>{fieldErrors.shop}</div> : null}
@@ -1227,6 +1293,10 @@ const Orders = () => {
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Order Date *</label>
                   <input type="date" style={styles.input} value={formData.orderDate} onChange={(e) => setFormData(p => ({ ...p, orderDate: e.target.value }))} />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Pickup Date</label>
+                  <input type="date" style={styles.input} value={formData.pickupDate} onChange={(e) => setFormData(p => ({ ...p, pickupDate: e.target.value }))} />
                 </div>
               </div>
 
@@ -1270,6 +1340,7 @@ const Orders = () => {
                   <div style={styles.detailRow}><label style={styles.label}>Shop:</label><span>{selectedOrder.shop}</span></div>
                   <div style={styles.detailRow}><label style={styles.label}>Payment Mode:</label><span>{selectedOrder.modeOfPayment}</span></div>
                   <div style={styles.detailRow}><label style={styles.label}>Order Date:</label><span>{selectedOrder.orderDate}</span></div>
+                  <div style={styles.detailRow}><label style={styles.label}>Pickup Date:</label><span>{selectedOrder.pickupDate || '-'}</span></div>
                   <div style={styles.detailRow}>
                     <label style={styles.label}>Status:</label>
                     <span style={{ color: getStatusColor(selectedOrder.status), fontWeight: 'bold' }}>{getStatusLabel(selectedOrder.status)}</span>
@@ -1308,6 +1379,112 @@ const Orders = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                <div style={{ marginBottom: '25px' }}>
+                  <label style={styles.label}>Returned Items:</label>
+                  {returnedItems.length === 0 ? (
+                    <p style={{ margin: '8px 0 0 0', color: '#6b7280', fontSize: '0.9em' }}>No returned items recorded.</p>
+                  ) : (
+                    returnedItems.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 0',
+                          borderBottom: '1px solid #eee',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.92em' }}>
+                          {item.productName} | {item.size || '-'} | {item.quantity} | {item.reason || '-'} | {item.returnDate || '-'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteReturnedItem(item.id)}
+                          style={{
+                            ...styles.button,
+                            backgroundColor: '#ff5252',
+                            color: 'white',
+                            padding: '6px 12px',
+                            fontSize: '0.85em',
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                    <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Product Name</label>
+                        <input
+                          type="text"
+                          style={styles.input}
+                          value={returnedItemForm.productName}
+                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, productName: e.target.value }))}
+                          placeholder="Product name"
+                        />
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Size</label>
+                        <select
+                          style={styles.input}
+                          value={returnedItemForm.size}
+                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, size: e.target.value }))}
+                        >
+                          <option value="">N/A</option>
+                          {SIZE_OPTIONS.map((size) => (
+                            <option key={size} value={size}>
+                              {size}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Quantity</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          style={styles.input}
+                          value={returnedItemForm.quantity}
+                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Reason</label>
+                        <input
+                          type="text"
+                          style={styles.input}
+                          value={returnedItemForm.reason}
+                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, reason: e.target.value }))}
+                          placeholder="Reason for return"
+                        />
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Return Date</label>
+                        <input
+                          type="date"
+                          style={styles.input}
+                          value={returnedItemForm.returnDate}
+                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, returnDate: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleAddReturnedItem}
+                        style={{ ...styles.button, ...styles.buttonPrimary }}
+                      >
+                        + Add Returned Item
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: '15px' }}>

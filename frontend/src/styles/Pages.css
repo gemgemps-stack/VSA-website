@@ -239,6 +239,23 @@
   box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
 }
 
+.inventory-search-bar select.inventory-size-filter {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Montserrat', sans-serif;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+.inventory-search-bar select.inventory-size-filter:focus {
+  outline: none;
+  border-color: #016667;
+  box-shadow: 0 0 0 3px rgba(1, 102, 103, 0.08);
+}
+
 .order-search-bar {
   margin-bottom: 20px;
 }
@@ -1564,6 +1581,27 @@
     radial-gradient(circle at bottom left, rgba(1, 102, 103, 0.14), transparent 34%),
     linear-gradient(180deg, #ffffff 0%, #f7faf9 100%);
   box-shadow: 0 18px 40px rgba(18, 38, 36, 0.07);
+}
+
+.finance-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 7px 14px;
+  border: 1px solid #dfe7e3;
+  border-radius: 999px;
+  background: #fff;
+  color: #055a5b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.finance-back-button:hover {
+  border-color: #016667;
+  background: #eef6f5;
 }
 
 .finance-hero-copy {

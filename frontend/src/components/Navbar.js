@@ -44,6 +44,9 @@ const Navbar = ({ toggleSidebar }) => {
             className="navbar-logo"
             src="/verdida-logo.png"
             alt="Verdida Sports Apparel logo"
+            onClick={toggleSidebar}
+            role="button"
+            aria-label="Collapse or expand navigation menu"
           />
           <div className="navbar-brand">
             <h1 className="navbar-title">Verdida Sports Apparel</h1>
