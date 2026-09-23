@@ -1477,15 +1477,17 @@ const Orders = () => {
                   <label style={styles.label}>Returned Items:</label>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
                     <colgroup>
-                      <col style={{ width: '40%' }} />
+                      <col style={{ width: '34%' }} />
                       <col style={{ width: '12%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '10%' }} />
                       <col style={{ width: '12%' }} />
-                      <col style={{ width: '14%' }} />
                       <col style={{ width: '22%' }} />
                     </colgroup>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                         <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Version</th>
                         <th style={{ padding: '10px' }}>Size</th>
                         <th style={{ padding: '10px' }}>Order Qty</th>
                         <th style={{ padding: '10px' }}>Returned</th>
@@ -1500,6 +1502,7 @@ const Orders = () => {
                         return (
                           <tr key={`${key}-${i}`} style={{ borderBottom: '1px solid #eee' }}>
                             <td style={{ padding: '10px' }}>{item.productName}</td>
+                            <td style={{ padding: '10px' }}>{item.jerseyType || '-'}</td>
                             <td style={{ padding: '10px' }}>{item.size || '-'}</td>
                             <td style={{ padding: '10px' }}>{item.quantity}</td>
                             <td style={{ padding: '10px' }}>{returnedQty}</td>
