@@ -1440,15 +1440,17 @@ const Orders = () => {
                   <label style={styles.label}>Products:</label>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
                     <colgroup>
-                      <col style={{ width: '40%' }} />
-                      <col style={{ width: '12%' }} />
-                      <col style={{ width: '16%' }} />
+                      <col style={{ width: '32%' }} />
+                      <col style={{ width: '13%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '15%' }} />
                       <col style={{ width: '12%' }} />
                       <col style={{ width: '18%' }} />
                     </colgroup>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                         <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Version</th>
                         <th style={{ padding: '10px' }}>Size</th>
                         <th style={{ padding: '10px' }}>Unit Price</th>
                         <th style={{ padding: '10px' }}>Quantity</th>
@@ -1459,6 +1461,7 @@ const Orders = () => {
                       {(selectedOrder.items || [{ productName: selectedOrder.orderRetail, unitPrice: selectedOrder.price, quantity: selectedOrder.quantity, size: null }]).map(resolveLineItem).map((item, i) => (
                         <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
                           <td style={{ padding: '10px' }}>{item.productName}</td>
+                          <td style={{ padding: '10px' }}>{item.jerseyType || '-'}</td>
                           <td style={{ padding: '10px' }}>{item.size || '-'}</td>
                           <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice)}</td>
                           <td style={{ padding: '10px' }}>{item.quantity}</td>
