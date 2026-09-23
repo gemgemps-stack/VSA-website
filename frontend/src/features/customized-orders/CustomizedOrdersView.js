@@ -111,6 +111,24 @@ const createInitialFormData = () => ({
   notes: '',
 });
 
+const createReturnedItemForm = () => ({ reason: '', returnDate: new Date().toISOString().split('T')[0] });
+
+const getOrderLineItems = (order) => {
+  if (order?.items && order.items.length > 0) {
+    return order.items;
+  }
+  return [{ productName: order?.orderRetail, unitPrice: order?.price, quantity: order?.quantity, size: null }];
+};
+
+const getReturnKey = (item) => `${item.productName || ''}::${item.size || ''}`;
+
+const getReturnedQty = (returnedItems, key) => (returnedItems || []).reduce((sum, ri) => {
+  if (key === getReturnKey(ri)) {
+    return sum + (Number(ri.quantity) || 0);
+  }
+  return sum;
+}, 0);
+
 const CustomizedOrders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
@@ -130,6 +148,8 @@ const CustomizedOrders = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [manufacturingNotes, setManufacturingNotes] = useState('');
   const [returnedItems, setReturnedItems] = useState([]);
+  const [returnedItemForm, setReturnedItemForm] = useState(createReturnedItemForm());
+  const [returnQuantities, setReturnQuantities] = useState({});
   const [formData, setFormData] = useState(createInitialFormData());
   const [clientSearch, setClientSearch] = useState('');
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
@@ -211,6 +231,7 @@ const CustomizedOrders = () => {
     setPaymentCheckNumber('');
     setPaymentModeOfPayment(order.modeOfPayment || '');
     setDownPaymentAmount('');
+    setReturnedItemForm(createReturnedItemForm());
     loadReturnedItems(order.id);
     setDetailsOpen(true);
   }, [loadReturnedItems]);
@@ -222,6 +243,19 @@ const CustomizedOrders = () => {
       setPaymentCheckNumber('');
     }
   }, [selectedOrder?.id, selectedOrder?.status]);
+
+  useEffect(() => {
+    if (!selectedOrder || selectedOrder.status !== ORDER_STATUS.CANCELLED) {
+      return;
+    }
+    const next = {};
+    getOrderLineItems(selectedOrder).forEach((item) => {
+      const key = getReturnKey(item);
+      const remaining = Math.max(0, (item.quantity || 0) - getReturnedQty(returnedItems, key));
+      next[key] = remaining > 0 ? String(remaining) : '';
+    });
+    setReturnQuantities(next);
+  }, [returnedItems, selectedOrder]);
 
   useEffect(() => {
     const targetJobOrderNo = location.state?.jobOrderNo;
@@ -302,9 +336,10 @@ const CustomizedOrders = () => {
   }, [incomeEntries]);
 
   const filteredOrders = orders.filter((order) => {
+    const normalizedStatus = (order?.status || '').toUpperCase();
     const matchesStatus =
       statusFilter === 'ALL'
-        ? order?.status !== ORDER_STATUS.FULLY_PAID
+        ? ![ORDER_STATUS.FULLY_PAID, ORDER_STATUS.CANCELLED].includes(normalizedStatus)
         : (statusFilter === ORDER_STATUS.FULLY_PAID
           ? order?.status === ORDER_STATUS.FULLY_PAID
           : order?.status === statusFilter);
@@ -616,8 +651,49 @@ const CustomizedOrders = () => {
     setSelectedOrder(null);
     setManufacturingNotes('');
     setReturnedItems([]);
+    setReturnedItemForm(createReturnedItemForm());
+    setReturnQuantities({});
     resetPaymentInputFields();
     openedCreditJobOrderRef.current = null;
+  };
+
+  const handleSaveReturnedList = async () => {
+    if (!selectedOrder || selectedOrder.status !== ORDER_STATUS.CANCELLED) {
+      return;
+    }
+    const entriesToSave = getOrderLineItems(selectedOrder)
+      .map((item) => {
+        const key = getReturnKey(item);
+        const qty = Number(returnQuantities[key] || 0);
+        if (qty <= 0 || !Number.isFinite(qty)) {
+          return null;
+        }
+        return { productName: item.productName, size: item.size || null, quantity: qty };
+      })
+      .filter(Boolean);
+
+    if (entriesToSave.length === 0) {
+      alert('Please enter the quantities to return.');
+      return;
+    }
+    try {
+      for (const entry of entriesToSave) {
+        await returnedItemService.createReturnedItem({
+          customizedOrderId: selectedOrder.id,
+          productName: entry.productName.trim(),
+          size: entry.size,
+          quantity: entry.quantity,
+          reason: returnedItemForm.reason.trim() || null,
+          returnDate: returnedItemForm.returnDate || null,
+        });
+      }
+      setReturnedItemForm(createReturnedItemForm());
+      await loadReturnedItems(selectedOrder.id);
+      alert(`Returned list saved for ${entriesToSave.length} item(s).`);
+    } catch (error) {
+      const apiMessage = error.response?.data?.message || error.response?.data?.error || error.response?.data?.detail || error.message || 'Unknown error';
+      alert(`Failed to save returned list: ${apiMessage}`);
+    }
   };
 
   const buildOrderPayload = (order, statusOverride) => ({
@@ -857,7 +933,23 @@ const CustomizedOrders = () => {
     { key: 'jobOrderNo', label: 'Job Order No' },
     { key: 'clientName', label: 'Client Name' },
     { key: 'teamName', label: 'Team Name' },
-    { key: 'status', label: 'Status', render: (value) => getStatusLabel(value) },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (value) => (
+        <span style={{
+          padding: '4px 8px',
+          borderRadius: '999px',
+          fontSize: '0.75rem',
+          fontWeight: '700',
+          backgroundColor: getStatusColor(value),
+          color: 'white',
+          display: 'inline-block',
+        }}>
+          {getStatusLabel(value)}
+        </span>
+      ),
+    },
     { key: 'orderDate', label: 'Date' },
   ];
 
@@ -1421,39 +1513,109 @@ const CustomizedOrders = () => {
                 {selectedOrder?.status === ORDER_STATUS.CANCELLED && (
                 <div style={{ marginBottom: '25px' }}>
                   <label style={styles.label}>Returned Items:</label>
-                  {returnedItems.length === 0 ? (
-                    <p style={{ margin: '8px 0 0 0', color: '#6b7280', fontSize: '0.9em' }}>No returned items recorded.</p>
-                  ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
-                      <colgroup>
-                        <col style={{ width: '38%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '14%' }} />
-                        <col style={{ width: '22%' }} />
-                        <col style={{ width: '14%' }} />
-                      </colgroup>
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                          <th style={{ padding: '10px' }}>Product Name</th>
-                          <th style={{ padding: '10px' }}>Size</th>
-                          <th style={{ padding: '10px' }}>Quantity</th>
-                          <th style={{ padding: '10px' }}>Reason</th>
-                          <th style={{ padding: '10px' }}>Return Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {returnedItems.map((item) => (
-                          <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '40%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '22%' }} />
+                    </colgroup>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                        <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Size</th>
+                        <th style={{ padding: '10px' }}>Order Qty</th>
+                        <th style={{ padding: '10px' }}>Returned</th>
+                        <th style={{ padding: '10px' }}>Qty to Return</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getOrderLineItems(selectedOrder).map((item, i) => {
+                        const key = getReturnKey(item);
+                        const returnedQty = getReturnedQty(returnedItems, key);
+                        const remaining = Math.max(0, (item.quantity || 0) - returnedQty);
+                        return (
+                          <tr key={`${key}-${i}`} style={{ borderBottom: '1px solid #eee' }}>
                             <td style={{ padding: '10px' }}>{item.productName}</td>
                             <td style={{ padding: '10px' }}>{item.size || '-'}</td>
                             <td style={{ padding: '10px' }}>{item.quantity}</td>
-                            <td style={{ padding: '10px' }}>{item.reason || '-'}</td>
-                            <td style={{ padding: '10px' }}>{item.returnDate || '-'}</td>
+                            <td style={{ padding: '10px' }}>{returnedQty}</td>
+                            <td style={{ padding: '10px' }}>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                style={{ ...styles.input, padding: '8px', maxWidth: '90px' }}
+                                value={returnQuantities[key] || ''}
+                                onChange={(e) => {
+                                  const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
+                                  const num = digits === '' ? 0 : Number(digits);
+                                  setReturnQuantities((prev) => ({ ...prev, [key]: String(Math.min(num, remaining)) }));
+                                }}
+                                placeholder="0"
+                              />
+                            </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {returnedItems.length > 0 && (
+                    <>
+                      <label style={{ ...styles.label, display: 'block', marginTop: '15px' }}>Saved Returned List:</label>
+                      {returnedItems.map((item) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 0',
+                            borderBottom: '1px solid #eee',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.92em' }}>
+                            {item.productName} | {item.size || '-'} | Qty: {item.quantity} | {item.reason || '-'} | {item.returnDate || '-'}
+                          </span>
+                        </div>
+                      ))}
+                    </>
                   )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                    <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Reason</label>
+                        <input
+                          type="text"
+                          style={styles.input}
+                          value={returnedItemForm.reason}
+                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, reason: e.target.value }))}
+                          placeholder="Reason for return"
+                        />
+                      </div>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Return Date</label>
+                        <input
+                          type="date"
+                          style={styles.input}
+                          value={returnedItemForm.returnDate}
+                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, returnDate: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleSaveReturnedList}
+                        style={{ ...styles.button, ...styles.buttonPrimary }}
+                      >
+                        Save Returned List
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 )}
 

@@ -14,6 +14,7 @@ import authService from '../../services/authService';
 import returnedItemService from '../../services/returnedItemService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 import { useNotification } from '../../context/NotificationContext';
+import SIZE_OPTIONS from '../../utils/sizes';
 
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 const ORDER_STATUS = {
@@ -127,7 +128,7 @@ const createReturnedItemForm = () => ({ reason: '', returnDate: new Date().toISO
 const createInitialFormData = () => ({
   clientId: null,
   teamName: '',
-  items: [{ productName: '', unitPrice: '', quantity: '' }],
+  items: [{ productName: '', size: '', unitPrice: '', quantity: '' }],
   freebie: '',
   discount: '0',
   downPayment: '0',
@@ -350,7 +351,7 @@ const Orders = () => {
   const handleAddItem = () => {
     setFormData((prev) => ({
       ...prev,
-      items: [...prev.items, { productName: '', unitPrice: '', quantity: '' }],
+      items: [...prev.items, { productName: '', size: '', unitPrice: '', quantity: '' }],
     }));
   };
 
@@ -543,6 +544,7 @@ const Orders = () => {
       teamName: order.teamName || '',
       items: (order.items || []).map(item => ({
         productName: item.productName || '',
+        size: item.size || '',
         unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
         quantity: item.quantity != null ? String(item.quantity) : '',
       })),
@@ -558,7 +560,7 @@ const Orders = () => {
       notes: order.remarks || '',
     });
     if (!order.items || order.items.length === 0) {
-      setFormData(prev => ({ ...prev, items: [{ productName: order.orderRetail || '', unitPrice: String(order.price || ''), quantity: String(order.quantity || '') }] }));
+      setFormData(prev => ({ ...prev, items: [{ productName: order.orderRetail || '', size: '', unitPrice: String(order.price || ''), quantity: String(order.quantity || '') }] }));
     }
     setClientSearch(order.clientName || '');
     clearFieldErrors();
@@ -659,6 +661,7 @@ const Orders = () => {
         teamName: formData.teamName.trim() || null,
         items: formData.items.map(item => ({
           productName: item.productName.trim(),
+          size: item.size?.trim() || null,
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
         })),
@@ -965,7 +968,7 @@ const Orders = () => {
     financialLabel: { display: 'block', fontSize: '0.8rem', color: '#666', marginBottom: '4px' },
     detailsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' },
     detailRow: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    productRow: { display: 'grid', gridTemplateColumns: '57% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
+    productRow: { display: 'grid', gridTemplateColumns: '52% 10% 13% 8% 13% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
     removeBtn: { backgroundColor: '#ff5252', color: 'white', border: 'none', borderRadius: '4px', width: '100%', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     addBtn: { backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' },
     paymentUpdateCard: {
@@ -1193,6 +1196,21 @@ const Orders = () => {
                           </div>
                         )}
                       </div>
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>{index === 0 ? 'Size' : ''}</label>
+                      <select
+                        style={styles.input}
+                        value={item.size || ''}
+                        onChange={(e) => handleItemChange(index, 'size', e.target.value)}
+                      >
+                        <option value="">N/A</option>
+                        {SIZE_OPTIONS.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>

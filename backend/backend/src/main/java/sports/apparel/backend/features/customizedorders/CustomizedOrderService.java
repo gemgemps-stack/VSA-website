@@ -314,8 +314,9 @@ public class CustomizedOrderService {
     }
 
     private boolean isApprovalToDownPaymentPendingTransition(String oldStatus, String newStatus) {
-        return STATUS_FOR_CLIENT_APPROVAL.equalsIgnoreCase(oldStatus)
-                && STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(newStatus);
+        return STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(newStatus)
+                && (STATUS_FOR_CLIENT_APPROVAL.equalsIgnoreCase(oldStatus)
+                    || STATUS_NOT_APPROVED.equalsIgnoreCase(oldStatus));
     }
 
     private void recordIncomeForOrder(CustomizedOrder order, BigDecimal amount, String referenceNumber, String checkNumber, String paymentMethod, String paymentCategory) {

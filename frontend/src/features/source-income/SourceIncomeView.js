@@ -738,33 +738,38 @@ const escapeXml = (value) => String(value ?? '')
       text(safeValue.length > 34 ? `${safeValue.slice(0, width > 200 ? 31 : 19)}...` : safeValue, x, top, 9, 'F2');
     };
 
-    rectangle(0, 0, 595, 5, color(0.01, 0.40, 0.40));
-    text('VERDIDA SPORTS APPAREL', 48, 34, 9, 'F2', color(0.01, 0.40, 0.40));
-    text('Payment receipt', 48, 49, 22, 'F2');
-    text('A clear record of your transaction', 48, 78, 9, 'F1', color(0.44, 0.50, 0.48));
-    rectangle(495, 32, 48, 48, color(0.91, 0.96, 0.94));
-    text('VSA', 507, 50, 11, 'F2', color(0.01, 0.40, 0.40));
+rectangle(0, 0, 595, 4, color(0.01, 0.40, 0.40));
+    text('VERDIDA SPORTS APPAREL', 48, 36, 8, 'F2', color(0.01, 0.40, 0.40));
+    text('Payment receipt', 48, 50, 22, 'F2');
+    text('A clear record of your transaction', 48, 72, 9, 'F1', color(0.44, 0.50, 0.48));
+    rectangle(495, 36, 48, 48, color(0.91, 0.96, 0.94));
+    text('VSA', 510, 54, 11, 'F2', color(0.01, 0.40, 0.40));
 
-    rectangle(48, 108, 499, 70, color(0.94, 0.97, 0.96));
+    rectangle(48, 108, 499, 76, color(0.95, 0.97, 0.96));
     label('Amount received', 68, 124);
     text(formatMoney(entry?.amount), 68, 140, 22, 'F2', color(0.01, 0.40, 0.40));
-    rectangle(448, 130, 80, 20, color(0.85, 0.93, 0.90));
-    text('RECORDED', 459, 136, 7, 'F2', color(0.01, 0.40, 0.40));
+    rectangle(424, 112, 106, 24, color(0.85, 0.93, 0.90));
+    text('Recorded payment', 439, 123, 8, 'F2', color(0.01, 0.40, 0.40));
 
-    label('Receipt number', 48, 204); value(receiptNumber, 48, 216);
-    label('Date issued', 190, 204); value(receiptDate ? new Date(receiptDate).toLocaleString() : 'No date available', 190, 216, 180);
-    label('Job order', 382, 204); value(order?.jobOrderNo || 'N/A', 382, 216, 160);
-    label('Payment method', 48, 251); value(entry?.paymentMethod || order?.modeOfPayment || 'N/A', 48, 263);
-    label('Received from', 300, 251); value(order?.clientName || (isLiquidationEntry(entry) ? 'Liquidation Withdrawal' : 'Walk-in Client'), 300, 263, 240);
-    label('Reference no.', 48, 298); value(entry?.referenceNumber || 'N/A', 48, 310, 240);
+    label('Receipt number', 48, 214); value(receiptNumber, 48, 226, 100);
+    label('Date issued', 192, 214); value(receiptDate ? new Date(receiptDate).toLocaleString() : 'No date available', 192, 226, 135);
+    label('Job order', 344, 214); value(order?.jobOrderNo || 'N/A', 344, 226, 78);
+    label('Payment method', 486, 214); value(entry?.paymentMethod || order?.modeOfPayment || 'N/A', 486, 226, 62);
+    label('Reference no.', 48, 252); value(entry?.referenceNumber || 'N/A', 48, 264, 100);
     const isCheque = String(entry?.paymentMethod || order?.modeOfPayment || '').toLowerCase().includes('cheque');
-    if (isCheque) { label('Check no.', 300, 298); value(entry?.checkNumber || 'N/A', 300, 310, 180); }
-    line(48, 338, 499);
 
-    label('Item description', 48, 358);
-    label('Amount', 470, 358);
-    line(48, 374, 499, color(0.58, 0.68, 0.63));
-    let itemTop = 390;
+    if (isCheque) { label('Check no.', 192, 252); value(entry?.checkNumber || 'N/A', 192, 264, 135); }
+    line(48, 286, 499, color(0.91, 0.94, 0.92));
+
+    label('Received from', 48, 302); value(order?.clientName || (isLiquidationEntry(entry) ? 'Liquidation Withdrawal' : 'Walk-in Client'), 48, 314, 190);
+    label('Source', 326, 302); value(`${order?.shop || (isLiquidationEntry(entry) ? 'Finance' : 'Unknown shop')} / ${order?.sourceType || (isLiquidationEntry(entry) ? 'Liquidation' : 'Order')}`, 326, 314, 145);
+    line(48, 340, 499, color(0.91, 0.94, 0.92));
+
+    label('Item description', 48, 356);
+    label('Amount', 470, 356);
+    line(48, 372, 499, color(0.67, 0.76, 0.71));
+let itemTop = 390;
+
     if (order?.items?.length > 0) {
       order.items.slice(0, 10).forEach((item) => {
         const details = [item.size && `Size: ${item.size}`, item.number && `Number: ${item.number}`, item.jerseyType && `Version: ${item.jerseyType}`].filter(Boolean).join(' · ') || 'Apparel item';
@@ -834,7 +839,7 @@ const escapeXml = (value) => String(value ?? '')
     const referenceNumber = data.entry?.referenceNumber || 'N/A';
     const checkNumber = data.entry?.checkNumber || 'N/A';
     const isChequePayment = paymentMethod.toLowerCase().includes('cheque');
-    const itemMarkup = data.order?.items?.length > 0
+const itemMarkup = data.order?.items?.length > 0
       ? data.order.items.map((item) => {
         const details = [
           item.size && `Size: ${item.size}`,
@@ -842,9 +847,9 @@ const escapeXml = (value) => String(value ?? '')
           item.jerseyType && `Version: ${item.jerseyType}`,
         ].filter(Boolean).join(' · ') || 'Apparel item';
         const subtotal = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
-        return `<div class="item-row"><div><strong>${escapeXml(item.productName || 'Unnamed item')}</strong><span>${escapeXml(details)}</span><span>${item.quantity || 0} × ${escapeXml(formatMoney(item.unitPrice))}</span></div><strong>${escapeXml(formatMoney(subtotal))}</strong></div>`;
+        return `<div class="receipt-item-row"><div><strong>${escapeXml(item.productName || 'Unnamed item')}</strong><span>${escapeXml(details)}</span><span>${item.quantity || 0} × ${escapeXml(formatMoney(item.unitPrice))}</span></div><strong>${escapeXml(formatMoney(subtotal))}</strong></div>`;
       }).join('')
-      : `<p class="empty">${isLiquidationEntry(data.entry) ? 'No order items for this liquidation withdrawal.' : 'No line items available for this receipt.'}</p>`;
+      : `<p class="receipt-empty-cell">${isLiquidationEntry(data.entry) ? 'No order items for this liquidation withdrawal.' : 'No line items available for this receipt.'}</p>`;
 
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -852,54 +857,94 @@ const escapeXml = (value) => String(value ?? '')
         <head>
           <title>Receipt - ${escapeXml(receiptTitle)}</title>
           <style>
-            @page { size: A4; margin: 16mm; }
-            :root { color: #172321; font-family: Arial, Helvetica, sans-serif; }
+            @page { size: A4; margin: 14mm; }
             * { box-sizing: border-box; }
-            body { margin: 0; background: #f2f5f3; }
-            .receipt { width: 100%; max-width: 720px; margin: 0 auto; overflow: hidden; border: 1px solid #d9e5e0; background: #fff; }
-            .receipt::before { content: ''; display: block; height: 5px; background: #016667; }
-            .brand { display: flex; justify-content: space-between; gap: 20px; padding: 28px 32px 22px; }
-            .eyebrow, .label, .heading { color: #016667; font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
-            h1 { margin: 7px 0 4px; font-size: 27px; letter-spacing: -.04em; }
-            p { margin: 0; }
-            .muted { color: #71807a; font-size: 12px; }
-            .mark { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 10px; background: #e8f3ef; color: #016667; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
-            .amount { display: flex; align-items: flex-end; justify-content: space-between; margin: 0 32px 20px; padding: 18px 20px; border-radius: 8px; background: #f1f8f5; }
-            .amount strong { display: block; margin-top: 4px; color: #016667; font-size: 26px; }
-            .status { padding: 6px 9px; border-radius: 999px; background: #d9eee7; color: #016667; font-size: 10px; font-weight: 800; }
-            .meta, .customer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin: 0 32px; padding: 0 0 20px; border-bottom: 1px solid #e8efec; }
-            .customer { grid-template-columns: 1fr 1fr; padding: 18px 0; }
-            .value { display: block; margin-top: 5px; overflow-wrap: anywhere; font-size: 12px; font-weight: 700; }
-            .items { margin: 0 32px; padding: 20px 0 4px; }
-            .heading, .item-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; }
-            .heading { padding-bottom: 9px; border-bottom: 1px solid #cbdad4; color: #71807a; }
-            .heading span:last-child, .item-row > strong { text-align: right; }
-            .item-row { padding: 13px 0; border-bottom: 1px solid #edf2ef; }
-            .item-row:last-child { border-bottom: 0; }
-            .item-row strong { font-size: 12px; }
-            .item-row span { display: block; margin-top: 4px; color: #71807a; font-size: 11px; }
-            .empty { padding: 18px 0; color: #71807a; font-size: 12px; }
-            .totals { display: grid; justify-content: end; gap: 8px; margin: 0 32px; padding: 16px 0 20px; border-top: 1px solid #cbdad4; }
-            .total-row { display: grid; grid-template-columns: 150px auto; gap: 22px; color: #71807a; font-size: 11px; }
-            .total-row strong { color: #172321; text-align: right; }
-            .total-row.emphasis { padding-top: 9px; border-top: 1px solid #e8efec; color: #172321; font-weight: 800; }
-            .total-row.emphasis strong { color: #016667; font-size: 14px; }
-            footer { padding: 16px 32px 22px; background: #f7faf9; color: #71807a; font-size: 10px; }
-            footer strong { display: block; margin-bottom: 5px; color: #172321; font-size: 11px; }
-            footer p + p { margin-top: 3px; }
-            @media print { body { background: #fff; } .receipt { max-width: none; border-color: #cbdad4; } }
+            body { margin: 0; background: #f2f5f3; font-family: Arial, Helvetica, sans-serif; color: #1d2a27; }
+            .receipt-paper { position: relative; overflow: hidden; max-width: 720px; margin: 0 auto; border: 1px solid #d9e5e0; border-radius: 16px; background: #fff; }
+            .receipt-paper::before { content: ''; display: block; height: 4px; background: #016667; }
+            .receipt-brand { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 24px 28px 18px; }
+            .receipt-eyebrow { margin: 0 0 8px; color: #016667; font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+            .receipt-brand h3 { margin: 0; color: #172321; font-size: 25px; letter-spacing: -0.04em; }
+            .receipt-muted { margin: 5px 0 0; color: #71807a; font-size: 13px; }
+            .receipt-brand-mark { display: grid; width: 48px; height: 48px; place-items: center; flex: 0 0 auto; border-radius: 12px; background: #e8f3ef; color: #016667; font-size: 12px; font-weight: 900; letter-spacing: 0.08em; }
+            .receipt-label { display: block; margin-bottom: 5px; color: #71807a; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+            .receipt-amount-panel { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 28px 18px; padding: 18px 20px; border-radius: 12px; background: #f1f8f5; }
+            .receipt-amount-panel strong { display: block; color: #016667; font-size: 28px; letter-spacing: -0.04em; }
+            .receipt-status { padding: 6px 9px; border-radius: 999px; background: #d9eee7; color: #016667; font-size: 11px; font-weight: 800; white-space: nowrap; }
+            .receipt-meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0 28px; padding: 0 0 20px; border-bottom: 1px solid #e8efec; }
+            .receipt-meta-grid strong, .receipt-customer-row strong { display: block; overflow-wrap: anywhere; color: #1d2a27; font-size: 13px; }
+            .receipt-customer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 0 28px; padding: 18px 0; border-bottom: 1px solid #e8efec; }
+            .receipt-items { margin: 0 28px; padding: 18px 0 4px; }
+            .receipt-section-heading, .receipt-item-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; }
+            .receipt-section-heading { padding-bottom: 9px; border-bottom: 1px solid #cbdad4; color: #71807a; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+            .receipt-section-heading span:last-child, .receipt-item-row > strong { text-align: right; }
+            .receipt-item-row { align-items: start; padding: 13px 0; border-bottom: 1px solid #edf2ef; }
+            .receipt-item-row:last-child { border-bottom: 0; }
+            .receipt-item-row div { min-width: 0; }
+            .receipt-item-row strong { color: #1d2a27; font-size: 13px; }
+            .receipt-item-row span { display: block; margin-top: 3px; color: #71807a; font-size: 12px; }
+            .receipt-empty-cell { margin: 0; padding: 18px 0; color: #71807a; }
+            .receipt-totals { display: grid; justify-content: end; gap: 9px; margin: 0 28px; padding: 16px 0 18px; border-top: 1px solid #cbdad4; }
+            .receipt-totals > div { display: grid; grid-template-columns: 150px auto; gap: 22px; color: #71807a; font-size: 12px; }
+            .receipt-totals strong { color: #1d2a27; text-align: right; }
+            .receipt-totals .receipt-total-emphasis { margin-top: 3px; padding-top: 10px; border-top: 1px solid #e8efec; color: #1d2a27; font-weight: 800; }
+            .receipt-totals .receipt-total-emphasis strong { color: #016667; font-size: 15px; }
+            .receipt-footer-notes { margin: 0; padding: 16px 28px 20px; background: #f7faf9; }
+            .receipt-footer-notes strong { display: block; margin-bottom: 5px; color: #1d2a27; font-size: 12px; }
+            .receipt-footer-notes p { margin: 2px 0 0; color: #71807a; font-size: 11px; }
+            @media print { body { background: #fff; } .receipt-paper { max-width: none; border-radius: 0; } }
           </style>
         </head>
         <body>
-          <main class="receipt">
-            <header class="brand"><div><span class="eyebrow">Verdida Sports Apparel</span><h1>Payment receipt</h1><p class="muted">A clear record of your transaction</p></div><div class="mark">VSA</div></header>
-            <section class="amount"><div><span class="label">Amount received</span><strong>${escapeXml(formatMoney(data.entry?.amount))}</strong></div><span class="status">Recorded payment</span></section>
-            <section class="meta"><div><span class="label">Receipt number</span><span class="value">${escapeXml(data.receiptNumber)}</span></div><div><span class="label">Date issued</span><span class="value">${escapeXml(data.receiptDate ? new Date(data.receiptDate).toLocaleString() : 'No date available')}</span></div><div><span class="label">Job order</span><span class="value">${escapeXml(data.order?.jobOrderNo || 'N/A')}</span></div><div><span class="label">Payment method</span><span class="value">${escapeXml(paymentMethod)}</span></div><div><span class="label">Reference no.</span><span class="value">${escapeXml(referenceNumber)}</span></div>${isChequePayment ? `<div><span class="label">Check no.</span><span class="value">${escapeXml(checkNumber)}</span></div>` : ''}</section>
-            <section class="customer"><div><span class="label">Received from</span><span class="value">${escapeXml(clientName)}</span></div><div><span class="label">Source</span><span class="value">${escapeXml(`${shopName} / ${sourceName}`)}</span></div></section>
-            <section class="items"><div class="heading"><span>Item description</span><span>Amount</span></div>${itemMarkup}</section>
-            <section class="totals"><div class="total-row"><span>Order total</span><strong>${escapeXml(formatMoney(data.order?.total || data.entry?.amount))}</strong></div><div class="total-row"><span>Payment recorded</span><strong>${escapeXml(formatMoney(data.entry?.amount))}</strong></div>${data.order ? `<div class="total-row emphasis"><span>Remaining balance</span><strong>${escapeXml(formatMoney(data.order.remainingBalance || 0))}</strong></div>` : ''}</section>
-            <footer><strong>Keep this receipt for your records.</strong><p>Payments are subject to confirmation and accounting review.</p><p>Thank you for supporting Verdida Sports Apparel.</p></footer>
-          </main>
+          <div class="receipt-paper">
+            <header class="receipt-brand">
+              <div>
+                <span class="receipt-eyebrow">Verdida Sports Apparel</span>
+                <h3>Payment receipt</h3>
+                <p class="receipt-muted">A clear record of your transaction</p>
+              </div>
+              <div class="receipt-brand-mark" aria-hidden="true">VSA</div>
+            </header>
+
+            <section class="receipt-amount-panel">
+              <div>
+                <span class="receipt-label">Amount received</span>
+                <strong>${escapeXml(formatMoney(data.entry?.amount))}</strong>
+              </div>
+              <span class="receipt-status">Recorded payment</span>
+            </section>
+
+            <section class="receipt-meta-grid" aria-label="Receipt details">
+              <div><span class="receipt-label">Receipt number</span><strong>${escapeXml(data.receiptNumber)}</strong></div>
+              <div><span class="receipt-label">Date issued</span><strong>${escapeXml(data.receiptDate ? new Date(data.receiptDate).toLocaleString() : 'No date available')}</strong></div>
+              <div><span class="receipt-label">Job order</span><strong>${escapeXml(data.order?.jobOrderNo || 'N/A')}</strong></div>
+              <div><span class="receipt-label">Payment method</span><strong>${escapeXml(paymentMethod)}</strong></div>
+              <div><span class="receipt-label">Reference no.</span><strong>${escapeXml(referenceNumber)}</strong></div>
+              ${isChequePayment ? `<div><span class="receipt-label">Check no.</span><strong>${escapeXml(checkNumber)}</strong></div>` : ''}
+            </section>
+
+            <section class="receipt-customer-row">
+              <div><span class="receipt-label">Received from</span><strong>${escapeXml(clientName)}</strong></div>
+              <div><span class="receipt-label">Source</span><strong>${escapeXml(shopName)} <span aria-hidden="true">/</span> ${escapeXml(sourceName)}</strong></div>
+            </section>
+
+            <section class="receipt-items">
+              <div class="receipt-section-heading"><span>Item description</span><span>Amount</span></div>
+              ${itemMarkup}
+            </section>
+
+            <section class="receipt-totals">
+              <div><span>Order total</span><strong>${escapeXml(formatMoney(data.order?.total || data.entry?.amount))}</strong></div>
+              <div><span>Payment recorded</span><strong>${escapeXml(formatMoney(data.entry?.amount))}</strong></div>
+              ${data.order ? `<div class="receipt-total-emphasis"><span>Remaining balance</span><strong>${escapeXml(formatMoney(data.order.remainingBalance || 0))}</strong></div>` : ''}
+            </section>
+
+            <footer class="receipt-footer-notes">
+              <strong>Keep this receipt for your records.</strong>
+              <p>Payments are subject to confirmation and accounting review.</p>
+              <p>Thank you for supporting Verdida Sports Apparel.</p>
+            </footer>
+          </div>
         </body>
       </html>
     `);
