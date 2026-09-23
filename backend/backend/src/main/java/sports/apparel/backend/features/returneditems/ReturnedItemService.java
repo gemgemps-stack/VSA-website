@@ -5,9 +5,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sports.apparel.backend.entity.CustomizedOrder;
+import sports.apparel.backend.entity.Inventory;
 import sports.apparel.backend.entity.Order;
 import sports.apparel.backend.entity.ReturnedItem;
 import sports.apparel.backend.features.customizedorders.CustomizedOrderRepository;
+import sports.apparel.backend.features.inventory.InventoryRepository;
 import sports.apparel.backend.features.orders.OrderRepository;
 import sports.apparel.backend.support.IdempotencyService;
 
@@ -19,16 +21,21 @@ import java.util.stream.Collectors;
 @Transactional
 public class ReturnedItemService {
 
+    private static final String STATUS_CANCELLED = "CANCELLED";
+
     private final ReturnedItemRepository returnedItemRepository;
     private final OrderRepository orderRepository;
     private final CustomizedOrderRepository customizedOrderRepository;
+    private final InventoryRepository inventoryRepository;
     private final IdempotencyService idempotencyService;
 
     public ReturnedItemService(ReturnedItemRepository returnedItemRepository, OrderRepository orderRepository,
-                               CustomizedOrderRepository customizedOrderRepository, IdempotencyService idempotencyService) {
+                               CustomizedOrderRepository customizedOrderRepository, InventoryRepository inventoryRepository,
+                               IdempotencyService idempotencyService) {
         this.returnedItemRepository = returnedItemRepository;
         this.orderRepository = orderRepository;
         this.customizedOrderRepository = customizedOrderRepository;
+        this.inventoryRepository = inventoryRepository;
         this.idempotencyService = idempotencyService;
     }
 
@@ -69,7 +76,9 @@ public class ReturnedItemService {
         returnedItem.setReturnDate(request.getReturnDate());
         returnedItem.setRequestFingerprint(buildDedupeKey(request));
 
-        return new ReturnedItemDTO(returnedItemRepository.save(returnedItem));
+        ReturnedItem saved = returnedItemRepository.save(returnedItem);
+        restockInventoryForReturnedItem(saved);
+        return new ReturnedItemDTO(saved);
     }
 
     @Transactional(readOnly = true)
@@ -104,6 +113,7 @@ public class ReturnedItemService {
                 .orElseThrow(() -> new IllegalArgumentException("Returned item not found"));
 
         validateQuantity(request.getQuantity());
+        unstockInventoryForReturnedItem(returnedItem);
 
         if (request.getOrderId() != null) {
             Order order = orderRepository.findById(request.getOrderId())
@@ -124,13 +134,71 @@ public class ReturnedItemService {
         returnedItem.setReason(request.getReason());
         returnedItem.setReturnDate(request.getReturnDate());
 
-        return new ReturnedItemDTO(returnedItemRepository.save(returnedItem));
+        ReturnedItem saved = returnedItemRepository.save(returnedItem);
+        restockInventoryForReturnedItem(saved);
+        return new ReturnedItemDTO(saved);
     }
 
     public void deleteReturnedItem(UUID id) {
         ReturnedItem returnedItem = returnedItemRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Returned item not found"));
+        unstockInventoryForReturnedItem(returnedItem);
         returnedItemRepository.delete(returnedItem);
+    }
+
+    private void restockInventoryForReturnedItem(ReturnedItem returnedItem) {
+        if (!isCancelledInventoryOrder(returnedItem)) {
+            return;
+        }
+        Inventory inventory = findInventoryByRetailLabel(returnedItem.getProductName());
+        if (inventory != null) {
+            int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
+            inventory.setQuantity(currentStock + safeQuantity(returnedItem.getQuantity()));
+            inventoryRepository.save(inventory);
+        }
+    }
+
+    private void unstockInventoryForReturnedItem(ReturnedItem returnedItem) {
+        if (!isCancelledInventoryOrder(returnedItem)) {
+            return;
+        }
+        Inventory inventory = findInventoryByRetailLabel(returnedItem.getProductName());
+        if (inventory != null) {
+            int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
+            inventory.setQuantity(Math.max(0, currentStock - safeQuantity(returnedItem.getQuantity())));
+            inventoryRepository.save(inventory);
+        }
+    }
+
+    private boolean isCancelledInventoryOrder(ReturnedItem returnedItem) {
+        Order order = returnedItem.getOrder();
+        return order != null && STATUS_CANCELLED.equalsIgnoreCase(order.getStatus());
+    }
+
+    private int safeQuantity(Integer quantity) {
+        return quantity != null ? quantity : 0;
+    }
+
+    private Inventory findInventoryByRetailLabel(String retailLabel) {
+        if (retailLabel == null || retailLabel.isBlank()) {
+            return null;
+        }
+
+        return inventoryRepository.findAll().stream()
+                .filter(inventory -> buildInventoryLabel(inventory).equalsIgnoreCase(retailLabel.trim()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String buildInventoryLabel(Inventory inventory) {
+        String itemType = inventory.getItemType() != null ? inventory.getItemType() : "Inventory Item";
+        String shopSuffix = (inventory.getShop() != null && !inventory.getShop().isBlank()) ? " (" + inventory.getShop() + ")" : "";
+
+        if ("Jersey".equalsIgnoreCase(itemType) && inventory.getJerseyType() != null && !inventory.getJerseyType().isBlank()) {
+            return String.format("%s - %s - %s%s", itemType, inventory.getJerseyType(), inventory.getName(), shopSuffix);
+        }
+
+        return String.format("%s - %s%s", itemType, inventory.getName(), shopSuffix);
     }
 
     private void validateQuantity(Integer quantity) {

@@ -368,12 +368,15 @@ public class OrderService {
 
         populateLegacySummaryFields(order);
 
-        // Inventory logic: deduct if transitioning to an active state, restore if cancelled or not approved
-        if (shouldDeductInventory(newStatus) && !Boolean.TRUE.equals(order.getInventoryDeducted())) {
+        // Inventory logic: deduct when transitioning to an active state. "Not Approved" returns stock.
+        // Cancelled orders do NOT auto-restore inventory; stock is only returned via the returned-items card.
+        boolean wasInventoryDeducted = Boolean.TRUE.equals(order.getInventoryDeducted());
+        if (shouldDeductInventory(newStatus) && !wasInventoryDeducted) {
             deductInventoryForOrder(order);
-        } else if ((STATUS_CANCELLED.equalsIgnoreCase(newStatus) || STATUS_NOT_APPROVED.equalsIgnoreCase(newStatus)) 
-                    && Boolean.TRUE.equals(order.getInventoryDeducted())) {
+        } else if (STATUS_NOT_APPROVED.equalsIgnoreCase(newStatus) && wasInventoryDeducted) {
             restoreInventoryForOrder(order);
+        } else if (STATUS_CANCELLED.equalsIgnoreCase(newStatus) && wasInventoryDeducted) {
+            order.setInventoryDeducted(false);
         }
 
         // Financial logic: when fully paid, record only the remaining unpaid balance.

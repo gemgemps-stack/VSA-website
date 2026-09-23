@@ -14,7 +14,6 @@ import authService from '../../services/authService';
 import returnedItemService from '../../services/returnedItemService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 import { useNotification } from '../../context/NotificationContext';
-import SIZE_OPTIONS from '../../utils/sizes';
 
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 const ORDER_STATUS = {
@@ -36,8 +35,8 @@ const PAYMENT_MODE_REQUIRED_STATUSES = new Set([
 const requiresModeOfPayment = (status) => PAYMENT_MODE_REQUIRED_STATUSES.has((status || '').toUpperCase());
 const isChequePayment = (value) => (value || '').trim().toLowerCase() === 'cheques';
 const isApprovalToDownPaymentPendingTransition = (currentStatus, nextStatus) =>
-  (currentStatus || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL &&
-  (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING;
+  (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING &&
+  [(ORDER_STATUS.FOR_CLIENT_APPROVAL || ''), (ORDER_STATUS.NOT_APPROVED || '')].includes((currentStatus || '').toUpperCase());
 
 const ORDER_FILTERS = [
   { key: 'ALL', label: 'All' },
@@ -107,6 +106,24 @@ const getOrderFinancials = (order) => {
   return { total, afterDiscountTotal, remainingAfterDownPayment };
 };
 
+const getOrderLineItems = (order) => {
+  if (order?.items && order.items.length > 0) {
+    return order.items;
+  }
+  return [{ productName: order?.orderRetail, unitPrice: order?.price, quantity: order?.quantity, size: null }];
+};
+
+const getReturnKey = (item) => `${item.productName || ''}::${item.size || ''}`;
+
+const getReturnedQty = (returnedItems, key) => (returnedItems || []).reduce((sum, ri) => {
+  if (key === getReturnKey(ri)) {
+    return sum + (Number(ri.quantity) || 0);
+  }
+  return sum;
+}, 0);
+
+const createReturnedItemForm = () => ({ reason: '', returnDate: new Date().toISOString().split('T')[0] });
+
 const createInitialFormData = () => ({
   clientId: null,
   teamName: '',
@@ -160,7 +177,8 @@ const Orders = () => {
   const [retailSearchText, setRetailSearchText] = useState('');
   const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
   const [returnedItems, setReturnedItems] = useState([]);
-  const [returnedItemForm, setReturnedItemForm] = useState({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
+  const [returnedItemForm, setReturnedItemForm] = useState(createReturnedItemForm());
+  const [returnQuantities, setReturnQuantities] = useState({});
   const location = useLocation();
   const openedCreditJobOrderRef = useRef(null);
   const { success: notifySuccess, error: notifyError } = useNotification();
@@ -435,7 +453,7 @@ const Orders = () => {
     setPaymentCheckNumber('');
     setPaymentModeOfPayment(order.modeOfPayment || '');
     setDownPaymentAmount('');
-    setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
+    setReturnedItemForm(createReturnedItemForm());
     loadReturnedItems(order.id);
     setDetailsOpen(true);
   }, [loadReturnedItems]);
@@ -447,6 +465,19 @@ const Orders = () => {
       setPaymentCheckNumber('');
     }
   }, [selectedOrder?.id, selectedOrder?.status]);
+
+  useEffect(() => {
+    if (!selectedOrder || selectedOrder.status !== ORDER_STATUS.CANCELLED) {
+      return;
+    }
+    const next = {};
+    getOrderLineItems(selectedOrder).forEach((item) => {
+      const key = getReturnKey(item);
+      const remaining = Math.max(0, (item.quantity || 0) - getReturnedQty(returnedItems, key));
+      next[key] = remaining > 0 ? String(remaining) : '';
+    });
+    setReturnQuantities(next);
+  }, [returnedItems, selectedOrder]);
 
   const handleView = (order) => {
     populateOrderDetails(order);
@@ -673,37 +704,46 @@ const Orders = () => {
     openedCreditJobOrderRef.current = null;
   };
 
-  const handleAddReturnedItem = async () => {
-    if (!selectedOrder) {
+  const handleAddReturnedItems = async () => {
+    if (!selectedOrder || selectedOrder.status !== ORDER_STATUS.CANCELLED) {
       return;
     }
-    if (!returnedItemForm.productName.trim()) {
-      alert('Please enter a product name.');
-      return;
-    }
-    const qty = Number(returnedItemForm.quantity);
-    if (!Number.isFinite(qty) || qty <= 0) {
-      alert('Quantity must be greater than zero.');
+    const entriesToAdd = getOrderLineItems(selectedOrder)
+      .map((item) => {
+        const key = getReturnKey(item);
+        const qty = Number(returnQuantities[key] || 0);
+        if (qty <= 0 || !Number.isFinite(qty)) {
+          return null;
+        }
+        return { productName: item.productName, size: item.size || null, quantity: qty };
+      })
+      .filter(Boolean);
+
+    if (entriesToAdd.length === 0) {
+      alert('Please enter the quantities to return.');
       return;
     }
     try {
-      await returnedItemService.createReturnedItem({
-        orderId: selectedOrder.id,
-        productName: returnedItemForm.productName.trim(),
-        size: returnedItemForm.size || null,
-        quantity: qty,
-        reason: returnedItemForm.reason.trim() || null,
-        returnDate: returnedItemForm.returnDate || null,
-      });
-      setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
-      loadReturnedItems(selectedOrder.id);
+      for (const entry of entriesToAdd) {
+        await returnedItemService.createReturnedItem({
+          orderId: selectedOrder.id,
+          productName: entry.productName.trim(),
+          size: entry.size,
+          quantity: entry.quantity,
+          reason: returnedItemForm.reason.trim() || null,
+          returnDate: returnedItemForm.returnDate || null,
+        });
+      }
+      setReturnedItemForm(createReturnedItemForm());
+      await loadReturnedItems(selectedOrder.id);
+      alert(`Returned ${entriesToAdd.length} item(s) and updated inventory.`);
     } catch (error) {
-      alert(`Failed to add returned item: ${getApiErrorMessage(error)}`);
+      alert(`Failed to add returned items: ${getApiErrorMessage(error)}`);
     }
   };
 
   const handleDeleteReturnedItem = async (id) => {
-    if (!window.confirm('Delete this returned item?')) {
+    if (!window.confirm('Delete this returned item? Its quantity will be removed from inventory.')) {
       return;
     }
     try {
@@ -1055,7 +1095,7 @@ const Orders = () => {
                 onView={handleView}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+                canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID && order.status !== ORDER_STATUS.CANCELLED}
                 canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
                 loading={loading}
                 currentPage={currentPage}
@@ -1384,78 +1424,92 @@ const Orders = () => {
                 {selectedOrder.status === ORDER_STATUS.CANCELLED && (
                 <div style={{ marginBottom: '25px' }}>
                   <label style={styles.label}>Returned Items:</label>
-                  {returnedItems.length === 0 ? (
-                    <p style={{ margin: '8px 0 0 0', color: '#6b7280', fontSize: '0.9em' }}>No returned items recorded.</p>
-                  ) : (
-                    returnedItems.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '10px 0',
-                          borderBottom: '1px solid #eee',
-                        }}
-                      >
-                        <span style={{ fontSize: '0.92em' }}>
-                          {item.productName} | {item.size || '-'} | {item.quantity} | {item.reason || '-'} | {item.returnDate || '-'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteReturnedItem(item.id)}
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '40%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '22%' }} />
+                    </colgroup>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                        <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Size</th>
+                        <th style={{ padding: '10px' }}>Order Qty</th>
+                        <th style={{ padding: '10px' }}>Returned</th>
+                        <th style={{ padding: '10px' }}>Qty to Return</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getOrderLineItems(selectedOrder).map((item, i) => {
+                        const key = getReturnKey(item);
+                        const returnedQty = getReturnedQty(returnedItems, key);
+                        const remaining = Math.max(0, (item.quantity || 0) - returnedQty);
+                        return (
+                          <tr key={`${key}-${i}`} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '10px' }}>{item.productName}</td>
+                            <td style={{ padding: '10px' }}>{item.size || '-'}</td>
+                            <td style={{ padding: '10px' }}>{item.quantity}</td>
+                            <td style={{ padding: '10px' }}>{returnedQty}</td>
+                            <td style={{ padding: '10px' }}>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                style={{ ...styles.input, padding: '8px', maxWidth: '90px' }}
+                                value={returnQuantities[key] || ''}
+                                onChange={(e) => {
+                                  const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
+                                  const num = digits === '' ? 0 : Number(digits);
+                                  setReturnQuantities((prev) => ({ ...prev, [key]: String(Math.min(num, remaining)) }));
+                                }}
+                                placeholder="0"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {returnedItems.length > 0 && (
+                    <>
+                      <label style={{ ...styles.label, display: 'block', marginTop: '15px' }}>Recorded Returns:</label>
+                      {returnedItems.map((item) => (
+                        <div
+                          key={item.id}
                           style={{
-                            ...styles.button,
-                            backgroundColor: '#ff5252',
-                            color: 'white',
-                            padding: '6px 12px',
-                            fontSize: '0.85em',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 0',
+                            borderBottom: '1px solid #eee',
                           }}
                         >
-                          Delete
-                        </button>
-                      </div>
-                    ))
+                          <span style={{ fontSize: '0.92em' }}>
+                            {item.productName} | {item.size || '-'} | Qty: {item.quantity} | {item.reason || '-'} | {item.returnDate || '-'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReturnedItem(item.id)}
+                            style={{
+                              ...styles.button,
+                              backgroundColor: '#ff5252',
+                              color: 'white',
+                              padding: '6px 12px',
+                              fontSize: '0.85em',
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </>
                   )}
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Product Name</label>
-                        <input
-                          type="text"
-                          style={styles.input}
-                          value={returnedItemForm.productName}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, productName: e.target.value }))}
-                          placeholder="Product name"
-                        />
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Size</label>
-                        <select
-                          style={styles.input}
-                          value={returnedItemForm.size}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, size: e.target.value }))}
-                        >
-                          <option value="">N/A</option>
-                          {SIZE_OPTIONS.map((size) => (
-                            <option key={size} value={size}>
-                              {size}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Quantity</label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          style={styles.input}
-                          value={returnedItemForm.quantity}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, quantity: e.target.value }))}
-                          placeholder="0"
-                        />
-                      </div>
                       <div style={styles.formGroup}>
                         <label style={styles.label}>Reason</label>
                         <input
@@ -1479,10 +1533,10 @@ const Orders = () => {
                     <div>
                       <button
                         type="button"
-                        onClick={handleAddReturnedItem}
+                        onClick={handleAddReturnedItems}
                         style={{ ...styles.button, ...styles.buttonPrimary }}
                       >
-                        + Add Returned Item
+                        + Add Returned Items
                       </button>
                     </div>
                   </div>
@@ -1607,11 +1661,11 @@ const Orders = () => {
                   })()}
                 </div>
 
-                {selectedOrder.status === ORDER_STATUS.FOR_CLIENT_APPROVAL && (
+                {(selectedOrder.status === ORDER_STATUS.FOR_CLIENT_APPROVAL || selectedOrder.status === ORDER_STATUS.NOT_APPROVED) && (
                   <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                     <button style={{ ...styles.button, ...styles.buttonDanger }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}>Order Cancelled</button>
                     <button style={{ ...styles.button, ...styles.buttonSecondary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_APPROVED)}>Not Approved</button>
-                    <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.DOWN_PAYMENT_PENDING)}>Approved by Client</button>
+                    <button style={{ ...styles.button, ...styles.buttonPrimary }} onClick={() => updateSelectedOrderStatus(ORDER_STATUS.DOWN_PAYMENT_PENDING)}>Approved</button>
                   </div>
                 )}
 

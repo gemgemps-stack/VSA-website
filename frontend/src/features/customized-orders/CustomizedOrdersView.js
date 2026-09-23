@@ -36,8 +36,8 @@ const PAYMENT_MODE_REQUIRED_STATUSES = new Set([
 const requiresModeOfPayment = (status) => PAYMENT_MODE_REQUIRED_STATUSES.has((status || '').toUpperCase());
 const isChequePayment = (value) => (value || '').trim().toLowerCase() === 'cheques';
 const isApprovalToDownPaymentPendingTransition = (currentStatus, nextStatus) =>
-  (currentStatus || '').toUpperCase() === ORDER_STATUS.FOR_CLIENT_APPROVAL &&
-  (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING;
+  (nextStatus || '').toUpperCase() === ORDER_STATUS.DOWN_PAYMENT_PENDING &&
+  [(ORDER_STATUS.FOR_CLIENT_APPROVAL || ''), (ORDER_STATUS.NOT_APPROVED || '')].includes((currentStatus || '').toUpperCase());
 
 const INITIAL_PAGE_SIZE = 100;
 const ORDER_FILTERS = [
@@ -130,7 +130,6 @@ const CustomizedOrders = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [manufacturingNotes, setManufacturingNotes] = useState('');
   const [returnedItems, setReturnedItems] = useState([]);
-  const [returnedItemForm, setReturnedItemForm] = useState({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
   const [formData, setFormData] = useState(createInitialFormData());
   const [clientSearch, setClientSearch] = useState('');
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
@@ -212,7 +211,6 @@ const CustomizedOrders = () => {
     setPaymentCheckNumber('');
     setPaymentModeOfPayment(order.modeOfPayment || '');
     setDownPaymentAmount('');
-    setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
     loadReturnedItems(order.id);
     setDetailsOpen(true);
   }, [loadReturnedItems]);
@@ -618,54 +616,8 @@ const CustomizedOrders = () => {
     setSelectedOrder(null);
     setManufacturingNotes('');
     setReturnedItems([]);
-    setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
     resetPaymentInputFields();
     openedCreditJobOrderRef.current = null;
-  };
-
-  const handleAddReturnedItem = async () => {
-    if (!selectedOrder) {
-      return;
-    }
-    if (!returnedItemForm.productName.trim()) {
-      alert('Please enter a product name.');
-      return;
-    }
-    const qty = Number(returnedItemForm.quantity);
-    if (!Number.isFinite(qty) || qty <= 0) {
-      alert('Quantity must be greater than zero.');
-      return;
-    }
-    try {
-      await returnedItemService.createReturnedItem({
-        customizedOrderId: selectedOrder.id,
-        productName: returnedItemForm.productName.trim(),
-        size: returnedItemForm.size || null,
-        quantity: qty,
-        reason: returnedItemForm.reason.trim() || null,
-        returnDate: returnedItemForm.returnDate || null,
-      });
-      setReturnedItemForm({ productName: '', size: '', quantity: '', reason: '', returnDate: new Date().toISOString().split('T')[0] });
-      loadReturnedItems(selectedOrder.id);
-    } catch (error) {
-      console.error('Error adding returned item:', error);
-      const apiMessage = error.response?.data?.message || error.response?.data?.error || error.response?.data?.detail || error.message || 'Unknown error';
-      alert(`Failed to add returned item: ${apiMessage}`);
-    }
-  };
-
-  const handleDeleteReturnedItem = async (id) => {
-    if (!window.confirm('Delete this returned item?')) {
-      return;
-    }
-    try {
-      await returnedItemService.deleteReturnedItem(id);
-      loadReturnedItems(selectedOrder?.id);
-    } catch (error) {
-      console.error('Error deleting returned item:', error);
-      const apiMessage = error.response?.data?.message || error.response?.data?.error || error.response?.data?.detail || error.message || 'Unknown error';
-      alert(`Failed to delete returned item: ${apiMessage}`);
-    }
   };
 
   const buildOrderPayload = (order, statusOverride) => ({
@@ -1022,7 +974,7 @@ const CustomizedOrders = () => {
                   onView={handleView}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
+                  canEdit={(order) => order.status !== ORDER_STATUS.FULLY_PAID && order.status !== ORDER_STATUS.CANCELLED}
                   canDelete={(order) => order.status !== ORDER_STATUS.FULLY_PAID}
                   onRowClick={handleView}
                   rowStyle={(row) => ({
@@ -1472,108 +1424,36 @@ const CustomizedOrders = () => {
                   {returnedItems.length === 0 ? (
                     <p style={{ margin: '8px 0 0 0', color: '#6b7280', fontSize: '0.9em' }}>No returned items recorded.</p>
                   ) : (
-                    returnedItems.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          gap: '12px',
-                          padding: '10px 0',
-                          borderBottom: '1px solid #eee',
-                        }}
-                      >
-                        <span style={{ fontSize: '0.92em' }}>
-                          {item.productName} | {item.size || '-'} | {item.quantity} | {item.reason || '-'} | {item.returnDate || '-'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteReturnedItem(item.id)}
-                          style={{
-                            ...styles.button,
-                            backgroundColor: '#ff5252',
-                            color: 'white',
-                            padding: '6px 12px',
-                            fontSize: '0.85em',
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
+                      <colgroup>
+                        <col style={{ width: '38%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '22%' }} />
+                        <col style={{ width: '14%' }} />
+                      </colgroup>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                          <th style={{ padding: '10px' }}>Product Name</th>
+                          <th style={{ padding: '10px' }}>Size</th>
+                          <th style={{ padding: '10px' }}>Quantity</th>
+                          <th style={{ padding: '10px' }}>Reason</th>
+                          <th style={{ padding: '10px' }}>Return Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {returnedItems.map((item) => (
+                          <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '10px' }}>{item.productName}</td>
+                            <td style={{ padding: '10px' }}>{item.size || '-'}</td>
+                            <td style={{ padding: '10px' }}>{item.quantity}</td>
+                            <td style={{ padding: '10px' }}>{item.reason || '-'}</td>
+                            <td style={{ padding: '10px' }}>{item.returnDate || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-                    <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Product Name</label>
-                        <input
-                          type="text"
-                          value={returnedItemForm.productName}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, productName: e.target.value }))}
-                          placeholder="Product name"
-                          style={styles.input}
-                        />
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Size</label>
-                        <select
-                          value={returnedItemForm.size}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, size: e.target.value }))}
-                          style={styles.input}
-                        >
-                          <option value="">N/A</option>
-                          {SIZE_OPTIONS.map((size) => (
-                            <option key={size} value={size}>
-                              {size}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Quantity</label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={returnedItemForm.quantity}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, quantity: e.target.value }))}
-                          placeholder="0"
-                          style={styles.input}
-                        />
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Reason</label>
-                        <input
-                          type="text"
-                          value={returnedItemForm.reason}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, reason: e.target.value }))}
-                          placeholder="Reason for return"
-                          style={styles.input}
-                        />
-                      </div>
-                      <div style={styles.formGroup}>
-                        <label style={styles.label}>Return Date</label>
-                        <input
-                          type="date"
-                          value={returnedItemForm.returnDate}
-                          onChange={(e) => setReturnedItemForm((prev) => ({ ...prev, returnDate: e.target.value }))}
-                          style={styles.input}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <button
-                        type="button"
-                        onClick={handleAddReturnedItem}
-                        style={{
-                          ...styles.button,
-                          ...styles.buttonPrimary,
-                        }}
-                      >
-                        + Add Returned Item
-                      </button>
-                    </div>
-                  </div>
                 </div>
                 )}
 
@@ -1842,6 +1722,16 @@ const CustomizedOrders = () => {
                     <p style={styles.statusPrompt}>For client approval</p>
                     <div style={styles.modalActions}>
                       <button
+                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
+                        style={{
+                          ...styles.button,
+                          backgroundColor: '#F44336',
+                          color: 'white',
+                        }}
+                      >
+                        Order Cancelled
+                      </button>
+                      <button
                         onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_APPROVED)}
                         style={{
                           ...styles.button,
@@ -1937,6 +1827,16 @@ const CustomizedOrders = () => {
                     </div>
                     <p style={styles.statusPrompt}>Down Payment Paid?</p>
                     <div style={styles.modalActions}>
+                      <button
+                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.CANCELLED)}
+                        style={{
+                          ...styles.button,
+                          backgroundColor: '#F44336',
+                          color: 'white',
+                        }}
+                      >
+                        Order Cancelled
+                      </button>
                       <button
                         onClick={handleDownPaymentPaid}
                         style={{
