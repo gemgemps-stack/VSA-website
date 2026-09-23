@@ -128,7 +128,7 @@ const createReturnedItemForm = () => ({ reason: '', returnDate: new Date().toISO
 const createInitialFormData = () => ({
   clientId: null,
   teamName: '',
-  items: [{ productName: '', size: '', unitPrice: '', quantity: '' }],
+  items: [{ productName: '', size: '', number: '', jerseyType: '', unitPrice: '', quantity: '' }],
   freebie: '',
   discount: '0',
   downPayment: '0',
@@ -351,7 +351,7 @@ const Orders = () => {
   const handleAddItem = () => {
     setFormData((prev) => ({
       ...prev,
-      items: [...prev.items, { productName: '', size: '', unitPrice: '', quantity: '' }],
+      items: [...prev.items, { productName: '', size: '', number: '', jerseyType: '', unitPrice: '', quantity: '' }],
     }));
   };
 
@@ -396,6 +396,9 @@ const Orders = () => {
       newItems[index] = {
         ...newItems[index],
         productName: label,
+        size: item.size || '',
+        number: item.number || '',
+        jerseyType: item.jerseyType || '',
         unitPrice: String(item.price || ''),
       };
       return { ...prev, items: newItems, shop: prev.shop || item.shop };
@@ -467,18 +470,29 @@ const Orders = () => {
     }
   }, [selectedOrder?.id, selectedOrder?.status]);
 
+  const resolveLineItem = useCallback((item) => {
+    const inv = inventoryItems.find(i => item?.productName && getInventoryLabel(i) === item.productName);
+    const size = item?.number || item?.size || inv?.number || inv?.size || null;
+    return {
+      ...item,
+      size,
+      number: item?.number || inv?.number || null,
+      jerseyType: item?.jerseyType || inv?.jerseyType || null,
+    };
+  }, [inventoryItems]);
+
   useEffect(() => {
     if (!selectedOrder || selectedOrder.status !== ORDER_STATUS.CANCELLED) {
       return;
     }
     const next = {};
-    getOrderLineItems(selectedOrder).forEach((item) => {
+    getOrderLineItems(selectedOrder).map(resolveLineItem).forEach((item) => {
       const key = getReturnKey(item);
       const remaining = Math.max(0, (item.quantity || 0) - getReturnedQty(returnedItems, key));
       next[key] = remaining > 0 ? String(remaining) : '';
     });
     setReturnQuantities(next);
-  }, [returnedItems, selectedOrder]);
+  }, [returnedItems, selectedOrder, resolveLineItem]);
 
   const handleView = (order) => {
     populateOrderDetails(order);
@@ -545,6 +559,8 @@ const Orders = () => {
       items: (order.items || []).map(item => ({
         productName: item.productName || '',
         size: item.size || '',
+        number: item.number || '',
+        jerseyType: item.jerseyType || '',
         unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
         quantity: item.quantity != null ? String(item.quantity) : '',
       })),
@@ -560,7 +576,7 @@ const Orders = () => {
       notes: order.remarks || '',
     });
     if (!order.items || order.items.length === 0) {
-      setFormData(prev => ({ ...prev, items: [{ productName: order.orderRetail || '', size: '', unitPrice: String(order.price || ''), quantity: String(order.quantity || '') }] }));
+      setFormData(prev => ({ ...prev, items: [{ productName: order.orderRetail || '', size: '', number: '', jerseyType: '', unitPrice: String(order.price || ''), quantity: String(order.quantity || '') }] }));
     }
     setClientSearch(order.clientName || '');
     clearFieldErrors();
@@ -662,6 +678,8 @@ const Orders = () => {
         items: formData.items.map(item => ({
           productName: item.productName.trim(),
           size: item.size?.trim() || null,
+          number: item.number?.trim() || null,
+          jerseyType: item.jerseyType?.trim() || null,
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
         })),
@@ -712,13 +730,20 @@ const Orders = () => {
       return;
     }
     const entriesToAdd = getOrderLineItems(selectedOrder)
+      .map(resolveLineItem)
       .map((item) => {
         const key = getReturnKey(item);
         const qty = Number(returnQuantities[key] || 0);
         if (qty <= 0 || !Number.isFinite(qty)) {
           return null;
         }
-        return { productName: item.productName, size: item.size || null, quantity: qty };
+        return {
+          productName: item.productName,
+          size: item.size || null,
+          number: item.number || null,
+          jerseyType: item.jerseyType || null,
+          quantity: qty,
+        };
       })
       .filter(Boolean);
 
@@ -732,6 +757,8 @@ const Orders = () => {
           orderId: selectedOrder.id,
           productName: entry.productName.trim(),
           size: entry.size,
+          number: entry.number,
+          jerseyType: entry.jerseyType,
           quantity: entry.quantity,
           reason: returnedItemForm.reason.trim() || null,
           returnDate: returnedItemForm.returnDate || null,
@@ -1413,23 +1440,26 @@ const Orders = () => {
                   <label style={styles.label}>Products:</label>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
                     <colgroup>
-                      <col style={{ width: '45%' }} />
+                      <col style={{ width: '40%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '16%' }} />
+                      <col style={{ width: '12%' }} />
                       <col style={{ width: '18%' }} />
-                      <col style={{ width: '13%' }} />
-                      <col style={{ width: '20%' }} />
                     </colgroup>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                         <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Size</th>
                         <th style={{ padding: '10px' }}>Unit Price</th>
                         <th style={{ padding: '10px' }}>Quantity</th>
                         <th style={{ padding: '10px' }}>Subtotal</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(selectedOrder.items || [{ productName: selectedOrder.orderRetail, unitPrice: selectedOrder.price, quantity: selectedOrder.quantity }]).map((item, i) => (
+                      {(selectedOrder.items || [{ productName: selectedOrder.orderRetail, unitPrice: selectedOrder.price, quantity: selectedOrder.quantity, size: null }]).map(resolveLineItem).map((item, i) => (
                         <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
                           <td style={{ padding: '10px' }}>{item.productName}</td>
+                          <td style={{ padding: '10px' }}>{item.size || '-'}</td>
                           <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice)}</td>
                           <td style={{ padding: '10px' }}>{item.quantity}</td>
                           <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice * item.quantity)}</td>
@@ -1460,7 +1490,7 @@ const Orders = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {getOrderLineItems(selectedOrder).map((item, i) => {
+                      {getOrderLineItems(selectedOrder).map(resolveLineItem).map((item, i) => {
                         const key = getReturnKey(item);
                         const returnedQty = getReturnedQty(returnedItems, key);
                         const remaining = Math.max(0, (item.quantity || 0) - returnedQty);
