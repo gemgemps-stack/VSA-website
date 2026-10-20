@@ -360,12 +360,6 @@ const columns = [
               onChange={(e) => setSearchFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
               aria-label="Created from"
             />
-            <SearchField
-              type="date"
-              value={searchFilters.dateTo}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
-              aria-label="Created until"
-            />
           </div>
           <button
             type="button"
@@ -374,8 +368,8 @@ const columns = [
             onClick={() => setLowStockOnly((value) => !value)}
           >
             {lowStockOnly
-              ? `Low stock only (< ${LOW_STOCK_THRESHOLD}) - clear`
-              : `Low stock only (< ${LOW_STOCK_THRESHOLD})`}
+              ? `See items more than ${LOW_STOCK_THRESHOLD} quantity`
+              : `See Low stock items less than ${LOW_STOCK_THRESHOLD} quantity`}
           </button>
         </div>
 
