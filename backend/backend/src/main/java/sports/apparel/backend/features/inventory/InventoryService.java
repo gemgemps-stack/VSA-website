@@ -54,12 +54,13 @@ public class InventoryService {
     }
 
     public Page<InventoryDTO> searchInventory(String search, String itemType, String jerseyType, String size,
-                                              String shop, Boolean lowStock,
+                                              String shop, Boolean lowStock, Boolean excludeZeroStock,
                                               java.time.LocalDate createdFrom, java.time.LocalDate createdTo,
                                               Pageable pageable) {
         List<String> textFilters = java.util.Arrays.asList(search, itemType, jerseyType, size, shop);
         boolean hasFilters = textFilters.stream().anyMatch(value -> value != null && !value.isBlank())
                 || Boolean.TRUE.equals(lowStock)
+                || Boolean.TRUE.equals(excludeZeroStock)
                 || createdFrom != null
                 || createdTo != null;
 
@@ -86,6 +87,9 @@ public class InventoryService {
 
             if (Boolean.TRUE.equals(lowStock)) {
                 predicates.add(cb.lessThan(root.get("quantity"), LOW_STOCK_THRESHOLD));
+            }
+            if (Boolean.TRUE.equals(excludeZeroStock)) {
+                predicates.add(cb.greaterThan(root.get("quantity"), 0));
             }
             if (createdFrom != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), createdFrom.atStartOfDay()));

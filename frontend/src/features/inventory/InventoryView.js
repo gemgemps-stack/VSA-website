@@ -86,6 +86,7 @@ const Inventory = () => {
   const [searchFilters, setSearchFilters] = useState(createInitialSearchFilters());
   const location = useLocation();
   const [lowStockOnly, setLowStockOnly] = useState(() => Boolean(location.state?.lowStockOnly));
+  const [showZeroStock, setShowZeroStock] = useState(false);
 
   useEffect(() => {
     if (location.state?.lowStockOnly) {
@@ -127,6 +128,7 @@ const Inventory = () => {
         createdFrom: appliedFilters.dateFrom || undefined,
         createdTo: appliedFilters.dateTo || undefined,
         lowStock: lowStockOnly ? 'true' : undefined,
+        excludeZeroStock: showZeroStock ? undefined : 'true',
         sort: 'name,asc,jerseyType,asc',
       });
       setInventory(sortBySizeThenName(response.data.content || []));
@@ -142,7 +144,7 @@ const Inventory = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, appliedFilters, lowStockOnly, notifyError]);
+  }, [currentPage, appliedFilters, lowStockOnly, showZeroStock, notifyError]);
 
   const loadLowStockCount = React.useCallback(async () => {
     try {
@@ -170,7 +172,7 @@ const Inventory = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [appliedFilters, lowStockOnly]);
+  }, [appliedFilters, lowStockOnly, showZeroStock]);
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -379,12 +381,20 @@ const columns = [
           </div>
           <button
             type="button"
+            className={`low-stock-toggle${showZeroStock ? ' is-active' : ''}`}
+            aria-pressed={showZeroStock}
+            onClick={() => setShowZeroStock((value) => !value)}
+          >
+            {showZeroStock ? 'Hide items with zero stocks' : 'Show items with zero stocks'}
+          </button>
+          <button
+            type="button"
             className={`low-stock-toggle${lowStockOnly ? ' is-active' : ''}`}
             aria-pressed={lowStockOnly}
             onClick={() => setLowStockOnly((value) => !value)}
           >
             {lowStockOnly
-              ? 'Show all items'
+              ? 'Show in-stock items'
               : `Show low stock items (less than ${LOW_STOCK_THRESHOLD})`}
           </button>
         </div>
@@ -624,5 +634,3 @@ const columns = [
 };
 
 export default Inventory;
-
-

@@ -50,10 +50,12 @@ public class InventoryController {
             @RequestParam(name = "jerseySize", required = false) String size,
             @RequestParam(required = false) String shop,
             @RequestParam(required = false) Boolean lowStock,
+            @RequestParam(required = false) Boolean excludeZeroStock,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo) {
         Page<InventoryDTO> inventory = inventoryService.searchInventory(
-                search, itemType, jerseyType, size, shop, lowStock, createdFrom, createdTo, pageable);
+                search, itemType, jerseyType, size, shop, lowStock, excludeZeroStock,
+                createdFrom, createdTo, pageable);
         return ResponseEntity.ok(inventory);
     }
 

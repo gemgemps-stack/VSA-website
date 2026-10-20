@@ -265,9 +265,10 @@ const Orders = () => {
 
   const searchInventory = useCallback(async (query, shop) => {
     try {
-      const response = await inventoryService.getAllInventory(0, 25, {
+      const response = await inventoryService.getAllInventory(0, 1000, {
         search: query?.trim() || undefined,
         shop: shop?.trim() || undefined,
+        excludeZeroStock: 'true',
         sort: 'createdAt,desc',
       });
       const results = cleanArray(response.data.content);
@@ -2102,6 +2103,5 @@ const Orders = () => {
 };
 
 export default Orders;
-
 
 
