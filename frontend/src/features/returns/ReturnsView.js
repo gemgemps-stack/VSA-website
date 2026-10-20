@@ -48,6 +48,45 @@ const formatDate = (value) => {
   return date.toLocaleDateString();
 };
 
+const buildOrderKey = (record) => {
+  const orderId = record.orderId || record.customizedOrderId || record.jobOrderNo || record.id;
+  return `${record.orderType || 'UNKNOWN'}:${orderId}`;
+};
+
+const formatItemLabel = (item) => {
+  const base = item.productName || '-';
+  const size = item.size ? ` (${item.size})` : '';
+  const number = item.number ? ` #${item.number}` : '';
+  return `${base}${size}${number}`;
+};
+
+const groupRecordsByOrder = (records) => {
+  const groups = new Map();
+  records.forEach((record) => {
+    const key = buildOrderKey(record);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        orderType: record.orderType,
+        jobOrderNo: record.jobOrderNo,
+        clientName: record.clientName,
+        teamName: record.teamName,
+        orderStatus: record.orderStatus,
+        returnDate: record.returnDate || record.createdAt,
+        representative: record,
+        items: [],
+      });
+    }
+    const group = groups.get(key);
+    group.items.push(record);
+    const recordDate = record.returnDate || record.createdAt;
+    if (recordDate && (!group.returnDate || new Date(recordDate) > new Date(group.returnDate))) {
+      group.returnDate = recordDate;
+    }
+  });
+  return Array.from(groups.values());
+};
+
 const Returns = () => {
   const navigate = useNavigate();
   const { canAccess } = useAuth();
@@ -102,6 +141,8 @@ const Returns = () => {
   }, [appliedFilters]);
 
   const unitsOnPage = records.reduce((sum, record) => sum + (Number(record.quantity) || 0), 0);
+
+  const orderGroups = React.useMemo(() => groupRecordsByOrder(records), [records]);
 
   const openOrder = (record) => {
     const isCustomized = record.orderType === 'CUSTOMIZED';
@@ -258,49 +299,61 @@ const Returns = () => {
           ) : (
             <>
               <div className="datatable-container">
-                <table className="datatable">
+                <table className="datatable returns-datatable">
                   <thead>
                     <tr>
                       <th>Job Order No</th>
                       <th>Order Type</th>
                       <th>Client Name</th>
                       <th>Team Name</th>
-                      <th>Product</th>
-                      <th>Qty</th>
+                      <th>Returned Items</th>
+                      <th>Total Qty</th>
                       <th>Order Status</th>
                       <th>Return Date</th>
-                      <th>Reason</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((record) => (
-                      <tr key={record.id}>
-                        <td>{record.jobOrderNo || '-'}</td>
-                        <td>{record.orderType === 'CUSTOMIZED' ? 'Customized' : 'Inventory'}</td>
-                        <td>{record.clientName || '-'}</td>
-                        <td>{record.teamName || '-'}</td>
-                        <td>
-                          {record.productName || '-'}
-                          {record.size ? ` (${record.size})` : ''}
-                          {record.number ? ` #${record.number}` : ''}
-                        </td>
-                        <td>{record.quantity ?? '-'}</td>
-                        <td>{STATUS_LABELS[record.orderStatus] || record.orderStatus || '-'}</td>
-                        <td>{formatDate(record.returnDate || record.createdAt)}</td>
-                        <td>{record.reason || '-'}</td>
-                        <td className="actions">
-                          <button
-                            type="button"
-                            className="btn-view"
-                            onClick={() => openOrder(record)}
-                            title="Open the order this return belongs to"
-                          >
-                            Open order
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {orderGroups.map((group) => {
+                      const totalQuantity = group.items.reduce(
+                        (sum, item) => sum + (Number(item.quantity) || 0),
+                        0,
+                      );
+                      return (
+                        <tr key={group.key}>
+                          <td>{group.jobOrderNo || '-'}</td>
+                          <td>{group.orderType === 'CUSTOMIZED' ? 'Customized' : 'Inventory'}</td>
+                          <td>{group.clientName || '-'}</td>
+                          <td>{group.teamName || '-'}</td>
+                          <td>
+                            <ul className="returns-item-list">
+                              {group.items.map((item) => (
+                                <li key={item.id} className="returns-item-line">
+                                  <span className="returns-item-name">{formatItemLabel(item)}</span>
+                                  <span className="returns-item-meta">
+                                    x{item.quantity ?? 0}
+                                    {item.reason ? ` \u00b7 ${item.reason}` : ''}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                          <td>{totalQuantity || '-'}</td>
+                          <td>{STATUS_LABELS[group.orderStatus] || group.orderStatus || '-'}</td>
+                          <td>{formatDate(group.returnDate)}</td>
+                          <td className="actions">
+                            <button
+                              type="button"
+                              className="btn-view"
+                              onClick={() => openOrder(group.representative)}
+                              title="Open the order these returns belong to"
+                            >
+                              Open order
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
