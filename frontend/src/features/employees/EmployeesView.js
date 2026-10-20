@@ -6,10 +6,14 @@ import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon
 import SearchField from '../../components/SearchField';
 import { useAuth } from '../../context/AuthContext';
 import userService from '../../services/userService';
-import { expandPermissions } from '../../utils/permissions';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 
-const TEAM_OPTIONS = ['Marketing', 'Production', 'Sewing', 'Graphic Artists', 'Sales', 'Machine Operators'];
+const TEAM_OPTIONS = ['Marketing', 'Production', 'Sewing', 'Graphic Artist', 'Sales', 'Machine Operator'];
+
+const toRoleKey = (team) => String(team || '').trim().replace(/\s+/g, '_').toUpperCase();
+
+const toTeamLabel = (roleKey) =>
+  TEAM_OPTIONS.find((team) => toRoleKey(team) === String(roleKey || '').toUpperCase()) || '';
 
 const extractUsers = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -34,10 +38,11 @@ const Employees = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
-  const [permissionSaving, setPermissionSaving] = useState(false);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleForm, setRoleForm] = useState({ role: '', additionalRoles: [] });
   const [formData, setFormData] = useState(createInitialFormData());
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [employeeFilter, setEmployeeFilter] = useState('ALL');
@@ -49,9 +54,9 @@ const Employees = () => {
     { key: 'MARKETING', label: 'Marketing' },
     { key: 'PRODUCTION', label: 'Production' },
     { key: 'SEWING', label: 'Sewing' },
-    { key: 'GRAPHIC_ARTISTS', label: 'Graphic Artists' },
+    { key: 'GRAPHIC_ARTISTS', label: 'Graphic Artist' },
     { key: 'SALES', label: 'Sales' },
-    { key: 'MACHINE_OPERATORS', label: 'Machine Operators' },
+    { key: 'MACHINE_OPERATORS', label: 'Machine Operator' },
   ];
 
   const pagePermissions = [
@@ -122,16 +127,21 @@ const Employees = () => {
     setSelectedPermissions([]);
   };
 
-  const openPermissionsModal = (employee) => {
+  const openRolesModal = (employee) => {
     setSelectedUser(employee);
-    setSelectedPermissions(expandPermissions((employee.permissions || []).map((permission) => permission.pageName)));
-    setPermissionsModalOpen(true);
+    setRoleForm({
+      role: toTeamLabel(employee.role),
+      additionalRoles: (employee.additionalRoles || [])
+        .map((role) => toTeamLabel(role))
+        .filter(Boolean),
+    });
+    setRolesModalOpen(true);
   };
 
-  const closePermissionsModal = () => {
-    setPermissionsModalOpen(false);
+  const closeRolesModal = () => {
+    setRolesModalOpen(false);
     setSelectedUser(null);
-    setSelectedPermissions([]);
+    setRoleForm({ role: '', additionalRoles: [] });
   };
 
   const handlePermissionToggle = (permissionKey) => {
@@ -188,8 +198,8 @@ const Employees = () => {
         username: trimmedUsername,
         email: email || null,
         password: password || null,
-        role: selectedTeam.toUpperCase(),
-        additionalRoles: (formData.additionalRoles || []).map((role) => String(role).toUpperCase()),
+        role: toRoleKey(selectedTeam),
+        additionalRoles: (formData.additionalRoles || []).map((role) => toRoleKey(role)),
       };
 
       setFormLoading(true);
@@ -222,21 +232,29 @@ const Employees = () => {
     }
   };
 
-  const handleSavePermissions = async () => {
+  const handleSaveRoles = async () => {
     if (!selectedUser?.id) return;
 
+    const primaryRole = String(roleForm.role || '').trim();
+    if (!primaryRole) {
+      alert('Please select a team before saving.');
+      return;
+    }
+
     try {
-      setPermissionSaving(true);
-      const currentPermissions = expandPermissions((selectedUser.permissions || []).map((permission) => permission.pageName));
-      await syncPermissions(selectedUser.id, selectedPermissions, currentPermissions);
-      alert('Permissions updated successfully');
-      closePermissionsModal();
+      setRoleSaving(true);
+      await userService.updateUser(selectedUser.id, {
+        role: toRoleKey(primaryRole),
+        additionalRoles: (roleForm.additionalRoles || []).map((role) => toRoleKey(role)),
+      });
+      alert('Roles updated successfully');
+      closeRolesModal();
       loadUsers();
     } catch (error) {
-      console.error('Error updating permissions:', error);
-      alert(error.response?.data?.message || 'Failed to update permissions');
+      console.error('Error updating roles:', error);
+      alert(getApiErrorMessage(error, 'Failed to update roles'));
     } finally {
-      setPermissionSaving(false);
+      setRoleSaving(false);
     }
   };
 
@@ -376,7 +394,7 @@ const Employees = () => {
               <DataTable
                 columns={columns}
                 data={filteredUsers}
-                onEdit={openPermissionsModal}
+                onEdit={openRolesModal}
                 onDelete={handleDeleteUser}
                 loading={loading}
                 currentPage={currentPage}
@@ -511,31 +529,56 @@ const Employees = () => {
             </Modal>
 
             <Modal
-              isOpen={permissionsModalOpen}
-              title={selectedUser ? `Manage Permissions: ${selectedUser.username}` : 'Manage Permissions'}
-              onClose={closePermissionsModal}
-              onSubmit={handleSavePermissions}
-              submitText="Save Permissions"
-              loading={permissionSaving}
+              isOpen={rolesModalOpen}
+              title={selectedUser ? `Edit Roles: ${selectedUser.username}` : 'Edit Roles'}
+              onClose={closeRolesModal}
+              onSubmit={handleSaveRoles}
+              submitText="Save Roles"
+              loading={roleSaving}
               size="large"
             >
-              <div className="permission-section">
-                <div className="permission-section-header">
-                  <h3>Page Viewing Permissions</h3>
-                  <p>Dashboard is always available. Update access for the current sidebar pages below.</p>
+              <div className="employee-modal-grid">
+                <div className="form-group">
+                  <label>Team</label>
+                  <select
+                    value={roleForm.role}
+                    onChange={(e) => setRoleForm((current) => ({ ...current, role: e.target.value }))}
+                    required
+                  >
+                    <option value="" disabled>
+                      Select team
+                    </option>
+                    {TEAM_OPTIONS.map((team) => (
+                      <option key={team} value={team}>
+                        {team}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-
-                <div className="permission-checkbox-grid">
-                  {pagePermissions.map((permission) => (
-                    <label key={permission.key} className="permission-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={selectedPermissions.includes(permission.key)}
-                        onChange={() => handlePermissionToggle(permission.key)}
-                      />
-                      <span>{permission.label}</span>
-                    </label>
-                  ))}
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Additional Teams (optional)</label>
+                  <div className="permission-checkbox-grid">
+                    {TEAM_OPTIONS.filter((team) => team !== roleForm.role).map((team) => (
+                      <label key={team} className="permission-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={(roleForm.additionalRoles || []).includes(team)}
+                          onChange={() =>
+                            setRoleForm((current) => {
+                              const roles = current.additionalRoles || [];
+                              return {
+                                ...current,
+                                additionalRoles: roles.includes(team)
+                                  ? roles.filter((item) => item !== team)
+                                  : [...roles, team],
+                              };
+                            })
+                          }
+                        />
+                        <span>{team}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             </Modal>

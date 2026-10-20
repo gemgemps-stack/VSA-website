@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
+import ConfirmModal from '../../components/ConfirmModal';
 import PermissionGuard from '../../components/PermissionGuard';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import { useLocation } from 'react-router-dom';
@@ -12,6 +13,8 @@ import userService from '../../services/userService';
 import authService from '../../services/authService';
 import returnedItemService from '../../services/returnedItemService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
+import { useNotification } from '../../context/NotificationContext';
+import { buildPdfBlob, escapePdfText, downloadBlob } from '../../utils/pdf';
 import SIZE_OPTIONS from '../../utils/sizes';
 
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shoppee', 'Lazada', 'Verdida Sports Apparel'];
@@ -131,6 +134,74 @@ const getReturnedQty = (returnedItems, key) => (returnedItems || []).reduce((sum
   return sum;
 }, 0);
 
+const buildReturnedItemsPdfBlob = (order, returnedItems) => {
+  const pageHeight = 842;
+  const commands = [];
+  const color = (red, green, blue) => `${red} ${green} ${blue}`;
+  const text = (value, x, top, size, font = 'F1', fill = color(0.11, 0.16, 0.15)) => {
+    const baseline = pageHeight - top - size;
+    commands.push(`BT /${font} ${size} Tf ${fill} rg 1 0 0 1 ${x} ${baseline} Tm (${escapePdfText(value)}) Tj ET`);
+  };
+  const rectangle = (x, top, width, height, fill) => {
+    commands.push(`${fill} rg ${x} ${pageHeight - top - height} ${width} ${height} re f`);
+  };
+  const line = (x, top, width, stroke = color(0.80, 0.86, 0.83)) => {
+    commands.push(`${stroke} RG 0.7 w ${x} ${pageHeight - top} m ${x + width} ${pageHeight - top} l S`);
+  };
+  const label = (value, x, top) => text(String(value).toUpperCase(), x, top, 7, 'F2', color(0.01, 0.40, 0.40));
+  const value = (content, x, top) => text(content || 'N/A', x, top, 9, 'F2');
+
+  rectangle(0, 0, 595, 4, color(0.01, 0.40, 0.40));
+  text('VERDIDA SPORTS APPAREL', 48, 36, 8, 'F2', color(0.01, 0.40, 0.40));
+  text('Cancelled items', 48, 50, 22, 'F2');
+  text('Recorded returned items for a cancelled order', 48, 72, 9, 'F1', color(0.44, 0.50, 0.48));
+  rectangle(495, 36, 48, 48, color(0.91, 0.96, 0.94));
+  text('VSA', 510, 54, 11, 'F2', color(0.01, 0.40, 0.40));
+
+  label('Job order', 48, 108); value(order?.jobOrderNo || 'N/A', 48, 120);
+  label('Client name', 192, 108); value(order?.clientName || 'N/A', 192, 120);
+  label('Team name', 344, 108); value(order?.teamName || 'N/A', 344, 120);
+  label('Shop', 48, 146); value(order?.shop || 'N/A', 48, 158);
+  label('Order status', 192, 146); value(order?.status || 'CANCELLED', 192, 158);
+  label('Order date', 344, 146); value(order?.orderDate || 'N/A', 344, 158);
+  line(48, 182, 499, color(0.91, 0.94, 0.92));
+
+  label('Item', 48, 198);
+  label('Size', 300, 198);
+  label('Qty', 360, 198);
+  label('Reason', 410, 198);
+  line(48, 212, 499, color(0.67, 0.76, 0.71));
+
+  let rowTop = 228;
+  const items = returnedItems || [];
+  if (items.length > 0) {
+    items.forEach((item) => {
+      text(item.productName || 'Unnamed item', 48, rowTop, 9, 'F2');
+      text(item.size || '-', 300, rowTop, 9, 'F1');
+      text(String(item.quantity ?? 0), 360, rowTop, 9, 'F1');
+      text(item.reason || '-', 410, rowTop, 9, 'F1');
+      line(48, rowTop + 16, 499, color(0.91, 0.94, 0.92));
+      rowTop += 26;
+    });
+  } else {
+    text('No returned items recorded for this order.', 48, rowTop, 9, 'F1', color(0.44, 0.50, 0.48));
+    rowTop += 26;
+  }
+
+  const totalQuantity = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  line(310, rowTop + 6, 237, color(0.58, 0.68, 0.63));
+  text('Total cancelled items', 310, rowTop + 20, 9, 'F1', color(0.44, 0.50, 0.48));
+  text(String(items.length), 470, rowTop + 20, 9, 'F2');
+  text('Total quantity', 310, rowTop + 37, 9, 'F1', color(0.44, 0.50, 0.48));
+  text(String(totalQuantity), 470, rowTop + 37, 9, 'F2');
+
+  rectangle(0, 770, 595, 72, color(0.97, 0.98, 0.97));
+  text('Generated from the Verdida Sports Apparel order record.', 48, 788, 9, 'F2');
+  text('Returned items are subject to confirmation and stock review.', 48, 806, 8, 'F1', color(0.44, 0.50, 0.48));
+
+  return buildPdfBlob(commands);
+};
+
 const CustomizedOrders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
@@ -151,6 +222,7 @@ const CustomizedOrders = () => {
   const [manufacturingNotes, setManufacturingNotes] = useState('');
   const [returnedItems, setReturnedItems] = useState([]);
   const [returnedItemForm, setReturnedItemForm] = useState(createReturnedItemForm());
+  const [pendingReturnedList, setPendingReturnedList] = useState(null);
   const [returnQuantities, setReturnQuantities] = useState({});
   const [formData, setFormData] = useState(createInitialFormData());
   const [graphicArtists, setGraphicArtists] = useState([]);
@@ -158,6 +230,7 @@ const CustomizedOrders = () => {
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
   const location = useLocation();
   const openedCreditJobOrderRef = useRef(null);
+  const { success: notifySuccess, error: notifyError } = useNotification();
 
   const loadClients = useCallback(async () => {
     try {
@@ -710,7 +783,17 @@ const CustomizedOrders = () => {
       .filter(Boolean);
 
     if (entriesToSave.length === 0) {
-      alert('Please enter the quantities to return.');
+      notifyError('Please enter the quantities to return.');
+      return;
+    }
+
+    setPendingReturnedList(entriesToSave);
+  };
+
+  const submitReturnedList = async () => {
+    const entriesToSave = pendingReturnedList;
+    setPendingReturnedList(null);
+    if (!entriesToSave || !selectedOrder) {
       return;
     }
     try {
@@ -726,10 +809,9 @@ const CustomizedOrders = () => {
       );
       setReturnedItemForm(createReturnedItemForm());
       await loadReturnedItems(selectedOrder.id);
-      alert(`Returned list saved for ${entriesToSave.length} item(s).`);
+      notifySuccess(`Returned list saved for ${entriesToSave.length} item(s).`);
     } catch (error) {
-      const apiMessage = error.response?.data?.message || error.response?.data?.error || error.response?.data?.detail || error.message || 'Unknown error';
-      alert(`Failed to save returned list: ${apiMessage}`);
+      notifyError(`Failed to save returned list: ${getApiErrorMessage(error)}`);
     }
   };
 
@@ -1673,13 +1755,60 @@ const CustomizedOrders = () => {
                 </div>
                 )}
 
-                <div style={{ marginBottom: '15px' }}>
+                <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
                     type="button"
                     onClick={() => {
                       const order = selectedOrder;
                       if (!order) return;
+                      const isCancelled = order.status === ORDER_STATUS.CANCELLED;
                       const printWindow = window.open('', '_blank');
+
+                      if (isCancelled) {
+                        const rows = (returnedItems || []).map(item => '<tr>'
+                          + '<td>' + (item.productName || '-') + '</td>'
+                          + '<td>' + (item.size || '-') + '</td>'
+                          + '<td>' + (item.quantity || 0) + '</td>'
+                          + '<td>' + (item.reason || '-') + '</td>'
+                          + '<td>' + (item.returnDate || '-') + '</td>'
+                          + '</tr>').join('');
+                        printWindow.document.write(`
+                          <html>
+                          <head><title>Cancelled Items ${order.jobOrderNo || ''}</title>
+                          <style>
+                            body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 30px; color: #334155; }
+                            h2 { margin: 0 0 5px 0; }
+                            .header-info { margin-bottom: 20px; }
+                            .header-info p { margin: 4px 0; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                            th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+                            th { background: #f8fafc; }
+                          </style>
+                          </head>
+                          <body>
+                            <h2>Cancelled Items - Order ${order.jobOrderNo || ''}</h2>
+                            <div class="header-info">
+                              <p><strong>Client Name:</strong> ${order.clientName || '-'}</p>
+                              <p><strong>Team Name:</strong> ${order.teamName || '-'}</p>
+                              <p><strong>Shop:</strong> ${order.shop || '-'}</p>
+                              <p><strong>Order Date:</strong> ${order.orderDate || '-'}</p>
+                            </div>
+                            <table>
+                              <thead>
+                                <tr><th>Product Name</th><th>Size</th><th>Quantity</th><th>Reason</th><th>Return Date</th></tr>
+                              </thead>
+                              <tbody>
+                                ${rows}
+                              </tbody>
+                            </table>
+                          </body></html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.focus();
+                        printWindow.print();
+                        return;
+                      }
+
                       printWindow.document.write(`
                         <html>
                         <head><title>Order ${order.jobOrderNo || ''}</title>
@@ -1720,11 +1849,30 @@ const CustomizedOrders = () => {
                       backgroundColor: '#1976d2',
                       color: 'white',
                       padding: '8px 16px',
-                      marginBottom: '10px',
                     }}
                   >
-                    Print Order
+                    {selectedOrder.status === ORDER_STATUS.CANCELLED ? 'Print Cancelled Items' : 'Print Order'}
                   </button>
+
+                  {selectedOrder.status === ORDER_STATUS.CANCELLED && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const order = selectedOrder;
+                        if (!order) return;
+                        const blob = buildReturnedItemsPdfBlob(order, returnedItems);
+                        downloadBlob(blob, `returned-items-${order.jobOrderNo || 'order'}.pdf`);
+                      }}
+                      style={{
+                        ...styles.button,
+                        backgroundColor: '#016667',
+                        color: 'white',
+                        padding: '8px 16px',
+                      }}
+                    >
+                      Download PDF of Returned Items
+                    </button>
+                  )}
                 </div>
 
                 <div style={styles.financialsSection}>
@@ -2084,6 +2232,15 @@ const CustomizedOrders = () => {
                   </button>
                 </div>
             </Modal>
+
+            <ConfirmModal
+              isOpen={!!pendingReturnedList}
+              title="Confirm Returned List"
+              message="Save the entered quantities as the returned list? This will update the inventory stock."
+              confirmText="Save Returned List"
+              onConfirm={submitReturnedList}
+              onCancel={() => setPendingReturnedList(null)}
+            />
         </div>
       </DashboardLayout>
     </PermissionGuard>

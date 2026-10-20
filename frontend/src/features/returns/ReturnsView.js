@@ -232,7 +232,7 @@ const Returns = () => {
                 type="text"
                 value={filters.clientName}
                 onChange={(e) => updateFilter('clientName', e.target.value)}
-                placeholder="Search client"
+                placeholder="   Search client"
               />
               <select
                 className="returns-filter-select"
@@ -250,7 +250,7 @@ const Returns = () => {
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => updateFilter('dateFrom', e.target.value)}
-                aria-label="Return recorded from"
+                aria-label="    Return recorded from"
               />
             </div>
           </div>

@@ -13,8 +13,8 @@ import orderService from '../../services/orderService';
 import authService from '../../services/authService';
 import returnedItemService from '../../services/returnedItemService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
+import { buildPdfBlob, escapePdfText, downloadBlob } from '../../utils/pdf';
 import { useNotification } from '../../context/NotificationContext';
-import SIZE_OPTIONS from '../../utils/sizes';
 
 const PAYMENT_OPTIONS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Cheques'];
 const ORDER_STATUS = {
@@ -125,6 +125,74 @@ const getReturnedQty = (returnedItems, key) => (returnedItems || []).reduce((sum
 
 const createReturnedItemForm = () => ({ reason: '', returnDate: new Date().toISOString().split('T')[0] });
 
+const buildReturnedItemsPdfBlob = (order, returnedItems) => {
+  const pageHeight = 842;
+  const commands = [];
+  const color = (red, green, blue) => `${red} ${green} ${blue}`;
+  const text = (value, x, top, size, font = 'F1', fill = color(0.11, 0.16, 0.15)) => {
+    const baseline = pageHeight - top - size;
+    commands.push(`BT /${font} ${size} Tf ${fill} rg 1 0 0 1 ${x} ${baseline} Tm (${escapePdfText(value)}) Tj ET`);
+  };
+  const rectangle = (x, top, width, height, fill) => {
+    commands.push(`${fill} rg ${x} ${pageHeight - top - height} ${width} ${height} re f`);
+  };
+  const line = (x, top, width, stroke = color(0.80, 0.86, 0.83)) => {
+    commands.push(`${stroke} RG 0.7 w ${x} ${pageHeight - top} m ${x + width} ${pageHeight - top} l S`);
+  };
+  const label = (value, x, top) => text(String(value).toUpperCase(), x, top, 7, 'F2', color(0.01, 0.40, 0.40));
+  const value = (content, x, top) => text(content || 'N/A', x, top, 9, 'F2');
+
+  rectangle(0, 0, 595, 4, color(0.01, 0.40, 0.40));
+  text('VERDIDA SPORTS APPAREL', 48, 36, 8, 'F2', color(0.01, 0.40, 0.40));
+  text('Cancelled items', 48, 50, 22, 'F2');
+  text('Recorded returned items for a cancelled order', 48, 72, 9, 'F1', color(0.44, 0.50, 0.48));
+  rectangle(495, 36, 48, 48, color(0.91, 0.96, 0.94));
+  text('VSA', 510, 54, 11, 'F2', color(0.01, 0.40, 0.40));
+
+  label('Job order', 48, 108); value(order?.jobOrderNo || 'N/A', 48, 120);
+  label('Client name', 192, 108); value(order?.clientName || 'N/A', 192, 120);
+  label('Team name', 344, 108); value(order?.teamName || 'N/A', 344, 120);
+  label('Shop', 48, 146); value(order?.shop || 'N/A', 48, 158);
+  label('Order status', 192, 146); value(order?.status || 'CANCELLED', 192, 158);
+  label('Order date', 344, 146); value(order?.orderDate || 'N/A', 344, 158);
+  line(48, 182, 499, color(0.91, 0.94, 0.92));
+
+  label('Item', 48, 198);
+  label('Size', 300, 198);
+  label('Qty', 360, 198);
+  label('Reason', 410, 198);
+  line(48, 212, 499, color(0.67, 0.76, 0.71));
+
+  let rowTop = 228;
+  const items = returnedItems || [];
+  if (items.length > 0) {
+    items.forEach((item) => {
+      text(item.productName || 'Unnamed item', 48, rowTop, 9, 'F2');
+      text(item.size || '-', 300, rowTop, 9, 'F1');
+      text(String(item.quantity ?? 0), 360, rowTop, 9, 'F1');
+      text(item.reason || '-', 410, rowTop, 9, 'F1');
+      line(48, rowTop + 16, 499, color(0.91, 0.94, 0.92));
+      rowTop += 26;
+    });
+  } else {
+    text('No returned items recorded for this order.', 48, rowTop, 9, 'F1', color(0.44, 0.50, 0.48));
+    rowTop += 26;
+  }
+
+  const totalQuantity = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  line(310, rowTop + 6, 237, color(0.58, 0.68, 0.63));
+  text('Total cancelled items', 310, rowTop + 20, 9, 'F1', color(0.44, 0.50, 0.48));
+  text(String(items.length), 470, rowTop + 20, 9, 'F2');
+  text('Total quantity', 310, rowTop + 37, 9, 'F1', color(0.44, 0.50, 0.48));
+  text(String(totalQuantity), 470, rowTop + 37, 9, 'F2');
+
+  rectangle(0, 770, 595, 72, color(0.97, 0.98, 0.97));
+  text('Generated from the Verdida Sports Apparel order record.', 48, 788, 9, 'F2');
+  text('Returned items are subject to confirmation and stock review.', 48, 806, 8, 'F1', color(0.44, 0.50, 0.48));
+
+  return buildPdfBlob(commands);
+};
+
 const createInitialFormData = () => ({
   clientId: null,
   teamName: '',
@@ -153,6 +221,7 @@ const Orders = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [pendingReturnedEntries, setPendingReturnedEntries] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [remarks, setRemarks] = useState('');
   const [paymentUpdateAmount, setPaymentUpdateAmount] = useState('');
@@ -347,6 +416,11 @@ const Orders = () => {
 
   const filteredInventory = retailSearchResults.filter((item) => {
     const label = getInventoryLabel(item);
+    
+    // Hide items with zero stock
+    if (Number(item.quantity || 0) <= 0) {
+      return false;
+    }
     
     // Check if already selected
     const isAlreadySelected = formData.items.some((orderItem, idx) => 
@@ -781,7 +855,17 @@ const Orders = () => {
       .filter(Boolean);
 
     if (entriesToAdd.length === 0) {
-      alert('Please enter the quantities to return.');
+      notifyError('Please enter the quantities to return.');
+      return;
+    }
+
+    setPendingReturnedEntries(entriesToAdd);
+  };
+
+  const submitReturnedItems = async () => {
+    const entriesToAdd = pendingReturnedEntries;
+    setPendingReturnedEntries(null);
+    if (!entriesToAdd || !selectedOrder) {
       return;
     }
     try {
@@ -799,9 +883,9 @@ const Orders = () => {
       );
       setReturnedItemForm(createReturnedItemForm());
       await loadReturnedItems(selectedOrder.id);
-      alert(`Returned ${entriesToAdd.length} item(s) and updated inventory.`);
+      notifySuccess(`Returned ${entriesToAdd.length} item(s) and updated inventory.`);
     } catch (error) {
-      alert(`Failed to add returned items: ${getApiErrorMessage(error)}`);
+      notifyError(`Failed to add returned items: ${getApiErrorMessage(error)}`);
     }
   };
 
@@ -812,8 +896,9 @@ const Orders = () => {
     try {
       await returnedItemService.deleteReturnedItem(id);
       loadReturnedItems(selectedOrder?.id);
+      notifySuccess('Returned item deleted.');
     } catch (error) {
-      alert(`Failed to delete returned item: ${getApiErrorMessage(error)}`);
+      notifyError(`Failed to delete returned item: ${getApiErrorMessage(error)}`);
     }
   };
 
@@ -1028,7 +1113,7 @@ const Orders = () => {
     financialLabel: { display: 'block', fontSize: '0.8rem', color: '#666', marginBottom: '4px' },
     detailsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' },
     detailRow: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    productRow: { display: 'grid', gridTemplateColumns: '52% 10% 13% 8% 13% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
+    productRow: { display: 'grid', gridTemplateColumns: '62% 13% 8% 13% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
     removeBtn: { backgroundColor: '#ff5252', color: 'white', border: 'none', borderRadius: '4px', width: '100%', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     addBtn: { backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' },
     paymentUpdateCard: {
@@ -1249,6 +1334,7 @@ const Orders = () => {
                                   {i.jerseyType && <span>Version: {i.jerseyType} | </span>}
                                   {i.size && <span>Size: {i.size} | </span>}
                                   {i.number && <span>Size Number: {i.number} | </span>}
+                                  {i.graphicArtist && <span>Graphic Artist: {i.graphicArtist} | </span>}
                                   <span>Stock: {i.quantity}</span>
                                 </div>
                               </div>
@@ -1256,21 +1342,6 @@ const Orders = () => {
                           </div>
                         )}
                       </div>
-                    </div>
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>{index === 0 ? 'Size' : ''}</label>
-                      <select
-                        style={styles.input}
-                        value={item.size || ''}
-                        onChange={(e) => handleItemChange(index, 'size', e.target.value)}
-                      >
-                        <option value="">N/A</option>
-                        {SIZE_OPTIONS.map((size) => (
-                          <option key={size} value={size}>
-                            {size}
-                          </option>
-                        ))}
-                      </select>
                     </div>
                     <div style={styles.formGroup}>
                       <label style={styles.label}>{index === 0 ? 'Unit Price *' : ''}</label>
@@ -1630,12 +1701,52 @@ const Orders = () => {
                 </div>
                 )}
 
-                <div style={{ marginBottom: '15px' }}>
+                <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
                     type="button"
                     onClick={() => {
                       const order = selectedOrder;
                       if (!order) return;
+                      const isCancelled = order.status === ORDER_STATUS.CANCELLED;
+
+                      if (isCancelled) {
+                        const rows = (returnedItems || []).map(item => '<tr>'
+                          + '<td>' + (item.productName || '-') + '</td>'
+                          + '<td>' + (item.size || '-') + '</td>'
+                          + '<td>' + (item.quantity || 0) + '</td>'
+                          + '<td>' + (item.reason || '-') + '</td>'
+                          + '<td>' + (item.returnDate || '-') + '</td>'
+                          + '</tr>').join('');
+                        const printWindow = window.open('', '_blank');
+                        printWindow.document.write([
+                          '<html><head><title>Cancelled Items ' + (order.jobOrderNo || '') + '</title>',
+                          '<style>',
+                          'body{font-family:Arial,sans-serif;padding:30px;color:#333}',
+                          'h2{margin:0 0 5px 0}',
+                          '.info{margin-bottom:20px}',
+                          '.info p{margin:4px 0}',
+                          'table{width:100%;border-collapse:collapse;margin-top:15px}',
+                          'th,td{border:1px solid #ccc;padding:8px 10px;text-align:left}',
+                          'th{background:#f5f5f5}',
+                          '</style></head><body>',
+                          '<h2>Cancelled Items - Order ' + (order.jobOrderNo || '') + '</h2>',
+                          '<div class="info">',
+                          '<p><strong>Client Name:</strong> ' + (order.clientName || '-') + '</p>',
+                          '<p><strong>Team Name:</strong> ' + (order.teamName || '-') + '</p>',
+                          '<p><strong>Shop:</strong> ' + (order.shop || '-') + '</p>',
+                          '<p><strong>Order Date:</strong> ' + (order.orderDate || '-') + '</p>',
+                          '</div>',
+                          '<table><thead><tr>',
+                          '<th>Product Name</th><th>Size</th><th>Quantity</th><th>Reason</th><th>Return Date</th>',
+                          '</tr></thead><tbody>' + rows + '</tbody></table>',
+                          '</body></html>'
+                        ].join(''));
+                        printWindow.document.close();
+                        printWindow.focus();
+                        printWindow.print();
+                        return;
+                      }
+
                       const items = order.items || [];
                       const rows = items.map(item => {
                         const inv = inventoryItems.find(i => getInventoryLabel(i) === item.productName);
@@ -1681,11 +1792,30 @@ const Orders = () => {
                       backgroundColor: '#1976d2',
                       color: 'white',
                       padding: '8px 16px',
-                      marginBottom: '10px',
                     }}
                   >
-                    Print Order
+                    {selectedOrder.status === ORDER_STATUS.CANCELLED ? 'Print Cancelled Items' : 'Print Order'}
                   </button>
+
+                  {selectedOrder.status === ORDER_STATUS.CANCELLED && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const order = selectedOrder;
+                        if (!order) return;
+                        const blob = buildReturnedItemsPdfBlob(order, returnedItems);
+                        downloadBlob(blob, `returned-items-${order.jobOrderNo || 'order'}.pdf`);
+                      }}
+                      style={{
+                        ...styles.button,
+                        backgroundColor: '#016667',
+                        color: 'white',
+                        padding: '8px 16px',
+                      }}
+                    >
+                      Download PDF of Returned Items
+                    </button>
+                  )}
                 </div>
 
                 <div style={styles.financialsSection}>
@@ -1955,6 +2085,15 @@ const Orders = () => {
             message="Are you sure you want to delete this order? This action cannot be undone."
             onConfirm={performDelete}
             onCancel={() => setConfirmDeleteId(null)}
+          />
+
+          <ConfirmModal
+            isOpen={!!pendingReturnedEntries}
+            title="Confirm Returned Items"
+            message="Add the entered quantities as returned items? This will update the inventory stock."
+            confirmText="Add Returned Items"
+            onConfirm={submitReturnedItems}
+            onCancel={() => setPendingReturnedEntries(null)}
           />
         </div>
       </DashboardLayout>

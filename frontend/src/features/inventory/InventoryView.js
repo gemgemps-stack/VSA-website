@@ -52,6 +52,22 @@ const createInitialSearchFilters = () => ({
   dateTo: '',
 });
 
+const sizeRank = (size) => {
+  const normalized = String(size || '').trim().toLowerCase();
+  const index = SIZE_OPTIONS.findIndex((option) => option.toLowerCase() === normalized);
+  return index === -1 ? SIZE_OPTIONS.length : index;
+};
+
+const sortBySizeThenName = (items) =>
+  [...items].sort((a, b) => {
+    const nameA = String(a.name || '').toLowerCase();
+    const nameB = String(b.name || '').toLowerCase();
+    if (nameA !== nameB) {
+      return nameA.localeCompare(nameB);
+    }
+    return sizeRank(a.size) - sizeRank(b.size);
+  });
+
 const Inventory = () => {
   const { error: notifyError, success: notifySuccess, info: notifyInfo } = useNotification();
   const [inventory, setInventory] = useState([]);
@@ -111,9 +127,9 @@ const Inventory = () => {
         createdFrom: appliedFilters.dateFrom || undefined,
         createdTo: appliedFilters.dateTo || undefined,
         lowStock: lowStockOnly ? 'true' : undefined,
-        sort: 'jerseyType,asc,name,asc',
+        sort: 'name,asc,jerseyType,asc',
       });
-      setInventory(response.data.content || []);
+      setInventory(sortBySizeThenName(response.data.content || []));
       setTotalElements(response.data.totalElements || 0);
       setTotalPages(Math.max(1, response.data.totalPages || 1));
     } catch (error) {

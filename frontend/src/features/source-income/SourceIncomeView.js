@@ -11,6 +11,7 @@ import orderService from '../../services/orderService';
 import customizedOrderService from '../../services/customizedOrderService';
 import { hasPermission } from '../../utils/permissions';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
+import { buildPdfBlob, escapePdfText, toAscii, downloadBlob } from '../../utils/pdf';
 import { generateLiquidationReferenceNumber } from './liquidationUtils';
 
 const PAYMENT_METHODS = ['Debit', 'Gcash', 'Cash', 'Bank Transfer', 'Credit', 'Cheques'];
@@ -38,11 +39,6 @@ const isCancelledOrder = (order) => {
 
 const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
 const getIncomeAmount = (entry) => Number.parseFloat(entry.amount) || 0;
-const toAscii = (value) => String(value ?? '').replace(/[^\x20-\x7E]/g, '?');
-const escapePdfText = (value) => toAscii(value)
-  .replace(/\\/g, '\\\\')
-  .replace(/\(/g, '\\(')
-  .replace(/\)/g, '\\)');
 const escapeXml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -868,28 +864,7 @@ let itemTop = 390;
     text('Payments are subject to confirmation and accounting review.', 48, 806, 8, 'F1', color(0.44, 0.50, 0.48));
     text('Thank you for supporting Verdida Sports Apparel.', 48, 819, 8, 'F1', color(0.44, 0.50, 0.48));
 
-    const stream = commands.join('\n');
-    const objects = [
-      '<< /Type /Catalog /Pages 2 0 R >>',
-      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
-      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
-      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
-    ];
-    let pdf = '%PDF-1.4\n';
-    const offsets = [0];
-    objects.forEach((object, index) => {
-      offsets.push(pdf.length);
-      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
-    });
-    const xrefOffset = pdf.length;
-    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-    offsets.slice(1).forEach((offset) => {
-      pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
-    });
-    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-    return new Blob([pdf], { type: 'application/pdf' });
+    return buildPdfBlob(commands);
   }, [isLiquidationEntry]);
 
   const handlePrintReceipt = useCallback(() => {
@@ -1030,16 +1005,7 @@ const itemMarkup = data.order?.items?.length > 0
     }
 
     const blob = buildReceiptPdfBlob(data);
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = downloadUrl;
-    anchor.download = `receipt-${data.order?.jobOrderNo || data.entry?.referenceNumber || 'transaction'}.pdf`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => {
-      window.URL.revokeObjectURL(downloadUrl);
-    }, 1000);
+    downloadBlob(blob, `receipt-${data.order?.jobOrderNo || data.entry?.referenceNumber || 'transaction'}.pdf`);
   }, [buildReceiptPdfBlob, getReceiptDocumentData]);
 
   const getReportEntries = (period) => {
