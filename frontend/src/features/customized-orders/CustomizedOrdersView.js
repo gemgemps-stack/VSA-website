@@ -1396,8 +1396,8 @@ const CustomizedOrders = () => {
               )}
 
                   {/* Row 4: Graphic Artist, Shop, Order Date and Pickup Date */}
-                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-                    <div style={{ ...styles.formGroup, gridColumn: 'span 1' }}>
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: '35fr 24fr 19fr 19fr' }}>
+                    <div style={styles.formGroup}>
                       <label style={styles.label}>Graphic Artist</label>
                       <select
                         value={formData.graphicArtist}

@@ -47,7 +47,7 @@ public class InventoryController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String itemType,
             @RequestParam(required = false) String jerseyType,
-            @RequestParam(required = false) String size,
+            @RequestParam(name = "jerseySize", required = false) String size,
             @RequestParam(required = false) String shop,
             @RequestParam(required = false) Boolean lowStock,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,

@@ -106,7 +106,7 @@ const Inventory = () => {
         search: appliedFilters.name.trim() || undefined,
         itemType: appliedFilters.itemType.trim() || undefined,
         jerseyType: appliedFilters.jerseyType.trim() || undefined,
-        size: appliedFilters.size.trim() || undefined,
+        jerseySize: appliedFilters.size.trim() || undefined,
         shop: appliedFilters.shop.trim() || undefined,
         createdFrom: appliedFilters.dateFrom || undefined,
         createdTo: appliedFilters.dateTo || undefined,

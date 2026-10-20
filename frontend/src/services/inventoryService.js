@@ -1,10 +1,16 @@
 import api from './api';
+import { buildSortAwareSerializer, splitSortParam } from '../utils/sortParams';
 
 const inventoryService = {
   createInventory: (inventoryData) => api.post('/api/inventory', inventoryData),
 
-  getAllInventory: (page = 0, size = 10, params = {}) => 
-    api.get('/api/inventory', { params: { page, size, ...params } }),
+  getAllInventory: (page = 0, size = 10, params = {}) => {
+    const { sort, ...rest } = params;
+    return api.get('/api/inventory', {
+      params: { page, size, ...rest },
+      paramsSerializer: buildSortAwareSerializer(splitSortParam(sort)),
+    });
+  },
 
   getInventoryById: (id) => api.get(`/api/inventory/${id}`),
 

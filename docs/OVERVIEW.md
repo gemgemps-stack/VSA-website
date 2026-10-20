@@ -59,7 +59,7 @@ Verdida Sports Apparel/
 │               ├── application.properties        # base config, H2, JWT, CORS
 │               ├── application-local.properties  # local profile: port 8081, allow-localhost
 │               ├── application-prod.properties   # prod profile: Render/Postgres, secure cookies
-│               └── db/migration/    # Flyway V2..V38 (Flyway off by default; no V1!)
+│               └── db/migration/    # Flyway V2..V40 (Flyway off by default; no V1!)
 ├── frontend/
 │   ├── package.json                # CRA scripts + electron scripts
 │   ├── .env                        # REACT_APP_API_URL= (empty → dev discovery)

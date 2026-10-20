@@ -1,12 +1,18 @@
 import api from './api';
+import { buildSortAwareSerializer, splitSortParam } from '../utils/sortParams';
 
 const returnedItemService = {
   createReturnedItem: (data) => api.post('/api/returned-items', data),
 
   createReturnedItemsBulk: (items) => api.post('/api/returned-items/bulk', items),
 
-  getAllReturnedItems: (page = 0, size = 50, filters = {}) =>
-    api.get('/api/returned-items', { params: { page, size, ...filters } }),
+  getAllReturnedItems: (page = 0, size = 50, filters = {}) => {
+    const { sort, ...rest } = filters;
+    return api.get('/api/returned-items', {
+      params: { page, size, ...rest },
+      paramsSerializer: buildSortAwareSerializer(splitSortParam(sort)),
+    });
+  },
 
   getReturnedItemById: (id) => api.get(`/api/returned-items/${id}`),
 

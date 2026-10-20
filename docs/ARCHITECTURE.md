@@ -33,7 +33,7 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 
 ## 🗄️ Database schema (tables from entities; JPA `ddl-auto=update`)
 
-> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V38` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
+> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V40` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
 
 | Table | Key columns / notes |
 | --- | --- |
@@ -43,9 +43,9 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 | `clients` | `id`, `client_code` (unique), `client_name`, `contact_number`, `vip`, `notes`, `created_at` |
 | `orders` | `id`, `job_order_no` (unique), `request_fingerprint` (unique, idempotency), `client_id` FK (nullable), `client_name`, `team_name`, `order_retail`, `quantity`, `freebie`, `discount`, `price`, `down_payment`, `shop`, `order_date`, `mode_of_payment`, `remarks`, `reference_number`, `status`, `inventory_deducted`, `version`, `created_at` |
 | `order_items` | `id`, `order_id` FK, `product_name`, `size`, `number`, `jersey_type`, `unit_price`, `quantity` |
-| `customized_orders` | same core columns as `orders` (minus `inventory_deducted`) |
+| `customized_orders` | same core columns as `orders` (minus `inventory_deducted`); `graphic_artist` (since V40) |
 | `customized_order_items` | `id`, `customized_order_id` FK, `product_name`, `size`, `unit_price`, `quantity` |
-| `inventory` | `id`, `item_type`, `jersey_type`, `name`, `shop`, `size`, `number`, `notes`, `quantity`, `price`, `created_at` |
+| `inventory` | `id`, `item_type`, `jersey_type`, `name`, `shop`, `graphic_artist` (since V39), `size`, `number`, `notes`, `quantity`, `price`, `created_at` |
 | `income_sources` | `id`, `shop_type`, `payment_method`, `income_date`, `client_id` FK (nullable), `client_code`, `client_name`, `team_name`, `job_order_no`, `amount`, `reference_number`, `check_number`, `payment_category`, `remarks`, `created_at` |
 | `teams` | `id`, `team_name` (unique), `quantity`, `transit_date`, `created_at` |
 | `team_players` | `id`, `team_id` FK, `surname`, `number`, `size`, `type` |

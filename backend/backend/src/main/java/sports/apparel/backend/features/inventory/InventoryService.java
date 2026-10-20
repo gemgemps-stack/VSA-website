@@ -57,7 +57,7 @@ public class InventoryService {
                                               String shop, Boolean lowStock,
                                               java.time.LocalDate createdFrom, java.time.LocalDate createdTo,
                                               Pageable pageable) {
-        List<String> textFilters = List.of(search, itemType, jerseyType, size, shop);
+        List<String> textFilters = java.util.Arrays.asList(search, itemType, jerseyType, size, shop);
         boolean hasFilters = textFilters.stream().anyMatch(value -> value != null && !value.isBlank())
                 || Boolean.TRUE.equals(lowStock)
                 || createdFrom != null
