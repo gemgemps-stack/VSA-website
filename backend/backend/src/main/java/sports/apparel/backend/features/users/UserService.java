@@ -68,7 +68,7 @@ public class UserService {
 
         User.Role role;
         try {
-            role = User.Role.valueOf(request.getRole().trim().toUpperCase());
+            role = parseRole(request.getRole());
         } catch (IllegalArgumentException error) {
             throw new IllegalArgumentException("Invalid role selected");
         }
@@ -153,7 +153,7 @@ public class UserService {
 
         if (request.getRole() != null) {
             try {
-                user.setRole(User.Role.valueOf(request.getRole().trim().toUpperCase()));
+                user.setRole(parseRole(request.getRole()));
             } catch (IllegalArgumentException error) {
                 throw new IllegalArgumentException("Invalid role selected");
             }
@@ -178,6 +178,11 @@ public class UserService {
         return username.trim().replaceAll("\\s+", " ");
     }
 
+    private User.Role parseRole(String rawRole) {
+        String normalized = rawRole.trim().toUpperCase().replaceAll("[\\s-]+", "_");
+        return User.Role.valueOf(normalized);
+    }
+
     private void applyAdditionalRoles(User user, java.util.List<String> additionalRoles, User.Role primaryRole) {
         user.getAdditionalRoles().clear();
         if (additionalRoles == null) {
@@ -190,7 +195,7 @@ public class UserService {
             }
             User.Role extraRole;
             try {
-                extraRole = User.Role.valueOf(rawRole.trim().toUpperCase());
+                extraRole = parseRole(rawRole);
             } catch (IllegalArgumentException error) {
                 throw new IllegalArgumentException("Invalid additional role selected: " + rawRole);
             }

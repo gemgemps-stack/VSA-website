@@ -1851,10 +1851,10 @@ const CustomizedOrders = () => {
                       padding: '8px 16px',
                     }}
                   >
-                    {selectedOrder.status === ORDER_STATUS.CANCELLED ? 'Print Cancelled Items' : 'Print Order'}
+                    {selectedOrder?.status === ORDER_STATUS.CANCELLED ? 'Print Cancelled Items' : 'Print Order'}
                   </button>
 
-                  {selectedOrder.status === ORDER_STATUS.CANCELLED && (
+                  {selectedOrder?.status === ORDER_STATUS.CANCELLED && (
                     <button
                       type="button"
                       onClick={() => {

@@ -384,8 +384,8 @@ const columns = [
             onClick={() => setLowStockOnly((value) => !value)}
           >
             {lowStockOnly
-              ? `See items more than ${LOW_STOCK_THRESHOLD} quantity`
-              : `See Low stock items less than ${LOW_STOCK_THRESHOLD} quantity`}
+              ? 'Show all items'
+              : `Show low stock items (less than ${LOW_STOCK_THRESHOLD})`}
           </button>
         </div>
 
