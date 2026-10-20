@@ -16,6 +16,8 @@ const incomeService = {
 
   updateIncomeSource: (id, incomeData) => api.put(`/api/income/${id}`, incomeData),
 
+  correctPayment: (id, correctionData) => api.post(`/api/income/${id}/correct`, correctionData),
+
   deleteIncomeSource: (id) => api.delete(`/api/income/${id}`),
 };
 

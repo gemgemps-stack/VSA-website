@@ -28,7 +28,7 @@ class UserServiceTest {
 
     @Test
     void createUser_shouldStorePasswordForNonAdminUsersWhenProvided() {
-        when(userRepository.existsByUsername("employee"))
+        when(userRepository.existsByNormalizedUsername("employee"))
                 .thenReturn(false);
         when(userRepository.existsByEmail("employee@verdida.local"))
                 .thenReturn(false);

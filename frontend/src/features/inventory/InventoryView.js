@@ -5,12 +5,15 @@ import Modal from '../../components/Modal';
 import PermissionGuard from '../../components/PermissionGuard';
 import SectionIcon, { sectionIconBadgeStyle } from '../../components/SectionIcon';
 import SearchField from '../../components/SearchField';
+import { useLocation } from 'react-router-dom';
 import { useNotification } from '../../context/NotificationContext';
 import inventoryService from '../../services/inventoryService';
+import userService from '../../services/userService';
+
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
 import SIZE_OPTIONS from '../../utils/sizes';
 const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopee', 'Lazada', 'Verdida Sports Apparel'];
-const INITIAL_PAGE_SIZE = 100;
+const LOW_STOCK_THRESHOLD = 10;
 
 const formatDateCreated = (value) => {
   if (!value) {
@@ -25,60 +28,12 @@ const formatDateCreated = (value) => {
   return date.toLocaleDateString();
 };
 
-const getDateSearchValues = (value) => {
-  if (!value) {
-    return [];
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return [String(value).toLowerCase()];
-  }
-
-  return [
-    date.toLocaleDateString().toLowerCase(),
-    date.toISOString().slice(0, 10).toLowerCase(),
-  ];
-};
-
-const normalizeText = (value) => String(value ?? '').toLowerCase().trim();
-
-const matchesText = (value, term) => {
-  const normalizedTerm = normalizeText(term);
-  if (!normalizedTerm) {
-    return true;
-  }
-
-  return normalizeText(value).includes(normalizedTerm);
-};
-
-const matchesPrice = (value, term) => {
-  const normalizedTerm = normalizeText(term);
-  if (!normalizedTerm) {
-    return true;
-  }
-
-  const rawValue = value != null ? String(value) : '';
-  const numericValue = Number(value);
-  const formattedValue = Number.isFinite(numericValue) ? numericValue.toFixed(2) : '';
-
-  return normalizeText(rawValue).includes(normalizedTerm) || normalizeText(formattedValue).includes(normalizedTerm);
-};
-
-const matchesDate = (value, term) => {
-  const normalizedTerm = normalizeText(term);
-  if (!normalizedTerm) {
-    return true;
-  }
-
-  return getDateSearchValues(value).some((dateValue) => dateValue.includes(normalizedTerm));
-};
-
 const createInitialFormData = () => ({
   itemType: '',
   jerseyType: '',
   name: '',
   shop: '',
+  graphicArtist: '',
   size: '',
   number: '',
   quantity: '',
@@ -86,15 +41,15 @@ const createInitialFormData = () => ({
   notes: '',
 });
 
+
 const createInitialSearchFilters = () => ({
   itemType: '',
   name: '',
   jerseyType: '',
   size: '',
-  quantity: '',
-  price: '',
   shop: '',
-  createdAt: '',
+  dateFrom: '',
+  dateTo: '',
 });
 
 const Inventory = () => {
@@ -102,17 +57,65 @@ const Inventory = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [appliedFilters, setAppliedFilters] = useState(createInitialSearchFilters());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [detailsItem, setDetailsItem] = useState(null);
   const [formData, setFormData] = useState(createInitialFormData());
+  const [graphicArtists, setGraphicArtists] = useState([]);
+
   const [searchFilters, setSearchFilters] = useState(createInitialSearchFilters());
+  const location = useLocation();
+  const [lowStockOnly, setLowStockOnly] = useState(() => Boolean(location.state?.lowStockOnly));
+
+  useEffect(() => {
+    if (location.state?.lowStockOnly) {
+      setLowStockOnly(true);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    let active = true;
+    const loadGraphicArtists = async () => {
+      try {
+        const response = await userService.getGraphicArtists();
+        if (active) {
+          setGraphicArtists(response.data || []);
+        }
+      } catch (error) {
+        if (!isAuthOrPermissionError(error)) {
+          console.error('Error loading graphic artists:', error);
+        }
+      }
+    };
+    loadGraphicArtists();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+
 
   const loadInventory = React.useCallback(async () => {
     try {
       setLoading(true);
-      const response = await inventoryService.getAllInventory(0, INITIAL_PAGE_SIZE);
+      const response = await inventoryService.getAllInventory(currentPage - 1, 10, {
+        search: appliedFilters.name.trim() || undefined,
+        itemType: appliedFilters.itemType.trim() || undefined,
+        jerseyType: appliedFilters.jerseyType.trim() || undefined,
+        size: appliedFilters.size.trim() || undefined,
+        shop: appliedFilters.shop.trim() || undefined,
+        createdFrom: appliedFilters.dateFrom || undefined,
+        createdTo: appliedFilters.dateTo || undefined,
+        lowStock: lowStockOnly ? 'true' : undefined,
+        sort: 'jerseyType,asc,name,asc',
+      });
       setInventory(response.data.content || []);
+      setTotalElements(response.data.totalElements || 0);
+      setTotalPages(Math.max(1, response.data.totalPages || 1));
     } catch (error) {
       console.error('Error loading inventory:', error);
       if (isAuthOrPermissionError(error)) {
@@ -123,41 +126,35 @@ const Inventory = () => {
     } finally {
       setLoading(false);
     }
-  }, [notifyError]);
+  }, [currentPage, appliedFilters, lowStockOnly, notifyError]);
+
+  const loadLowStockCount = React.useCallback(async () => {
+    try {
+      const response = await inventoryService.getAllInventory(0, 1, { lowStock: 'true' });
+      setLowStockCount(response.data.totalElements || 0);
+    } catch (error) {
+      console.error('Error loading low stock count:', error);
+    }
+  }, []);
 
   useEffect(() => {
     loadInventory();
   }, [loadInventory]);
 
-const filteredInventory = inventory
-    .slice()
-    .sort((a, b) => {
-      const versionA = normalizeText(a.jerseyType);
-      const versionB = normalizeText(b.jerseyType);
-      const nameA = normalizeText(a.name);
-      const nameB = normalizeText(b.name);
-      if (versionA !== versionB) {
-        return versionA.localeCompare(versionB);
-      }
-      return nameA.localeCompare(nameB);
-    })
-    .filter((item) =>
-    matchesText(item.itemType, searchFilters.itemType) &&
-    matchesText(item.name, searchFilters.name) &&
-    matchesText(item.jerseyType, searchFilters.jerseyType) &&
-    matchesText(item.size, searchFilters.size) &&
-    matchesText(item.quantity, searchFilters.quantity) &&
-    matchesPrice(item.price, searchFilters.price) &&
-    matchesText(item.shop, searchFilters.shop) &&
-    matchesDate(item.createdAt, searchFilters.createdAt)
-  );
+  useEffect(() => {
+    loadLowStockCount();
+  }, [loadLowStockCount]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredInventory.length / 10));
-  const paginatedInventory = filteredInventory.slice((currentPage - 1) * 10, currentPage * 10);
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setAppliedFilters(searchFilters);
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [searchFilters]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchFilters]);
+  }, [appliedFilters, lowStockOnly]);
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -166,6 +163,7 @@ const filteredInventory = inventory
       jerseyType: item.jerseyType || '',
       name: item.name || '',
       shop: item.shop || '',
+      graphicArtist: item.graphicArtist || '',
       size: item.size || '',
       number: item.number || '',
       quantity: item.quantity != null ? String(item.quantity) : '',
@@ -212,6 +210,7 @@ const filteredInventory = inventory
         jerseyType: formData.jerseyType.trim() || null,
         name: formData.name,
         shop: formData.shop.trim() || null,
+        graphicArtist: formData.graphicArtist || null,
         size: formData.size || null,
         number: formData.number.trim() || null,
         quantity: parseInt(formData.quantity, 10),
@@ -268,9 +267,13 @@ const columns = [
   };
 
   const inventoryStats = [
-    { label: 'Tracked items', value: inventory.length, detail: 'Loaded in current roster' },
-    { label: 'Visible now', value: paginatedInventory.length, detail: 'On this page' },
-    { label: 'Filtered results', value: filteredInventory.length, detail: 'Matching your search' },
+    { label: 'Matching items', value: totalElements, detail: 'For the current filters' },
+    { label: 'Visible now', value: inventory.length, detail: `Page ${currentPage} of ${totalPages}` },
+    {
+      label: 'Low stock',
+      value: lowStockCount,
+      detail: `Below ${LOW_STOCK_THRESHOLD} units`,
+    },
   ];
 
   return (
@@ -352,15 +355,31 @@ const columns = [
               placeholder="Search shop"
             />
             <SearchField
-              type="text"
-              value={searchFilters.dateCreated}
-              onChange={(e) => setSearchFilters((prev) => ({ ...prev, dateCreated: e.target.value }))}
-              placeholder="Search date created"
+              type="date"
+              value={searchFilters.dateFrom}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+              aria-label="Created from"
+            />
+            <SearchField
+              type="date"
+              value={searchFilters.dateTo}
+              onChange={(e) => setSearchFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+              aria-label="Created until"
             />
           </div>
+          <button
+            type="button"
+            className={`low-stock-toggle${lowStockOnly ? ' is-active' : ''}`}
+            aria-pressed={lowStockOnly}
+            onClick={() => setLowStockOnly((value) => !value)}
+          >
+            {lowStockOnly
+              ? `Low stock only (< ${LOW_STOCK_THRESHOLD}) - clear`
+              : `Low stock only (< ${LOW_STOCK_THRESHOLD})`}
+          </button>
         </div>
 
-            {filteredInventory.length === 0 ? (
+            {totalElements === 0 && !loading ? (
               <div className="empty-state">
                 <span style={{ ...sectionIconBadgeStyle, marginBottom: '12px' }} aria-hidden="true">
                   <SectionIcon variant="inventory" />
@@ -371,7 +390,7 @@ const columns = [
             ) : (
               <DataTable
                 columns={columns}
-                data={paginatedInventory}
+                data={inventory}
                 onView={handleViewDetails}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
@@ -499,6 +518,21 @@ const columns = [
                     ))}
                   </select>
                 </div>
+
+                <div className="form-group">
+                  <label>Graphic Artist</label>
+                  <select
+                    value={formData.graphicArtist}
+                    onChange={(e) => setFormData({ ...formData, graphicArtist: e.target.value })}
+                  >
+                    <option value="">Select graphic artist</option>
+                    {graphicArtists.map((artist) => (
+                      <option key={artist.id} value={artist.name}>
+                        {artist.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="form-group inventory-notes-group">
@@ -514,6 +548,7 @@ const columns = [
           </Modal>
 
           <Modal
+
             isOpen={Boolean(detailsItem)}
             title="Item Details"
             onClose={closeDetails}
@@ -540,6 +575,11 @@ const columns = [
                     <span>Shop</span>
                     <strong>{detailsItem.shop || '-'}</strong>
                   </div>
+                  <div className="inventory-details-item">
+                    <span>Graphic Artist</span>
+                    <strong>{detailsItem.graphicArtist || '-'}</strong>
+                  </div>
+
                   <div className="inventory-details-item">
                     <span>Size</span>
                     <strong>{detailsItem.size || '-'}</strong>

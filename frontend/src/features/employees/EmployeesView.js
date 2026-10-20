@@ -22,6 +22,7 @@ const createInitialFormData = () => ({
   email: '',
   password: '',
   role: '',
+  additionalRoles: [],
 });
 
 const Employees = () => {
@@ -188,6 +189,7 @@ const Employees = () => {
         email: email || null,
         password: password || null,
         role: selectedTeam.toUpperCase(),
+        additionalRoles: (formData.additionalRoles || []).map((role) => String(role).toUpperCase()),
       };
 
       setFormLoading(true);
@@ -252,7 +254,14 @@ const Employees = () => {
   const columns = [
     { key: 'username', label: 'Employee Name' },
     { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role / Team' },
+    {
+      key: 'role',
+      label: 'Role / Team',
+      render: (_, row) => {
+        const allRoles = [row.role, ...(row.additionalRoles || [])].filter(Boolean);
+        return allRoles.join(', ');
+      },
+    },
     {
       key: 'permissions',
       label: 'Page Access',
@@ -264,8 +273,12 @@ const Employees = () => {
   ];
 
   const filteredUsers = users.filter((employee) => {
-    const matchesRole = employeeFilter === 'ALL' || (employee.role || '').toUpperCase() === employeeFilter;
-    const haystack = `${employee.username || ''} ${employee.email || ''} ${employee.role || ''}`.toLowerCase();
+    const allRoles = [employee.role, ...(employee.additionalRoles || [])]
+      .filter(Boolean)
+      .map((role) => role.toUpperCase());
+    const matchesRole = employeeFilter === 'ALL' || allRoles.includes(employeeFilter);
+    const roleText = [employee.role, ...(employee.additionalRoles || [])].filter(Boolean).join(' ');
+    const haystack = `${employee.username || ''} ${employee.email || ''} ${roleText}`.toLowerCase();
     const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
 
     return matchesRole && matchesSearch;
@@ -427,23 +440,50 @@ const Employees = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="form-group">
-                    <label>Team</label>
-                    <select
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      required
-                    >
-                      <option value="" disabled>
-                        Select team
-                      </option>
-                      {TEAM_OPTIONS.map((team) => (
-                        <option key={team} value={team}>
-                          {team}
+                  <>
+                    <div className="form-group">
+                      <label>Team</label>
+                      <select
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>
+                          Select team
                         </option>
-                      ))}
-                    </select>
-                  </div>
+                        {TEAM_OPTIONS.map((team) => (
+                          <option key={team} value={team}>
+                            {team}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label>Additional Teams (optional)</label>
+                      <div className="permission-checkbox-grid">
+                        {TEAM_OPTIONS.filter((team) => team !== formData.role).map((team) => (
+                          <label key={team} className="permission-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={(formData.additionalRoles || []).includes(team)}
+                              onChange={() =>
+                                setFormData((current) => {
+                                  const roles = current.additionalRoles || [];
+                                  return {
+                                    ...current,
+                                    additionalRoles: roles.includes(team)
+                                      ? roles.filter((item) => item !== team)
+                                      : [...roles, team],
+                                  };
+                                })
+                              }
+                            />
+                            <span>{team}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 

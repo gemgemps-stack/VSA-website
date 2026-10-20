@@ -33,11 +33,12 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 
 ## 🗄️ Database schema (tables from entities; JPA `ddl-auto=update`)
 
-> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V33` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
+> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V38` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
 
 | Table | Key columns / notes |
 | --- | --- |
-| `users` | `id` (UUID), `username` (unique), `email` (unique, **nullable** since V25), `password` (**nullable** since V25), `role` enum: `ADMIN, EMPLOYEE, MARKETING, PRODUCTION, SEWING`, `salary`, `version` (@Version), `created_at` |
+| `users` | `id` (UUID), `username` (unique, case/whitespace-insensitive), `email` (unique, **nullable** since V25), `password` (**nullable** since V25), `role` enum primary: `ADMIN, EMPLOYEE, MARKETING, PRODUCTION, SEWING, GRAPHIC_ARTISTS, SALES, MACHINE_OPERATORS`, `salary`, `version` (@Version), `created_at` |
+| `user_roles` | `id`, `user_id` FK→users, `role` enum; extra roles beyond the primary `users.role` (multi-role via join table, since V37) |
 | `permissions` | `id`, `user_id` FK→users, `page_name` (e.g. `INVENTORY_ORDERS`, `CUSTOMIZED_ORDERS`, `TEAMS`, `INVENTORY`, `CLIENTS`, `SOURCE_OF_INCOME`, `ATTENDANCE`) |
 | `clients` | `id`, `client_code` (unique), `client_name`, `contact_number`, `vip`, `notes`, `created_at` |
 | `orders` | `id`, `job_order_no` (unique), `request_fingerprint` (unique, idempotency), `client_id` FK (nullable), `client_name`, `team_name`, `order_retail`, `quantity`, `freebie`, `discount`, `price`, `down_payment`, `shop`, `order_date`, `mode_of_payment`, `remarks`, `reference_number`, `status`, `inventory_deducted`, `version`, `created_at` |
@@ -45,7 +46,7 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 | `customized_orders` | same core columns as `orders` (minus `inventory_deducted`) |
 | `customized_order_items` | `id`, `customized_order_id` FK, `product_name`, `size`, `unit_price`, `quantity` |
 | `inventory` | `id`, `item_type`, `jersey_type`, `name`, `shop`, `size`, `number`, `notes`, `quantity`, `price`, `created_at` |
-| `income_sources` | `id`, `shop_type`, `payment_method`, `income_date`, `client_id` FK (nullable), `client_code`, `client_name`, `job_order_no`, `amount`, `reference_number`, `check_number`, `payment_category`, `remarks`, `created_at` |
+| `income_sources` | `id`, `shop_type`, `payment_method`, `income_date`, `client_id` FK (nullable), `client_code`, `client_name`, `team_name`, `job_order_no`, `amount`, `reference_number`, `check_number`, `payment_category`, `remarks`, `created_at` |
 | `teams` | `id`, `team_name` (unique), `quantity`, `transit_date`, `created_at` |
 | `team_players` | `id`, `team_id` FK, `surname`, `number`, `size`, `type` |
 | `employee_attendance` | `id`, `user_id` FK, `attendance_date`, `request_fingerprint` (unique), `time_in`, `time_out`, `status`, `notes`, `version`, `created_at`, `updated_at`; unique `(user_id, attendance_date)` |
@@ -68,7 +69,7 @@ All primary keys are UUIDs (`GenerationType.UUID`).
 
 - `frontend/src/services/api.js` — single axios instance; base-URL discovery; CSRF attach; Bearer attach; `DEBUG_API_REQUESTS=true` debug logging.
 - Per-domain service modules (`orderService.js`, `incomeService.js`, …) call `api.<verb>('/api/...')`.
-- `frontend/src/App.js` — routes: `/login`, `/dashboard`, `/orders` (INVENTORY_ORDERS), `/customized-orders` (CUSTOMIZED_ORDERS), `/inventory` (INVENTORY), `/clients` (CLIENTS), `/income` (SOURCE_OF_INCOME), `/employees` (EMPLOYEES), `/attendance` (ATTENDANCE); `/teams` and `/payment-methods` redirect.
+- `frontend/src/App.js` — routes: `/login`, `/dashboard`, `/orders` (INVENTORY_ORDERS), `/orders-overview/:view`, `/customized-orders` (CUSTOMIZED_ORDERS), `/returns` (INVENTORY_ORDERS or CUSTOMIZED_ORDERS or INVENTORY), `/inventory` (INVENTORY), `/clients` (CLIENTS), `/income` (SOURCE_OF_INCOME), `/employees` (EMPLOYEES), `/attendance` (ATTENDANCE); `/teams` and `/payment-methods` redirect.
 - `frontend/src/context/AuthContext.js` — on load: `GET /api/auth/csrf`, then `GET /api/auth/me` to restore the session from `localStorage`.
 - Frontend permission aliases (`utils/permissions.js`) map legacy names: `ORDERS` ⇒ `INVENTORY_ORDERS`+`CUSTOMIZED_ORDERS`, `PAYMENT_METHODS` ⇔ `SOURCE_OF_INCOME`.
 - Keep-alive ping: `frontend/src/App.js` pings `GET /ping` every 10 minutes when `REACT_APP_API_URL` is set (keeps the Render free instance warm).

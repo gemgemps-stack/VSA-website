@@ -1,0 +1,2 @@
+ALTER TABLE inventory
+ADD COLUMN IF NOT EXISTS graphic_artist VARCHAR(255);

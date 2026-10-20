@@ -3,8 +3,8 @@ import api from './api';
 const inventoryService = {
   createInventory: (inventoryData) => api.post('/api/inventory', inventoryData),
 
-  getAllInventory: (page = 0, size = 10) => 
-    api.get('/api/inventory', { params: { page, size } }),
+  getAllInventory: (page = 0, size = 10, params = {}) => 
+    api.get('/api/inventory', { params: { page, size, ...params } }),
 
   getInventoryById: (id) => api.get(`/api/inventory/${id}`),
 

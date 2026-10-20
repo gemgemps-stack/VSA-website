@@ -81,6 +81,7 @@ public class CustomizedOrderService {
         order.setDiscount(discount);
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
+        order.setGraphicArtist(request.getGraphicArtist());
         order.setOrderDate(request.getOrderDate());
         order.setPickupDate(request.getPickupDate());
         order.setModeOfPayment(resolvedModeOfPayment);
@@ -96,6 +97,7 @@ public class CustomizedOrderService {
                 item.setSize(itemReq.getSize());
                 item.setUnitPrice(itemReq.getUnitPrice());
                 item.setQuantity(itemReq.getQuantity());
+                item.setInventoryId(itemReq.getInventoryId());
                 item.setCustomizedOrder(order);
                 return item;
             }).collect(Collectors.toList());
@@ -192,6 +194,7 @@ public class CustomizedOrderService {
         order.setDiscount(discount);
         order.setDownPayment(downPayment);
         order.setShop(request.getShop());
+        order.setGraphicArtist(request.getGraphicArtist());
         order.setOrderDate(request.getOrderDate());
         order.setPickupDate(request.getPickupDate());
         order.setModeOfPayment(resolvedModeOfPayment);
@@ -228,6 +231,7 @@ public class CustomizedOrderService {
                                 item.setSize(itemReq.getSize());
                                 item.setUnitPrice(itemReq.getUnitPrice());
                                 item.setQuantity(itemReq.getQuantity());
+                                item.setInventoryId(itemReq.getInventoryId());
                             });
                 } else {
                     // Add new item
@@ -236,6 +240,7 @@ public class CustomizedOrderService {
                     newItem.setSize(itemReq.getSize());
                     newItem.setUnitPrice(itemReq.getUnitPrice());
                     newItem.setQuantity(itemReq.getQuantity());
+                    newItem.setInventoryId(itemReq.getInventoryId());
                     newItem.setCustomizedOrder(order);
                     existingItems.add(newItem);
                 }

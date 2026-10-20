@@ -19,6 +19,7 @@ public class UserDTO {
     private String username;
     private String email;
     private String role;
+    private java.util.List<String> additionalRoles;
     private BigDecimal salary;
     private LocalDateTime createdAt;
     private List<PermissionDTO> permissions;
@@ -28,6 +29,11 @@ public class UserDTO {
         this.username = user.getUsername();
         this.email = user.getEmail();
         this.role = user.getRole().toString();
+        this.additionalRoles = user.getAdditionalRoles() == null
+                ? List.of()
+                : user.getAdditionalRoles().stream()
+                        .map(userRole -> userRole.getRole().toString())
+                        .toList();
         this.salary = user.getSalary();
         this.createdAt = user.getCreatedAt();
         this.permissions = user.getPermissions() == null

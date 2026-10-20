@@ -35,7 +35,7 @@ const isLiquidationEntry = (entry) => {
 const matchesSearch = (entry, searchQuery) => {
   const term = String(searchQuery || '').trim().toLowerCase();
   if (!term) return true;
-  return [entry.jobOrderNo, entry.referenceNumber, entry.checkNumber]
+  return [entry.jobOrderNo, entry.referenceNumber, entry.checkNumber, entry.teamName]
     .filter(Boolean)
     .some((value) => String(value).toLowerCase().includes(term));
 };
@@ -77,6 +77,7 @@ const FinanceArchive = () => {
     { key: 'paymentMethod', label: 'Payment', render: (value) => value || '-' },
     { key: 'jobOrderNo', label: 'Job Order No', render: (value) => value || '-' },
     { key: 'clientName', label: 'Client', render: (value) => value || '-' },
+    { key: 'teamName', label: 'Team', render: (value) => value || '-' },
     {
       key: 'amount',
       label: 'Amount',
@@ -159,7 +160,7 @@ const FinanceArchive = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by job order number or reference/check number"
+                placeholder="Search by job order number, reference/check number, or team"
               />
             </div>
 

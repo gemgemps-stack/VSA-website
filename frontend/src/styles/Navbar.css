@@ -196,6 +196,23 @@
   border-top: 1px solid #e7eeeb;
 }
 
+.switch-account-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-top: 1px solid #e7eeeb;
+  background: transparent;
+  color: #0f6d6b;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  transition: background 0.18s ease;
+}
+
+.switch-account-btn:hover {
+  background: rgba(15, 109, 107, 0.08);
+}
+
 .logout-btn {
   width: 100%;
   padding: 12px 16px;

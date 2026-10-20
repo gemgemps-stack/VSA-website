@@ -33,6 +33,28 @@ const Navbar = ({ toggleSidebar }) => {
     }
   };
 
+  const handleSwitchAccount = async () => {
+    const hasUnsavedWork = Boolean(document.querySelector('.modal-overlay'));
+
+    if (hasUnsavedWork) {
+      const confirmed = window.confirm(
+        'You have a form open with unsaved changes. Log in to another account anyway?'
+      );
+
+      if (!confirmed) {
+        setDropdownOpen(false);
+        return;
+      }
+    }
+
+    try {
+      await logout();
+    } finally {
+      setDropdownOpen(false);
+      navigate('/login', { replace: true });
+    }
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -76,6 +98,9 @@ const Navbar = ({ toggleSidebar }) => {
                 </div>
                 <div className="dropdown-item">Role: {user?.role}</div>
                 <hr />
+                <button className="switch-account-btn" onClick={handleSwitchAccount}>
+                  Log in to another account
+                </button>
                 <button className="logout-btn" onClick={handleLogout}>
                   Logout
                 </button>

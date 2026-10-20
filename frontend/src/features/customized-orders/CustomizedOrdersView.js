@@ -8,6 +8,7 @@ import { useLocation } from 'react-router-dom';
 import incomeService from '../../services/incomeService';
 import customizedOrderService from '../../services/customizedOrderService';
 import clientService from '../../services/clientService';
+import userService from '../../services/userService';
 import authService from '../../services/authService';
 import returnedItemService from '../../services/returnedItemService';
 import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErrors';
@@ -105,6 +106,7 @@ const createInitialFormData = () => ({
   referenceNumber: '',
   checkNumber: '',
   shop: '',
+  graphicArtist: '',
   orderDate: new Date().toISOString().split('T')[0],
   pickupDate: '',
   modeOfPayment: '',
@@ -151,6 +153,7 @@ const CustomizedOrders = () => {
   const [returnedItemForm, setReturnedItemForm] = useState(createReturnedItemForm());
   const [returnQuantities, setReturnQuantities] = useState({});
   const [formData, setFormData] = useState(createInitialFormData());
+  const [graphicArtists, setGraphicArtists] = useState([]);
   const [clientSearch, setClientSearch] = useState('');
   const [clientSuggestionsOpen, setClientSuggestionsOpen] = useState(false);
   const location = useLocation();
@@ -207,6 +210,26 @@ const CustomizedOrders = () => {
     loadOrders();
   }, [loadOrders]);
 
+  useEffect(() => {
+    let active = true;
+    const loadGraphicArtists = async () => {
+      try {
+        const response = await userService.getGraphicArtists();
+        if (active) {
+          setGraphicArtists(response.data || []);
+        }
+      } catch (error) {
+        if (!isAuthOrPermissionError(error)) {
+          console.error('Error loading graphic artists:', error);
+        }
+      }
+    };
+    loadGraphicArtists();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const loadReturnedItems = useCallback(async (customizedOrderId) => {
     if (!customizedOrderId) {
       setReturnedItems([]);
@@ -256,6 +279,16 @@ const CustomizedOrders = () => {
     });
     setReturnQuantities(next);
   }, [returnedItems, selectedOrder]);
+
+  useEffect(() => {
+    const requestedFilter = location.state?.statusFilter;
+    if (!requestedFilter) {
+      return;
+    }
+    setStatusFilter((current) =>
+      ORDER_FILTERS.some((filter) => filter.value === requestedFilter) ? requestedFilter : current
+    );
+  }, [location.state]);
 
   useEffect(() => {
     const targetJobOrderNo = location.state?.jobOrderNo;
@@ -500,6 +533,7 @@ const CustomizedOrders = () => {
         size: item.size || '',
         unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
         quantity: item.quantity != null ? String(item.quantity) : '',
+        inventoryId: item.inventoryId || null,
       })),
       freebie: order?.freebie || '',
       discount: order?.discount != null ? String(order.discount) : '0',
@@ -507,6 +541,7 @@ const CustomizedOrders = () => {
       referenceNumber: order?.referenceNumber || '',
       checkNumber: order?.checkNumber || '',
       shop: order?.shop || '',
+      graphicArtist: order?.graphicArtist || '',
       orderDate: order?.orderDate || new Date().toISOString().split('T')[0],
       pickupDate: order?.pickupDate || '',
       modeOfPayment: order?.modeOfPayment || '',
@@ -606,12 +641,14 @@ const CustomizedOrders = () => {
           size: item.size || null,
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
+          inventoryId: item.inventoryId || null,
         })),
         discount: Number.isFinite(discount) ? discount : 0,
         downPayment: Number.isFinite(downPaymentAmount) ? downPaymentAmount : 0,
         referenceNumber: trimmedReferenceNumber || null,
         checkNumber: isChequePayment(selectedModeOfPayment) ? trimmedCheckNumber || null : null,
         shop: formData.shop.trim() || null,
+        graphicArtist: formData.graphicArtist || null,
         orderDate: formData.orderDate,
         pickupDate: formData.pickupDate || null,
         modeOfPayment: Number.isFinite(downPaymentAmount) && downPaymentAmount > 0
@@ -677,16 +714,16 @@ const CustomizedOrders = () => {
       return;
     }
     try {
-      for (const entry of entriesToSave) {
-        await returnedItemService.createReturnedItem({
+      await returnedItemService.createReturnedItemsBulk(
+        entriesToSave.map((entry) => ({
           customizedOrderId: selectedOrder.id,
           productName: entry.productName.trim(),
           size: entry.size,
           quantity: entry.quantity,
           reason: returnedItemForm.reason.trim() || null,
           returnDate: returnedItemForm.returnDate || null,
-        });
-      }
+        }))
+      );
       setReturnedItemForm(createReturnedItemForm());
       await loadReturnedItems(selectedOrder.id);
       alert(`Returned list saved for ${entriesToSave.length} item(s).`);
@@ -706,6 +743,7 @@ const CustomizedOrders = () => {
       size: item.size || null,
       unitPrice: Number(item.unitPrice),
       quantity: Number(item.quantity),
+      inventoryId: item.inventoryId || null,
     })),
     freebie: order.freebie || null,
     discount: Number(order.discount || 0),
@@ -1357,8 +1395,24 @@ const CustomizedOrders = () => {
                 </div>
               )}
 
-                  {/* Row 4: Shop, Order Date and Pickup Date */}
-                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  {/* Row 4: Graphic Artist, Shop, Order Date and Pickup Date */}
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                    <div style={{ ...styles.formGroup, gridColumn: 'span 1' }}>
+                      <label style={styles.label}>Graphic Artist</label>
+                      <select
+                        value={formData.graphicArtist}
+                        onChange={(e) => setFormData({ ...formData, graphicArtist: e.target.value })}
+                        style={styles.input}
+                      >
+                        <option value="">Select Graphic Artist</option>
+                        {graphicArtists.map((artist) => (
+                          <option key={artist.id} value={artist.name}>
+                            {artist.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div style={styles.formGroup}>
                       <label style={styles.label}>Shop *</label>
                       <select

@@ -82,7 +82,9 @@ public class AuthService {
 
     private org.springframework.security.core.userdetails.User buildUserDetails(User user) {
         java.util.List<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
-        authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        user.getAllRoles().forEach(role ->
+                authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.name()))
+        );
 
         if (user.getPermissions() != null) {
             user.getPermissions().forEach(permission ->

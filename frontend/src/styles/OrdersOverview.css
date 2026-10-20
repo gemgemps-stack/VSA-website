@@ -1,0 +1,26 @@
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 109, 107, 0.24);
+  background: rgba(15, 109, 107, 0.08);
+  color: #0f6d6b;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(15, 109, 107, 0.14);
+  transform: translateY(-1px);
+}
+
+.orders-overview-status {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}

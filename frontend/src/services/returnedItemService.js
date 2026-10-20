@@ -3,8 +3,10 @@ import api from './api';
 const returnedItemService = {
   createReturnedItem: (data) => api.post('/api/returned-items', data),
 
-  getAllReturnedItems: (page = 0, size = 100) =>
-    api.get('/api/returned-items', { params: { page, size } }),
+  createReturnedItemsBulk: (items) => api.post('/api/returned-items/bulk', items),
+
+  getAllReturnedItems: (page = 0, size = 50, filters = {}) =>
+    api.get('/api/returned-items', { params: { page, size, ...filters } }),
 
   getReturnedItemById: (id) => api.get(`/api/returned-items/${id}`),
 

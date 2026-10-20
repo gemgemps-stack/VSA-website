@@ -14,7 +14,10 @@ import sports.apparel.backend.features.orders.OrderDTO;
 import sports.apparel.backend.features.orders.OrderRepository;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -104,15 +107,44 @@ public class ClientService {
     }
 
     public ClientOrdersDTO getOrdersByClientId(UUID clientId) {
-        clientRepository.findById(clientId)
+        Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("Client not found"));
 
-        List<OrderDTO> orders = orderRepository.findByClientId(clientId).stream()
-                .map(OrderDTO::new)
-                .collect(Collectors.toList());
-        List<CustomizedOrderDTO> customizedOrders = customizedOrderRepository.findByClientId(clientId).stream()
-                .map(CustomizedOrderDTO::new)
-                .collect(Collectors.toList());
+        List<OrderDTO> orders = new ArrayList<>();
+        List<CustomizedOrderDTO> customizedOrders = new ArrayList<>();
+        Set<UUID> seenOrderIds = new HashSet<>();
+        Set<UUID> seenCustomizedOrderIds = new HashSet<>();
+
+        orderRepository.findByClientId(clientId).forEach((order) -> {
+            if (seenOrderIds.add(order.getId())) {
+                orders.add(new OrderDTO(order));
+            }
+        });
+        customizedOrderRepository.findByClientId(clientId).forEach((order) -> {
+            if (seenCustomizedOrderIds.add(order.getId())) {
+                customizedOrders.add(new CustomizedOrderDTO(order));
+            }
+        });
+
+        String clientName = client.getClientName();
+        if (clientName != null && !clientName.isBlank()) {
+            String normalizedName = clientName.trim();
+            orderRepository.findByClientName(normalizedName).forEach((order) -> {
+                if (seenOrderIds.add(order.getId())) {
+                    orders.add(new OrderDTO(order));
+                }
+            });
+            customizedOrderRepository.findByClientName(normalizedName).forEach((order) -> {
+                if (seenCustomizedOrderIds.add(order.getId())) {
+                    customizedOrders.add(new CustomizedOrderDTO(order));
+                }
+            });
+        }
+
+        orders.sort(Comparator.comparing(OrderDTO::getOrderDate,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        customizedOrders.sort(Comparator.comparing(CustomizedOrderDTO::getOrderDate,
+                Comparator.nullsLast(Comparator.reverseOrder())));
 
         return new ClientOrdersDTO(orders, customizedOrders);
     }

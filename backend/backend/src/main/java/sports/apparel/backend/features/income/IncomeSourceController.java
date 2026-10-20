@@ -69,6 +69,14 @@ public class IncomeSourceController {
         return ResponseEntity.ok(incomeSourceDTO);
     }
 
+    @PostMapping("/{id}/correct")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<IncomeSourceDTO> correctPayment(@PathVariable UUID id,
+                                                          @Valid @RequestBody PaymentCorrectionRequest request) {
+        IncomeSourceDTO incomeSourceDTO = incomeSourceService.correctPayment(id, request);
+        return ResponseEntity.ok(incomeSourceDTO);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteIncomeSource(@PathVariable UUID id) {

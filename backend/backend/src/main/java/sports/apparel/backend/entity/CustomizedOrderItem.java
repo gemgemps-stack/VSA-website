@@ -29,6 +29,9 @@ public class CustomizedOrderItem {
     @Column(length = 20)
     private String size;
 
+    @Column(name = "inventory_id")
+    private UUID inventoryId;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 

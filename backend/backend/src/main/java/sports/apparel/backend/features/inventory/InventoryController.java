@@ -3,17 +3,22 @@ package sports.apparel.backend.features.inventory;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/inventory")
 public class InventoryController {
+
+    private static final String READ_ACCESS =
+            "hasRole('ADMIN') or hasAnyAuthority('INVENTORY', 'INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS')";
 
     private final InventoryService inventoryService;
 
@@ -29,35 +34,45 @@ public class InventoryController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('INVENTORY')")
+    @PreAuthorize(READ_ACCESS)
     public ResponseEntity<InventoryDTO> getInventoryById(@PathVariable UUID id) {
         InventoryDTO inventoryDTO = inventoryService.getInventoryById(id);
         return ResponseEntity.ok(inventoryDTO);
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('INVENTORY')")
-    public ResponseEntity<Page<InventoryDTO>> getAllInventory(Pageable pageable) {
-        Page<InventoryDTO> inventory = inventoryService.getAllInventory(pageable);
+    @PreAuthorize(READ_ACCESS)
+    public ResponseEntity<Page<InventoryDTO>> getAllInventory(
+            Pageable pageable,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String itemType,
+            @RequestParam(required = false) String jerseyType,
+            @RequestParam(required = false) String size,
+            @RequestParam(required = false) String shop,
+            @RequestParam(required = false) Boolean lowStock,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo) {
+        Page<InventoryDTO> inventory = inventoryService.searchInventory(
+                search, itemType, jerseyType, size, shop, lowStock, createdFrom, createdTo, pageable);
         return ResponseEntity.ok(inventory);
     }
 
     @GetMapping("/type/{itemType}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('INVENTORY')")
+    @PreAuthorize(READ_ACCESS)
     public ResponseEntity<List<InventoryDTO>> getInventoryByItemType(@PathVariable String itemType) {
         List<InventoryDTO> inventory = inventoryService.getInventoryByItemType(itemType);
         return ResponseEntity.ok(inventory);
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('INVENTORY')")
+    @PreAuthorize(READ_ACCESS)
     public ResponseEntity<List<InventoryDTO>> searchInventory(@RequestParam String name) {
         List<InventoryDTO> inventory = inventoryService.searchInventory(name);
         return ResponseEntity.ok(inventory);
     }
 
     @GetMapping("/low-stock/{threshold}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('INVENTORY')")
+    @PreAuthorize(READ_ACCESS)
     public ResponseEntity<List<InventoryDTO>> getLowStockInventory(@PathVariable Integer threshold) {
         List<InventoryDTO> inventory = inventoryService.getLowStockInventory(threshold);
         return ResponseEntity.ok(inventory);

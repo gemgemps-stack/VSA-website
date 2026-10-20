@@ -22,6 +22,7 @@ public class IncomeSourceDTO {
     private UUID clientId;
     private String clientCode;
     private String clientName;
+    private String teamName;
     private String jobOrderNo;
     private BigDecimal amount;
     private String referenceNumber;
@@ -38,6 +39,7 @@ public class IncomeSourceDTO {
         this.clientId = incomeSource.getClient() != null ? incomeSource.getClient().getId() : null;
         this.clientCode = incomeSource.getClient() != null ? incomeSource.getClient().getClientCode() : incomeSource.getClientCode();
         this.clientName = incomeSource.getClient() != null ? incomeSource.getClient().getClientName() : incomeSource.getClientName();
+        this.teamName = incomeSource.getTeamName();
         this.jobOrderNo = incomeSource.getJobOrderNo();
         this.amount = incomeSource.getAmount();
         this.referenceNumber = incomeSource.getReferenceNumber();

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +25,8 @@ public class CreateUserRequest {
 
     @NotBlank(message = "Role is required")
     private String role;
+
+    private List<String> additionalRoles;
 
     @DecimalMin(value = "0.0", inclusive = false, message = "Salary must be greater than 0")
     private BigDecimal salary;

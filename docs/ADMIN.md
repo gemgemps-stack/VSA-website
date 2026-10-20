@@ -69,7 +69,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=<strong password>
 3. **Do NOT skip `DATABASE_URL`.** Prod falls back to in-memory H2; every restart wipes all data.
 4. **Do NOT disable CSRF protections** for unsafe methods. Cookies in prod are `Secure` + `SameSite=None`; keep `withCredentials` on the axios instance.
 5. **Do NOT hand out `ADMIN`** to staff who only need one page — grant the narrow `page_name` permission instead.
-6. **Do NOT enable Flyway casually** — there is no `V1` schema migration (schema is Hibernate-created); running `V2`–`V33` against an un-baselined DB will fail validation. See [[SETUP]] troubleshooting.
+6. **Do NOT enable Flyway casually** — there is no `V1` schema migration (schema is Hibernate-created); running `V2`–`V38` against an un-baselined DB will fail validation. See [[SETUP]] troubleshooting.
 7. **Do NOT deploy the frontend without rebuilding** — Vercel serves whatever `build/` was uploaded; stale bundles (e.g. old UTC date logic) keep shipping until you redeploy.
 
 ## 🔍 Operational quick reference

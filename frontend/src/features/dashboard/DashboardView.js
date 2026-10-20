@@ -4,6 +4,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import PermissionGuard from '../../components/PermissionGuard';
 import { useAuth } from '../../context/AuthContext';
 import dashboardService from '../../services/dashboardService';
+import { getApiErrorMessage } from '../../utils/apiErrors';
 import '../../styles/Dashboard.css';
 
 const dashboardIconProps = {
@@ -71,6 +72,13 @@ const StatIcon = ({ name }) => {
       return (
         <svg viewBox="0 0 100 100" aria-hidden="true" {...dashboardIconProps}>
           <path d="m77.954,33.365c-.004-.073-.023-.14-.043-.211-.017-.062-.03-.123-.058-.18-.028-.057-.068-.105-.106-.157-.043-.059-.085-.115-.139-.163-.016-.014-.023-.033-.04-.047-2.576-2.025-4.674-5.19-5.906-8.911-1.118-3.375-1.393-6.881-.775-9.871.008-.036-.003-.07,0-.106.004-.036.021-.067.021-.104,0-.035-.017-.065-.02-.1-.007-.071-.02-.137-.041-.205-.02-.064-.043-.122-.074-.18-.031-.059-.068-.111-.11-.163-.042-.052-.086-.098-.138-.141-.05-.042-.103-.076-.161-.108-.062-.034-.124-.061-.192-.082-.033-.01-.059-.033-.093-.04-.036-.008-.071.003-.107,0-.036-.004-.067-.021-.104-.021h-3.062c-.032.003-.064-.005-.095,0h-6.816c-.574,0-1.039.466-1.039,1.04,0,4.986-3.973,9.042-8.857,9.042s-8.857-4.056-8.857-9.042c0-.287-.116-.547-.304-.735-.188-.188-.448-.305-.735-.305h-10.291c-.038,0-.069.018-.106.021-.037.004-.071-.007-.108,0-.034.007-.059.029-.091.039-.068.021-.131.048-.192.083-.058.032-.111.066-.161.108-.051.043-.095.089-.137.141-.042.052-.078.104-.11.163-.031.058-.053.117-.073.18-.021.067-.034.133-.041.205-.003.034-.02.063-.02.098,0,.038.018.07.021.106.004.037-.007.071,0,.108.631,3.001.36,6.523-.765,9.918-1.181,3.565-3.178,6.648-5.621,8.68-.013.01-.018.026-.03.037-.055.05-.094.11-.137.17-.036.051-.078.098-.104.154-.026.056-.036.117-.052.178-.019.072-.04.141-.043.215,0,.016-.009.03-.009.046v53.162c0,.574.465,1.04,1.039,1.04h53.853c.574,0,1.039-.466,1.039-1.04v-52.964c0-.021-.011-.039-.012-.06Zm-10.939-7.095c1.001,2.633,2.418,5.084,4.144,7.205H28.621c1.776-2.071,3.265-4.437,4.309-6.955,1.658-3.999,2.176-8.157,1.513-11.865h1.215c.532,7.586,6.795,13.598,14.437,13.598s13.906-6.012,14.438-13.598h1.101c-.579,3.634-.106,7.703,1.381,11.616Zm5.446,22.691H27.94v-13.407h44.52v13.407Zm-44.52,2.08h44.52v34.307H27.94v-34.307Zm22.06-26.305c5.685,0,10.366-4.436,10.884-10.082h1.569c-.525,6.439-5.862,11.518-12.359,11.518s-11.833-5.079-12.359-11.518h1.38c.518,5.646,5.199,10.082,10.884,10.082Zm-25.887,8.95c2.564-2.271,4.65-5.54,5.891-9.286,1.087-3.281,1.445-6.692,1.039-9.746h1.276c.7,3.407.253,7.299-1.31,11.068-1.134,2.734-2.813,5.299-4.856,7.417-.033.034-.046.078-.074.115-.052.07-.107.137-.14.219-.033.083-.041.169-.052.256-.006.045-.027.085-.027.132v51.486h-1.749v-51.661Zm50.427,51.661v-50.833c0-.308-.139-.577-.351-.767-2.237-2.261-4.045-5.1-5.231-8.217-1.406-3.697-1.818-7.52-1.209-10.877h.895c-.395,3.041-.035,6.434,1.046,9.696,1.296,3.911,3.491,7.273,6.198,9.55v51.447h-1.348Zm-12.438-37.989c.115.066.243.1.371.1s.256-.033.371-.1l4.293-2.48c.23-.133.371-.378.371-.643v-4.959c0-.265-.141-.511-.371-.643l-4.293-2.48c-.23-.133-.513-.133-.742,0l-4.293,2.48c-.23.133-.371.378-.371.643v4.959c0,.265.141.51.371.643l4.293,2.48Zm-3.179-7.653l3.551-2.051,3.551,2.051v4.102l-3.551,2.051-3.551-2.051v-4.102Zm3.736,5.157l2.41-1.392c.115-.066.186-.189.186-.322v-2.784c0-.133-.071-.255-.186-.322l-2.41-1.392c-.115-.066-.256-.066-.371,0l-2.41,1.392c-.115.066-.186.189-.186.322v2.784c0,.133.071.255.186.322l2.41,1.392c.057.033.122.05.186.05s.128-.017.186-.05Zm-2.224-1.928v-2.355l2.039-1.178,2.039,1.178v2.355l-2.039,1.178-2.039-1.178Z" />
+        </svg>
+      );
+    case 'returns':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" {...dashboardIconProps} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 14 4 9l5-5" />
+          <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
         </svg>
       );
     case 'clients':
@@ -146,16 +154,24 @@ const DEFAULT_STATS = {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, canAccess } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(DEFAULT_STATS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const canSeeInventory = canAccess('INVENTORY');
+  const canSeeAttendance = canAccess('ATTENDANCE');
+  const canSeeFinance = canAccess('SOURCE_OF_INCOME');
+  const canSeeOrderModules = canAccess('INVENTORY_ORDERS') || canAccess('CUSTOMIZED_ORDERS');
 
   useEffect(() => {
     let cancelled = false;
 
     const loadStats = async () => {
       setLoading(true);
+      setError('');
       try {
         const response = await dashboardService.getStats();
         if (!cancelled) {
@@ -164,8 +180,11 @@ const Dashboard = () => {
             ...(response.data || {}),
           });
         }
-      } catch (error) {
-        console.error('Error loading dashboard stats:', error);
+      } catch (loadError) {
+        console.error('Error loading dashboard stats:', loadError);
+        if (!cancelled) {
+          setError(getApiErrorMessage(loadError, 'Dashboard statistics could not be loaded.'));
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -178,7 +197,7 @@ const Dashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const totalOperationalOrders = stats.totalOrders || (stats.totalInventoryOrders + stats.totalCustomizedOrders);
   const completionRate = totalOperationalOrders > 0
@@ -262,33 +281,144 @@ const Dashboard = () => {
     },
   ], [stats]);
 
+  const heroMetrics = [
+    {
+      key: 'open-pipeline',
+      label: 'Open pipeline',
+      value: stats.openOrders,
+      hint: 'Active orders across inventory and custom work.',
+      path: '/orders-overview/open',
+      allowed: canSeeOrderModules,
+    },
+    {
+      key: 'approval-queue',
+      label: 'Approval queue',
+      value: stats.awaitingApprovalOrders,
+      hint: 'Items waiting on a go-ahead before production.',
+      path: '/orders-overview/awaiting',
+      allowed: canSeeOrderModules,
+    },
+    {
+      key: 'low-stock',
+      label: 'Low stock',
+      value: stats.lowStockItems,
+      hint: 'Inventory items that should be reviewed soon.',
+      path: '/inventory',
+      state: { lowStockOnly: true },
+      allowed: canSeeInventory,
+    },
+  ].filter((metric) => metric.allowed);
+
   const performanceItems = [
     {
       label: 'Open orders',
       value: stats.openOrders,
       hint: 'Work currently moving through the pipeline',
+      path: '/orders-overview/open',
+      allowed: canSeeOrderModules,
     },
     {
       label: 'Awaiting approval',
       value: stats.awaitingApprovalOrders,
       hint: 'Orders waiting on confirmation or sign-off',
+      path: '/orders-overview/awaiting',
+      allowed: canSeeOrderModules,
     },
     {
       label: 'Completed orders',
       value: stats.completedOrders,
       hint: 'Fully paid work that is already closed out',
+      path: '/orders-overview/completed',
+      allowed: canSeeOrderModules,
     },
     {
       label: 'Low stock items',
       value: stats.lowStockItems,
       hint: 'Items below the default stock threshold',
+      path: '/inventory',
+      state: { lowStockOnly: true },
+      allowed: canSeeInventory,
     },
     {
       label: 'Attendance logs',
       value: stats.attendanceThisMonth,
       hint: 'Employee attendance entries this month',
+      path: '/attendance',
+      allowed: canSeeAttendance,
     },
-  ];
+  ].filter((item) => item.allowed);
+
+  const watchlistItems = [
+    {
+      title: 'Inventory orders',
+      description: 'Track ready-to-fulfill sales orders and keep the queue moving.',
+      icon: 'inventory-orders',
+      tone: 'teal',
+      path: '/orders',
+      allowed: canAccess('INVENTORY_ORDERS'),
+    },
+    {
+      title: 'Customized orders',
+      description: 'Manage design approvals, production status, and completion flow.',
+      icon: 'customized-orders',
+      tone: 'blue',
+      path: '/customized-orders',
+      allowed: canAccess('CUSTOMIZED_ORDERS'),
+    },
+    {
+      title: 'Returned orders',
+      description: 'Review recorded returns across both order modules and confirm the stock impact.',
+      icon: 'returns',
+      tone: 'amber',
+      path: '/returns',
+      allowed: canSeeOrderModules || canSeeInventory,
+    },
+    {
+      title: 'Inventory control',
+      description: 'Keep stock balanced and watch low inventory before it becomes a problem.',
+      icon: 'inventory',
+      tone: 'green',
+      path: '/inventory',
+      allowed: canSeeInventory,
+    },
+    {
+      title: 'Client records',
+      description: 'Maintain customer information and link orders back to the right accounts.',
+      icon: 'clients',
+      tone: 'cyan',
+      path: '/clients',
+      allowed: canAccess('CLIENTS'),
+    },
+    {
+      title: 'Attendance',
+      description: 'Review employee logs, monthly coverage, and workday discipline.',
+      icon: 'attendance',
+      tone: 'amber',
+      path: '/attendance',
+      allowed: canSeeAttendance,
+    },
+    {
+      title: 'Finance and reporting',
+      description: 'Monitor income, liquidations, and the performance report in one place.',
+      icon: 'finance',
+      tone: 'slate',
+      path: '/income',
+      allowed: canSeeFinance,
+    },
+    {
+      title: 'Employees',
+      description: 'Keep team access, records, and role-based permissions organized.',
+      icon: 'employees',
+      tone: 'violet',
+      path: '/employees',
+      allowed: canAccess('EMPLOYEES'),
+    },
+  ].filter((item) => item.allowed);
+
+  const showPerformancePanel = canSeeFinance || performanceItems.length > 0;
+  const showWatchlistPanel = watchlistItems.length > 0;
+  const hasAnyRecord =
+    stats.totalOrders > 0 || stats.totalClients > 0 || stats.totalInventoryItems > 0;
 
   const healthMeters = [
     {
@@ -318,32 +448,71 @@ const Dashboard = () => {
 
           <div className="dashboard-hero-panel">
             <div className="hero-metrics">
-              <div className="hero-metric">
-                <span>Open pipeline</span>
-                <strong>{loading ? '-' : formatCount(stats.openOrders)}</strong>
-                <p>Active orders across inventory and custom work.</p>
-              </div>
-              <div className="hero-metric">
-                <span>Approval queue</span>
-                <strong>{loading ? '-' : formatCount(stats.awaitingApprovalOrders)}</strong>
-                <p>Items waiting on a go-ahead before production.</p>
-              </div>
-              <div className="hero-metric">
-                <span>Low stock</span>
-                <strong>{loading ? '-' : formatCount(stats.lowStockItems)}</strong>
-                <p>Inventory items that should be reviewed soon.</p>
-              </div>
+              {heroMetrics.length > 0 ? (
+                heroMetrics.map((metric) => (
+                  <button
+                    key={metric.key}
+                    type="button"
+                    className="hero-metric"
+                    onClick={() => navigate(metric.path, { state: metric.state })}
+                  >
+                    <span>{metric.label}</span>
+                    <strong>{loading ? '-' : formatCount(metric.value)}</strong>
+                    <p>{metric.hint}</p>
+                    <em className="hero-metric-action">View details</em>
+                  </button>
+                ))
+              ) : (
+                <div className="dashboard-inline-empty">
+                  No order or stock metrics are available for your permissions yet.
+                </div>
+              )}
             </div>
 
-            <button
-              type="button"
-              className="hero-action"
-              onClick={() => navigate('/income', { state: { openPerformanceReport: true } })}
-            >
-              Open finance report
-            </button>
+            {canSeeFinance && (
+              <button
+                type="button"
+                className="hero-action"
+                onClick={() => navigate('/income', { state: { openPerformanceReport: true } })}
+              >
+                Open finance report
+              </button>
+            )}
           </div>
         </section>
+
+        {loading && (
+          <section className="dashboard-status" role="status">
+            <strong>Loading dashboard statistics</strong>
+            <p>Fetching the latest order, stock, attendance, and finance numbers.</p>
+          </section>
+        )}
+
+        {!loading && error && (
+          <section className="dashboard-status dashboard-status--error" role="alert">
+            <div>
+              <strong>Dashboard statistics could not be loaded</strong>
+              <p>{error}</p>
+            </div>
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </button>
+          </section>
+        )}
+
+        {!loading && !error && !hasAnyRecord && (
+          <section className="dashboard-status dashboard-status--empty" role="status">
+            <strong>No records yet</strong>
+            <p>
+              There are no orders, clients, or inventory items in the system yet. Add your first
+              record and every widget on this page will start tracking it.
+            </p>
+          </section>
+        )}
 
         <section className="dashboard-card-grid">
           <PermissionGuard permission="INVENTORY_ORDERS">
@@ -399,150 +568,128 @@ const Dashboard = () => {
           </PermissionGuard>
         </section>
 
-        <section className="dashboard-content-grid">
-          <article className="dashboard-panel dashboard-performance-panel">
-            <div className="panel-header">
-              <div>
-                <span className="panel-kicker">Performance report</span>
-                <h2>Business performance this month</h2>
-                <p>
-                  A compact report that mirrors the finance section and helps leadership see whether orders,
-                  revenue, and stock are moving in the right direction.
-                </p>
-              </div>
-              <span className="panel-chip">Month to date</span>
-            </div>
-
-            <div className="performance-metrics">
-              <div className="performance-total">
-                <span>Sales income</span>
-                <strong>{loading ? '-' : formatCurrency(stats.monthlySalesIncome)}</strong>
-              </div>
-              <div className="performance-total">
-                <span>Liquidations</span>
-                <strong>{loading ? '-' : formatCurrency(stats.monthlyLiquidation)}</strong>
-              </div>
-              <div className="performance-total performance-total--strong">
-                <span>Net result</span>
-                <strong>{loading ? '-' : formatCurrency(stats.monthlyNetIncome)}</strong>
-              </div>
-            </div>
-
-            <div className="performance-bars">
-              {healthMeters.map((meter) => (
-                <div key={meter.label} className="performance-meter">
-                  <div className="performance-meter-row">
-                    <span>{meter.label}</span>
-                    <strong>{loading ? '-' : `${Math.max(0, Math.min(100, meter.value))}%`}</strong>
-                  </div>
-                  <div className="performance-track" aria-hidden="true">
-                    <span
-                      className={`performance-fill performance-fill--${meter.tone}`}
-                      style={{ width: `${Math.max(0, Math.min(100, meter.value))}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="performance-list">
-              {performanceItems.map((item) => (
-                <div key={item.label} className="performance-list-item">
+        {(showPerformancePanel || showWatchlistPanel) && (
+          <section className="dashboard-content-grid">
+            {showPerformancePanel && (
+              <article className="dashboard-panel dashboard-performance-panel">
+                <div className="panel-header">
                   <div>
-                    <span>{item.label}</span>
-                    <p>{item.hint}</p>
+                    <span className="panel-kicker">Performance report</span>
+                    <h2>Business performance this month</h2>
+                    <p>
+                      {canSeeFinance
+                        ? 'A compact report that mirrors the finance section and helps leadership see whether orders, revenue, and stock are moving in the right direction.'
+                        : 'A compact snapshot of the order and stock areas your account has access to.'}
+                    </p>
                   </div>
-                  <strong>{loading ? '-' : formatCount(item.value)}</strong>
+                  <span className="panel-chip">Month to date</span>
                 </div>
-              ))}
-            </div>
 
-            <div className="performance-footer">
-              <button type="button" className="secondary-action" onClick={() => navigate('/income')}>
-                Open full finance workspace
-              </button>
-              <span className="performance-footnote">
-                The detailed charts and liquidation history live in Finance.
-              </span>
-            </div>
-          </article>
+                {canSeeFinance && (
+                  <div className="performance-metrics">
+                    <div className="performance-total">
+                      <span>Sales income</span>
+                      <strong>{loading ? '-' : formatCurrency(stats.monthlySalesIncome)}</strong>
+                    </div>
+                    <div className="performance-total">
+                      <span>Liquidations</span>
+                      <strong>{loading ? '-' : formatCurrency(stats.monthlyLiquidation)}</strong>
+                    </div>
+                    <div className="performance-total performance-total--strong">
+                      <span>Net result</span>
+                      <strong>{loading ? '-' : formatCurrency(stats.monthlyNetIncome)}</strong>
+                    </div>
+                  </div>
+                )}
 
-          <aside className="dashboard-panel dashboard-watchlist-panel">
-            <div className="panel-header">
-              <div>
-                <span className="panel-kicker">Operational watchlist</span>
-                <h2>Priority areas</h2>
-                <p>These are the pieces of the project the team should care about every day.</p>
-              </div>
-            </div>
+                {canSeeFinance && (
+                  <div className="performance-bars">
+                    {healthMeters.map((meter) => (
+                      <div key={meter.label} className="performance-meter">
+                        <div className="performance-meter-row">
+                          <span>{meter.label}</span>
+                          <strong>{loading ? '-' : `${Math.max(0, Math.min(100, meter.value))}%`}</strong>
+                        </div>
+                        <div className="performance-track" aria-hidden="true">
+                          <span
+                            className={`performance-fill performance-fill--${meter.tone}`}
+                            style={{ width: `${Math.max(0, Math.min(100, meter.value))}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-            <div className="watchlist-stack">
-              <div className="watchlist-item">
-                <span className="watchlist-icon watchlist-icon--teal" aria-hidden="true">
-                  <StatIcon name="inventory-orders" />
-                </span>
-                <div>
-                  <strong>Inventory orders</strong>
-                  <p>Track ready-to-fulfill sales orders and keep the queue moving.</p>
+                <div className="performance-list">
+                  {performanceItems.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className="performance-list-item"
+                      onClick={() => navigate(item.path, { state: item.state })}
+                    >
+                      <div>
+                        <span>{item.label}</span>
+                        <p>{item.hint}</p>
+                      </div>
+                      <strong>{loading ? '-' : formatCount(item.value)}</strong>
+                      <span className="performance-list-action">View details</span>
+                    </button>
+                  ))}
+                  {!loading && performanceItems.length === 0 && (
+                    <div className="dashboard-inline-empty">
+                      No operational metrics match your account permissions.
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="watchlist-item">
-                <span className="watchlist-icon watchlist-icon--blue" aria-hidden="true">
-                  <StatIcon name="customized-orders" />
-                </span>
-                <div>
-                  <strong>Customized orders</strong>
-                  <p>Manage design approvals, production status, and completion flow.</p>
+
+                {canSeeFinance && (
+                  <div className="performance-footer">
+                    <button type="button" className="secondary-action" onClick={() => navigate('/income')}>
+                      Open full finance workspace
+                    </button>
+                    <span className="performance-footnote">
+                      The detailed charts and liquidation history live in Finance.
+                    </span>
+                  </div>
+                )}
+              </article>
+            )}
+
+            {showWatchlistPanel && (
+              <aside className="dashboard-panel dashboard-watchlist-panel">
+                <div className="panel-header">
+                  <div>
+                    <span className="panel-kicker">Operational watchlist</span>
+                    <h2>Priority areas</h2>
+                    <p>These are the pieces of the project the team should care about every day.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="watchlist-item">
-                <span className="watchlist-icon watchlist-icon--green" aria-hidden="true">
-                  <StatIcon name="inventory" />
-                </span>
-                <div>
-                  <strong>Inventory control</strong>
-                  <p>Keep stock balanced and watch low inventory before it becomes a problem.</p>
+
+                <div className="watchlist-stack">
+                  {watchlistItems.map((item) => (
+                    <button
+                      key={item.title}
+                      type="button"
+                      className="watchlist-item"
+                      onClick={() => navigate(item.path)}
+                    >
+                      <span className={`watchlist-icon watchlist-icon--${item.tone}`} aria-hidden="true">
+                        <StatIcon name={item.icon} />
+                      </span>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <p>{item.description}</p>
+                      </div>
+                      <span className="watchlist-action">View details</span>
+                    </button>
+                  ))}
                 </div>
-              </div>
-              <div className="watchlist-item">
-                <span className="watchlist-icon watchlist-icon--cyan" aria-hidden="true">
-                  <StatIcon name="clients" />
-                </span>
-                <div>
-                  <strong>Client records</strong>
-                  <p>Maintain customer information and link orders back to the right accounts.</p>
-                </div>
-              </div>
-              <div className="watchlist-item">
-                <span className="watchlist-icon watchlist-icon--amber" aria-hidden="true">
-                  <StatIcon name="attendance" />
-                </span>
-                <div>
-                  <strong>Attendance</strong>
-                  <p>Review employee logs, monthly coverage, and workday discipline.</p>
-                </div>
-              </div>
-              <div className="watchlist-item">
-                <span className="watchlist-icon watchlist-icon--slate" aria-hidden="true">
-                  <StatIcon name="finance" />
-                </span>
-                <div>
-                  <strong>Finance and reporting</strong>
-                  <p>Monitor income, liquidations, and the performance report in one place.</p>
-                </div>
-              </div>
-              <div className="watchlist-item">
-                <span className="watchlist-icon watchlist-icon--violet" aria-hidden="true">
-                  <StatIcon name="employees" />
-                </span>
-                <div>
-                  <strong>Employees</strong>
-                  <p>Keep team access, records, and role-based permissions organized.</p>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </section>
+              </aside>
+            )}
+          </section>
+        )}
 
         <section className="dashboard-panel dashboard-modules-panel">
           <div className="panel-header">

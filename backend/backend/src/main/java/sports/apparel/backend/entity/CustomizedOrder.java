@@ -64,6 +64,9 @@ public class CustomizedOrder {
     @Column(nullable = false, length = 100)
     private String shop;
 
+    @Column(name = "graphic_artist", length = 255)
+    private String graphicArtist;
+
     @Column(nullable = false)
     private LocalDate orderDate;
 

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
@@ -66,9 +67,9 @@ const styles = {
   empty: { padding: '14px 0', fontSize: '0.9rem', color: '#666' },
 };
 
-const OrderSummaryList = ({ orders, label }) => {
+const OrderSummaryList = ({ orders, label, emptyText, onViewOrder }) => {
   if (!orders || orders.length === 0) {
-    return <p style={styles.hint}>No {label.toLowerCase()} available for this client yet.</p>;
+    return <p style={styles.hint}>{emptyText}</p>;
   }
 
   return (
@@ -77,18 +78,33 @@ const OrderSummaryList = ({ orders, label }) => {
         <li key={order.id} style={styles.subItem}>
           <div style={styles.subRow}>
             <strong style={styles.subTitle}>{order.jobOrderNo || '-'}</strong>
-            <span>{order.shop || '-'}</span>
+            <span>{order.teamName || order.shop || '-'}</span>
           </div>
           <div style={styles.subRow}>
             <span>Ordered: {order.orderDate || '-'}</span>
-            <span>Status: {order.status || '-'}</span>
+            <span>Pickup: {order.pickupDate || '-'}</span>
           </div>
           <div style={styles.subRow}>
-            <span>
-              Total: {formatMoney((Number(order.price) || 0) * (Number(order.quantity) || 1))}
-            </span>
-            {order.pickupDate ? <span>Pickup: {order.pickupDate}</span> : null}
+            <span>Status: {order.status || '-'}</span>
+            <span>Payment: {order.downPayment != null ? formatMoney(order.downPayment) : '-'}</span>
           </div>
+          <div style={styles.subRow}>
+            <span>Total: {formatMoney(order.itemsTotal)}</span>
+            <span>
+              Balance: {formatMoney(order.remainingBalance)}
+            </span>
+          </div>
+          {onViewOrder && order.jobOrderNo ? (
+            <div style={{ marginTop: '8px' }}>
+              <button
+                type="button"
+                className="btn-view"
+                onClick={() => onViewOrder(order)}
+              >
+                View Order
+              </button>
+            </div>
+          ) : null}
         </li>
       ))}
     </ul>
@@ -219,11 +235,12 @@ const Clients = () => {
     setOrdersLoading(false);
   };
 
-  const loadClientOrders = async () => {
-    if (!detailsClient) return;
+  const loadClientOrders = useCallback(async (client) => {
+    const targetClient = client || detailsClient;
+    if (!targetClient) return;
     try {
       setOrdersLoading(true);
-      const response = await clientService.getClientOrders(detailsClient.id);
+      const response = await clientService.getClientOrders(targetClient.id);
       setClientOrders(response.data || {});
     } catch (error) {
       console.error('Error loading client orders:', error);
@@ -232,7 +249,50 @@ const Clients = () => {
     } finally {
       setOrdersLoading(false);
     }
-  };
+  }, [detailsClient]);
+
+  useEffect(() => {
+    if (!detailsClient) {
+      return;
+    }
+    loadClientOrders(detailsClient);
+  }, [detailsClient, loadClientOrders]);
+
+  const navigate = useNavigate();
+
+  const handleViewOrder = useCallback((order, orderType) => {
+    if (!order?.jobOrderNo) {
+      return;
+    }
+
+    if (orderType === 'customized') {
+      navigate('/customized-orders', {
+        state: { jobOrderNo: order.jobOrderNo, openDetails: true },
+      });
+      return;
+    }
+
+    navigate('/orders', {
+      state: { jobOrderNo: order.jobOrderNo, openDetails: true },
+    });
+  }, [navigate]);
+
+  const unifiedHistory = useMemo(() => {
+    if (!clientOrders) {
+      return [];
+    }
+
+    const combined = [
+      ...(clientOrders.orders || []).map((order) => ({ order, orderType: 'regular' })),
+      ...(clientOrders.customizedOrders || []).map((order) => ({ order, orderType: 'customized' })),
+    ];
+
+    return combined.sort((a, b) => {
+      const aDate = a.order.orderDate || a.order.createdAt || '';
+      const bDate = b.order.orderDate || b.order.createdAt || '';
+      return String(bDate).localeCompare(String(aDate));
+    });
+  }, [clientOrders]);
 
   const columns = [
     { key: 'clientCode', label: 'ID', render: (value) => value || '-' },
@@ -431,9 +491,6 @@ const Clients = () => {
               isOpen={detailsClient !== null}
               title={detailsClient ? `${detailsClient.clientName || 'Client'} - Client Overview` : ''}
               onClose={closeDetails}
-              onSubmit={clientOrders ? loadClientOrders : undefined}
-              submitText={clientOrders ? 'Refresh Orders' : 'View Orders'}
-              loading={ordersLoading}
               size="large"
             >
               {detailsClient && (
@@ -455,27 +512,48 @@ const Clients = () => {
                     ))}
                   </div>
 
-                  <h4 style={styles.sectionTitle}>Orders</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <h4 style={styles.sectionTitle}>Order History</h4>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => loadClientOrders(detailsClient)}
+                      disabled={ordersLoading}
+                    >
+                      {ordersLoading ? 'Refreshing...' : 'Refresh Orders'}
+                    </button>
+                  </div>
                   {ordersLoading ? (
                     <p style={styles.hint}>Loading orders...</p>
                   ) : clientOrders ? (
-                    !clientOrders.orders?.length && !clientOrders.customizedOrders?.length ? (
+                    unifiedHistory.length === 0 ? (
                       <p style={styles.empty}>This client has no orders yet.</p>
                     ) : (
                       <>
                         <h5 style={styles.subSectionTitle}>Regular Orders</h5>
-                        <OrderSummaryList orders={clientOrders.orders} label="Regular orders" />
+                        <div style={{ marginBottom: '10px' }}>
+                          <OrderSummaryList
+                            orders={unifiedHistory
+                              .filter((entry) => entry.orderType === 'regular')
+                              .map((entry) => entry.order)}
+                            label="Regular orders"
+                            emptyText="No regular orders available for this client yet."
+                            onViewOrder={(order) => handleViewOrder(order, 'regular')}
+                          />
+                        </div>
                         <h5 style={styles.subSectionTitle}>Customized Orders</h5>
                         <OrderSummaryList
-                          orders={clientOrders.customizedOrders}
+                          orders={unifiedHistory
+                            .filter((entry) => entry.orderType === 'customized')
+                            .map((entry) => entry.order)}
                           label="Customized orders"
+                          emptyText="No customized orders available for this client yet."
+                          onViewOrder={(order) => handleViewOrder(order, 'customized')}
                         />
                       </>
                     )
                   ) : (
-                    <p style={styles.hint}>
-                      Select "View Orders" below to load this client's order history.
-                    </p>
+                    <p style={styles.hint}>Loading order history for this client...</p>
                   )}
                 </div>
               )}

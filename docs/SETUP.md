@@ -96,7 +96,7 @@ npm run electron:build            # build + package → dist\Verdida-Setup-<vers
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | H2 `sa`/empty fallback | prod datasource | Render env vars |
 | `CORS_ORIGINS` | `https://verdidasportsapparel.vercel.app` | `SecurityConfig` | Render env var (comma-separated origins) |
 | `app.cors.allow-localhost` | `true` (base/local), `true` (prod, changed) | `SecurityConfig` | config file; desktop app relies on this |
-| `SPRING_FLYWAY_ENABLED` | `false` everywhere | Flyway | Render env var — only enable if you intend to run `V2`–`V33` |
+| `SPRING_FLYWAY_ENABLED` | `false` everywhere | Flyway | Render env var — only enable if you intend to run `V2`–`V38` |
 | `SPRING_JPA_HIBERNATE_DDL_AUTO` | `update` | JPA | Render env var |
 | `APP_BOOTSTRAP_ADMIN_ENABLED` / `_EMAIL` / `_USERNAME` / `_PASSWORD` | off / empty / `admin` / empty | `DataSeeder` | Render env vars (seed first admin) |
 | `REACT_APP_API_URL` | `""` (dev), `https://vsa-backend.onrender.com` (prod) | `frontend/src/services/api.js`, `App.js` | `frontend/.env` / `frontend/.env.production` |

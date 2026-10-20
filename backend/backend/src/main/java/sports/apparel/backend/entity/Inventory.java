@@ -33,6 +33,9 @@ public class Inventory {
     @Column(length = 100)
     private String shop;
 
+    @Column(name = "graphic_artist", length = 255)
+    private String graphicArtist;
+
     @Column(length = 20)
     private String size;
 

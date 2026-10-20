@@ -7,6 +7,8 @@ import PermissionGuard from './components/PermissionGuard';
 import Login from './features/auth/LoginView';
 import Dashboard from './features/dashboard/DashboardView';
 import Orders from './features/orders/OrdersView';
+import OrdersOverview from './features/orders-overview/OrdersOverviewView';
+import Returns from './features/returns/ReturnsView';
 import CustomizedOrders from './features/customized-orders/CustomizedOrdersView';
 import Inventory from './features/inventory/InventoryView';
 import Clients from './features/clients/ClientsView';
@@ -65,6 +67,26 @@ function App() {
               <ProtectedRoute>
                 <PermissionGuard permission="INVENTORY_ORDERS">
                   <Orders />
+                </PermissionGuard>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders-overview/:view"
+            element={
+              <ProtectedRoute>
+                <OrdersOverview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/returns"
+            element={
+              <ProtectedRoute>
+                <PermissionGuard
+                  permissions={['INVENTORY_ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY']}
+                >
+                  <Returns />
                 </PermissionGuard>
               </ProtectedRoute>
             }

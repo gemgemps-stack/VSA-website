@@ -47,6 +47,23 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Permission> permissions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserRole> additionalRoles = new ArrayList<>();
+
+    public List<Role> getAllRoles() {
+        java.util.LinkedHashSet<Role> roles = new java.util.LinkedHashSet<>();
+        if (role != null) {
+            roles.add(role);
+        }
+        if (additionalRoles != null) {
+            additionalRoles.stream()
+                    .map(UserRole::getRole)
+                    .filter(java.util.Objects::nonNull)
+                    .forEach(roles::add);
+        }
+        return new ArrayList<>(roles);
+    }
+
     public enum Role {
         ADMIN,
         EMPLOYEE,

@@ -106,6 +106,7 @@ public class OrderService {
                 item.setJerseyType(itemReq.getJerseyType());
                 item.setUnitPrice(itemReq.getUnitPrice());
                 item.setQuantity(itemReq.getQuantity());
+                item.setInventoryId(itemReq.getInventoryId());
                 item.setOrder(order);
                 return item;
             }).collect(Collectors.toList());
@@ -361,6 +362,7 @@ public class OrderService {
                 item.setJerseyType(itemReq.getJerseyType());
                 item.setUnitPrice(itemReq.getUnitPrice());
                 item.setQuantity(itemReq.getQuantity());
+                item.setInventoryId(itemReq.getInventoryId());
                 item.setOrder(order);
                 return item;
             }).collect(Collectors.toList());
@@ -441,7 +443,7 @@ public class OrderService {
         }
 
         for (OrderItem item : order.getItems()) {
-            Inventory inventory = findInventoryByRetailLabel(item.getProductName());
+            Inventory inventory = findInventoryForItem(item);
             if (inventory != null) {
                 int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
                 int orderedQuantity = item.getQuantity() != null ? item.getQuantity() : 0;
@@ -462,7 +464,7 @@ public class OrderService {
         }
 
         for (OrderItem item : order.getItems()) {
-            Inventory inventory = findInventoryByRetailLabel(item.getProductName());
+            Inventory inventory = findInventoryForItem(item);
             if (inventory != null) {
                 int currentStock = inventory.getQuantity() != null ? inventory.getQuantity() : 0;
                 int orderedQuantity = item.getQuantity() != null ? item.getQuantity() : 0;
@@ -472,6 +474,16 @@ public class OrderService {
             }
         }
         order.setInventoryDeducted(false);
+    }
+
+    private Inventory findInventoryForItem(OrderItem item) {
+        if (item.getInventoryId() != null) {
+            Inventory inventory = inventoryRepository.findById(item.getInventoryId()).orElse(null);
+            if (inventory != null) {
+                return inventory;
+            }
+        }
+        return findInventoryByRetailLabel(item.getProductName());
     }
 
     private Inventory findInventoryByRetailLabel(String retailLabel) {

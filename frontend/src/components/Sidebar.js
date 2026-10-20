@@ -78,6 +78,13 @@ const MenuIcon = ({ name }) => {
           <path d="M10 12h4" />
         </svg>
       );
+    case 'returns':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 14 4 9l5-5" />
+          <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+        </svg>
+      );
     default:
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -96,6 +103,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { path: '/inventory', label: 'Inventory', icon: 'inventory', permission: 'INVENTORY' },
     { path: '/orders', label: 'Inventory Orders', icon: 'orders', permission: 'INVENTORY_ORDERS' },
     { path: '/customized-orders', label: 'Customized Orders', icon: 'customized', permission: 'CUSTOMIZED_ORDERS' },
+    {
+      path: '/returns',
+      label: 'Returned Orders',
+      icon: 'returns',
+      permissions: ['INVENTORY_ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY'],
+    },
     { path: '/clients', label: 'Clients', icon: 'clients', permission: 'CLIENTS' },
     { path: '/attendance', label: 'Attendance', icon: 'attendance', permission: 'ATTENDANCE' },
   ];
@@ -111,6 +124,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     return hasPermission(user?.permissions, permission);
   };
 
+  const canAccessItem = (item) => {
+    if (item.permissions && item.permissions.length > 0) {
+      return item.permissions.some((permission) => canAccess(permission));
+    }
+    return canAccess(item.permission);
+  };
+
   const handleNavItemClick = () => {
     if (window.matchMedia('(max-width: 768px)').matches) {
       toggleSidebar();
@@ -124,7 +144,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <ul>
             {menuItems.map(
               (item) =>
-                canAccess(item.permission) && (
+                canAccessItem(item) && (
                   <li key={item.path}>
                     <Link
                       to={item.path}
@@ -142,13 +162,13 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </ul>
         </div>
 
-        {managementItems.some((item) => canAccess(item.permission)) && (
+        {managementItems.some((item) => canAccessItem(item)) && (
           <div className="menu-section admin-section">
             <h3 className="section-title">MANAGEMENT</h3>
             <ul>
               {managementItems.map(
                 (item) =>
-                  canAccess(item.permission) && (
+                  canAccessItem(item) && (
                     <li key={item.path}>
                       <Link
                         to={item.path}

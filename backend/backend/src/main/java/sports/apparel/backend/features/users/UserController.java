@@ -48,6 +48,14 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    @GetMapping("/graphic-artists")
+    @PreAuthorize("hasRole('ADMIN') "
+            + "or hasAnyAuthority('INVENTORY', 'INVENTORY_ORDERS', 'CUSTOMIZED_ORDERS', 'ORDERS') "
+            + "or hasAnyRole('MARKETING', 'PRODUCTION', 'SEWING', 'SALES', 'GRAPHIC_ARTISTS')")
+    public ResponseEntity<java.util.List<EmployeeOptionDTO>> getGraphicArtists() {
+        return ResponseEntity.ok(userService.getGraphicArtists());
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {

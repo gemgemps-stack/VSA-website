@@ -42,6 +42,7 @@ public class OrderDTO {
         private String jerseyType;
         private BigDecimal unitPrice;
         private Integer quantity;
+        private UUID inventoryId;
 
         public ItemDTO(OrderItem item) {
             this.id = item.getId();
@@ -51,6 +52,7 @@ public class OrderDTO {
             this.jerseyType = item.getJerseyType();
             this.unitPrice = item.getUnitPrice();
             this.quantity = item.getQuantity();
+            this.inventoryId = item.getInventoryId();
         }
     }
     private BigDecimal downPayment;
@@ -63,6 +65,10 @@ private LocalDate orderDate;
     private String status;
     private Boolean inventoryDeducted;
     private LocalDateTime createdAt;
+    private BigDecimal itemsTotal;
+    private BigDecimal afterDiscountTotal;
+    private BigDecimal remainingBalance;
+
 
     public OrderDTO(Order order) {
         this.id = order.getId();
@@ -97,5 +103,29 @@ this.orderDate = order.getOrderDate();
         this.status = order.getStatus();
         this.inventoryDeducted = order.getInventoryDeducted();
         this.createdAt = order.getCreatedAt();
+
+        BigDecimal lineItemsTotal = BigDecimal.ZERO;
+        if (this.items != null) {
+            lineItemsTotal = this.items.stream()
+                    .map(item -> {
+                        BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+                        BigDecimal itemQuantity = item.getQuantity() != null
+                                ? BigDecimal.valueOf(item.getQuantity())
+                                : BigDecimal.ZERO;
+                        return unitPrice.multiply(itemQuantity);
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        this.itemsTotal = lineItemsTotal;
+
+        BigDecimal discountPercent = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+        BigDecimal afterDiscountTotal = lineItemsTotal
+                .multiply(BigDecimal.valueOf(100).subtract(discountPercent))
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        this.afterDiscountTotal = afterDiscountTotal;
+
+        BigDecimal paidAmount = order.getDownPayment() != null ? order.getDownPayment() : BigDecimal.ZERO;
+        this.remainingBalance = afterDiscountTotal.subtract(paidAmount).max(BigDecimal.ZERO);
     }
+
 }

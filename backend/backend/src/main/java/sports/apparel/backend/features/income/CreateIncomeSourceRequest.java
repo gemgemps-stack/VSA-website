@@ -31,6 +31,8 @@ public class CreateIncomeSourceRequest {
 
     private String clientName;
 
+    private String teamName;
+
     private String jobOrderNo;
 
     @NotNull(message = "Amount is required")

@@ -25,9 +25,9 @@ Verdida Sports Apparel (VSA): retail ERP. React 19/CRA frontend + Spring Boot 4.
 - Prod URLs: API `https://vsa-backend.onrender.com` (`.env.production`); web `https://verdidasportsapparel.vercel.app` (prod `CORS_ORIGINS` default).
 - Auth: JWT 24 h; httpOnly cookie `VSA_AUTH` or `Authorization: Bearer`; CSRF cookie `XSRF-TOKEN` → header `X-XSRF-TOKEN`; stateless; 5 failed logins → 15-min lock.
 - Authorization: `@PreAuthorize` per endpoint (`hasRole('ADMIN')` / `hasAuthority('<PAGE_NAME>')`). Authorities = ROLE_ + permissions.
-- Roles enum: ADMIN, EMPLOYEE, MARKETING, PRODUCTION, SEWING. Permissions (page_name): INVENTORY_ORDERS, CUSTOMIZED_ORDERS, TEAMS, INVENTORY, CLIENTS, SOURCE_OF_INCOME, ATTENDANCE (+ derived EMPLOYEES=ADMIN).
-- Users: username unique 3–100; ADMIN requires email+password; non-admin email/password nullable (V25) but then can't log in; password min 6; salary > 0.
-- Data: Hibernate `ddl-auto=update` creates schema; Flyway off by default; migrations `V2`–`V33` alter only. All PKs UUID.
+- Roles enum: ADMIN, EMPLOYEE, MARKETING, PRODUCTION, SEWING, GRAPHIC_ARTISTS, SALES, MACHINE_OPERATORS. Permissions (page_name): INVENTORY_ORDERS, CUSTOMIZED_ORDERS, TEAMS, INVENTORY, CLIENTS, SOURCE_OF_INCOME, ATTENDANCE (+ derived EMPLOYEES=ADMIN).
+- Users: username unique 3 (case/whitespace-insensitive); multiple roles per user via `user_roles` join table (primary `role` + `additionalRoles`; authorities = all `ROLE_*`). ADMIN requires email+password; non-admin email/password nullable (V25) but then can't log in; password min 6; salary > 0.
+- Data: Hibernate `ddl-auto=update` creates schema; Flyway off by default; migrations `V2`–`V38` alter only. All PKs UUID.
 - Idempotency: `request_fingerprint` dedup on write endpoints.
 - Env secrets live in Render dashboard: `JWT_SECRET`, `DATABASE_URL`/`SPRING_DATASOURCE_*`, `APP_BOOTSTRAP_ADMIN_*`, `CORS_ORIGINS`, `SPRING_FLYWAY_ENABLED`.
 - Frontend localStorage keys: `verdida:accessToken`, `verdida:currentUser`.

@@ -20,6 +20,8 @@ public class ReturnedItemDTO {
     private String jobOrderNo;
     private String orderType;
     private String clientName;
+    private String teamName;
+    private String orderStatus;
     private String productName;
     private String size;
     private String number;
@@ -37,9 +39,21 @@ public class ReturnedItemDTO {
                 ? returnedItem.getOrder().getJobOrderNo()
                 : (returnedItem.getCustomizedOrder() != null ? returnedItem.getCustomizedOrder().getJobOrderNo() : null);
         this.orderType = returnedItem.getOrder() != null ? "RETAIL" : "CUSTOMIZED";
-        this.clientName = returnedItem.getOrder() != null
-                ? returnedItem.getOrder().getClientName()
-                : (returnedItem.getCustomizedOrder() != null ? returnedItem.getCustomizedOrder().getClientName() : null);
+        if (returnedItem.getOrder() != null) {
+            sports.apparel.backend.entity.Order order = returnedItem.getOrder();
+            this.clientName = order.getClient() != null && order.getClient().getClientName() != null
+                    ? order.getClient().getClientName()
+                    : order.getClientName();
+            this.teamName = order.getTeamName();
+            this.orderStatus = order.getStatus();
+        } else if (returnedItem.getCustomizedOrder() != null) {
+            sports.apparel.backend.entity.CustomizedOrder customizedOrder = returnedItem.getCustomizedOrder();
+            this.clientName = customizedOrder.getClient() != null && customizedOrder.getClient().getClientName() != null
+                    ? customizedOrder.getClient().getClientName()
+                    : customizedOrder.getClientName();
+            this.teamName = customizedOrder.getTeamName();
+            this.orderStatus = customizedOrder.getStatus();
+        }
         this.productName = returnedItem.getProductName();
         this.size = returnedItem.getSize();
         this.number = returnedItem.getNumber();

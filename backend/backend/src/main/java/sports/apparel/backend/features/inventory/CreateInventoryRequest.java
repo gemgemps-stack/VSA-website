@@ -22,6 +22,8 @@ public class CreateInventoryRequest {
 
     private String shop;
 
+    private String graphicArtist;
+
     private String size;
 
     private String number;

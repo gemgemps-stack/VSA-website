@@ -49,6 +49,9 @@ public class IncomeSource {
     @Column(name = "client_name", length = 100)
     private String clientName;
 
+    @Column(name = "team_name", length = 255)
+    private String teamName;
+
     @Column(name = "job_order_no", length = 50)
     private String jobOrderNo;
 

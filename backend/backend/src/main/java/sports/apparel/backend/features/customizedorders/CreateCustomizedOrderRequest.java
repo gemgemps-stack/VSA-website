@@ -42,6 +42,8 @@ public class CreateCustomizedOrderRequest {
         @NotNull(message = "Quantity is required")
         @Min(value = 1, message = "Quantity must be at least 1")
         private Integer quantity;
+
+        private UUID inventoryId;
     }
 
     private String freebie;
@@ -54,6 +56,8 @@ public class CreateCustomizedOrderRequest {
 
     @NotBlank(message = "Shop is required")
     private String shop;
+
+    private String graphicArtist;
 
     @NotNull(message = "Order date is required")
     private LocalDate orderDate;

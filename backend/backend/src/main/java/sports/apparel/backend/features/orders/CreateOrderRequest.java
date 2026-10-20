@@ -33,6 +33,7 @@ public class CreateOrderRequest {
         private String jerseyType;
         private BigDecimal unitPrice;
         private Integer quantity;
+        private UUID inventoryId;
     }
 
     private String orderRetail;

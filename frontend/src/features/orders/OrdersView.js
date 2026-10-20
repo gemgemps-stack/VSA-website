@@ -177,6 +177,7 @@ const Orders = () => {
   const [retailSearchIndex, setRetailSearchIndex] = useState(null);
   const [retailSearchText, setRetailSearchText] = useState('');
   const [retailSuggestionsOpen, setRetailSuggestionsOpen] = useState(false);
+  const [retailSearchResults, setRetailSearchResults] = useState([]);
   const [returnedItems, setReturnedItems] = useState([]);
   const [returnedItemForm, setReturnedItemForm] = useState(createReturnedItemForm());
   const [returnQuantities, setReturnQuantities] = useState({});
@@ -193,12 +194,22 @@ const Orders = () => {
     }
   }, []);
 
-  const loadInventory = useCallback(async () => {
+  const searchInventory = useCallback(async (query, shop) => {
     try {
-      const response = await inventoryService.getAllInventory(0, 1000);
-      setInventoryItems(cleanArray(response.data.content));
+      const response = await inventoryService.getAllInventory(0, 25, {
+        search: query?.trim() || undefined,
+        shop: shop?.trim() || undefined,
+        sort: 'createdAt,desc',
+      });
+      const results = cleanArray(response.data.content);
+      setRetailSearchResults(results);
+      setInventoryItems((prev) => {
+        const byId = new Map(prev.map((item) => [item.id, item]));
+        results.forEach((item) => byId.set(item.id, item));
+        return Array.from(byId.values());
+      });
     } catch (error) {
-      console.error('Error loading inventory:', error);
+      console.error('Error searching inventory:', error);
     }
   }, []);
 
@@ -233,10 +244,16 @@ const Orders = () => {
 
   useEffect(() => {
     loadClients();
-    loadInventory();
     loadOrders();
     loadIncomeEntries();
-  }, [loadClients, loadInventory, loadOrders, loadIncomeEntries]);
+  }, [loadClients, loadOrders, loadIncomeEntries]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      searchInventory(retailSearchText, formData.shop);
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [retailSearchText, formData.shop, searchInventory]);
 
   const getRecordedPaidAmount = useCallback((jobOrderNo, fallbackDownPayment = 0) => {
     const recordedAmount = incomeEntries
@@ -328,7 +345,7 @@ const Orders = () => {
     String(client.clientName ?? '').toLowerCase().includes(clientSearch.trim().toLowerCase())
   );
 
-  const filteredInventory = inventoryItems.filter((item) => {
+  const filteredInventory = retailSearchResults.filter((item) => {
     const label = getInventoryLabel(item);
     
     // Check if already selected
@@ -385,6 +402,9 @@ const Orders = () => {
       }
 
       newItems[index] = { ...newItems[index], [field]: finalValue };
+      if (field === 'productName') {
+        newItems[index] = { ...newItems[index], inventoryId: null };
+      }
       return { ...prev, items: newItems };
     });
   };
@@ -396,6 +416,7 @@ const Orders = () => {
       newItems[index] = {
         ...newItems[index],
         productName: label,
+        inventoryId: item.id || null,
         size: item.size || '',
         number: item.number || '',
         jerseyType: item.jerseyType || '',
@@ -499,6 +520,16 @@ const Orders = () => {
   };
 
   useEffect(() => {
+    const requestedFilter = location.state?.statusFilter;
+    if (!requestedFilter) {
+      return;
+    }
+    setStatusFilter((current) =>
+      ORDER_FILTERS.some((filter) => filter.key === requestedFilter) ? requestedFilter : current
+    );
+  }, [location.state]);
+
+  useEffect(() => {
     const targetJobOrderNo = location.state?.jobOrderNo;
     const shouldOpenDetails = location.state?.openDetails !== false;
     if (!targetJobOrderNo || !shouldOpenDetails || openedCreditJobOrderRef.current === targetJobOrderNo) {
@@ -563,6 +594,7 @@ const Orders = () => {
         jerseyType: item.jerseyType || '',
         unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
         quantity: item.quantity != null ? String(item.quantity) : '',
+        inventoryId: item.inventoryId || null,
       })),
       freebie: order.freebie || '',
       discount: order.discount != null ? String(order.discount) : '0',
@@ -682,6 +714,7 @@ const Orders = () => {
           jerseyType: item.jerseyType?.trim() || null,
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
+          inventoryId: item.inventoryId || null,
         })),
         discount: discount,
         downPayment: downPaymentAmount,
@@ -752,8 +785,8 @@ const Orders = () => {
       return;
     }
     try {
-      for (const entry of entriesToAdd) {
-        await returnedItemService.createReturnedItem({
+      await returnedItemService.createReturnedItemsBulk(
+        entriesToAdd.map((entry) => ({
           orderId: selectedOrder.id,
           productName: entry.productName.trim(),
           size: entry.size,
@@ -762,8 +795,8 @@ const Orders = () => {
           quantity: entry.quantity,
           reason: returnedItemForm.reason.trim() || null,
           returnDate: returnedItemForm.returnDate || null,
-        });
-      }
+        }))
+      );
       setReturnedItemForm(createReturnedItemForm());
       await loadReturnedItems(selectedOrder.id);
       alert(`Returned ${entriesToAdd.length} item(s) and updated inventory.`);

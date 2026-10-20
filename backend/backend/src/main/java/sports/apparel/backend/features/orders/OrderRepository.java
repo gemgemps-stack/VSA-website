@@ -18,6 +18,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     List<Order> findByClientId(UUID clientId);
 
+    List<Order> findByClientName(String clientName);
+
     List<Order> findByOrderDateBetween(LocalDate startDate, LocalDate endDate);
 
     List<Order> findByStatus(String status);

@@ -71,6 +71,17 @@ const escapeXml = (value) => String(value ?? '')
   const [creditSearchQuery, setCreditSearchQuery] = useState('');
   const [performanceReportOpen, setPerformanceReportOpen] = useState(false);
   const [performanceReportPeriod, setPerformanceReportPeriod] = useState('MONTHLY');
+  const [correctionTarget, setCorrectionTarget] = useState(null);
+  const [correctionForm, setCorrectionForm] = useState({
+    amount: '',
+    incomeDate: '',
+    paymentMethod: '',
+    referenceNumber: '',
+    checkNumber: '',
+    paymentCategory: '',
+    remarks: '',
+  });
+  const [correctionSaving, setCorrectionSaving] = useState(false);
   const [liquidationModalOpen, setLiquidationModalOpen] = useState(false);
   const [liquidationAmount, setLiquidationAmount] = useState('');
   const [liquidationReason, setLiquidationReason] = useState('');
@@ -141,6 +152,26 @@ const escapeXml = (value) => String(value ?? '')
 
   const canAccessIncome = hasPermission(user?.permissions, 'SOURCE_OF_INCOME');
   const canAccessPayment = hasPermission(user?.permissions, 'PAYMENT_METHODS');
+  const isAdmin = String(user?.role || '').toUpperCase() === 'ADMIN';
+
+  const openCorrection = useCallback((entry) => {
+    if (!entry) return;
+    setCorrectionTarget(entry);
+    setCorrectionForm({
+      amount: entry.amount != null ? String(entry.amount) : '',
+      incomeDate: entry.incomeDate || entry.createdAt?.slice?.(0, 10) || '',
+      paymentMethod: entry.paymentMethod || '',
+      referenceNumber: entry.referenceNumber || '',
+      checkNumber: entry.checkNumber || '',
+      paymentCategory: entry.paymentCategory || '',
+      remarks: entry.remarks || '',
+    });
+  }, []);
+
+  const closeCorrection = () => {
+    setCorrectionTarget(null);
+    setCorrectionSaving(false);
+  };
 
   const loadPaymentMethods = useCallback(async () => {
     const stored = window.localStorage.getItem('paymentMethods');
@@ -183,13 +214,47 @@ const escapeXml = (value) => String(value ?? '')
     const customizedOrders = (customizedResponse.data.content || [])
       .filter((order) => !isCancelledOrder(order));
 
-    setCreditOrders([
+     setCreditOrders([
       ...inventoryOrders.map((order) => ({ ...order, sourceType: 'Inventory Order' })),
       ...customizedOrders.map((order) => ({ ...order, sourceType: 'Customized Order' })),
     ]);
   }, []);
 
+  const handleCorrectionSubmit = useCallback(async () => {
+    if (!correctionTarget) return;
+
+    const parsedAmount = Number.parseFloat(correctionForm.amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      notifyError('Corrected amount must be greater than zero.');
+      return;
+    }
+
+    try {
+      setCorrectionSaving(true);
+      await incomeService.correctPayment(correctionTarget.id, {
+        amount: parsedAmount,
+        incomeDate: correctionForm.incomeDate || null,
+        paymentMethod: correctionForm.paymentMethod,
+        referenceNumber: correctionForm.referenceNumber,
+        checkNumber: correctionForm.checkNumber,
+        paymentCategory: correctionForm.paymentCategory,
+        remarks: correctionForm.remarks,
+      });
+      notifySuccess('Payment correction saved.');
+      closeCorrection();
+      await loadIncomeEntries();
+      await loadCreditOrders();
+    } catch (error) {
+      console.error('Error correcting payment:', error);
+      const errorMsg = getApiErrorMessage(error, 'Failed to correct payment');
+      notifyError(errorMsg);
+    } finally {
+      setCorrectionSaving(false);
+    }
+  }, [correctionTarget, correctionForm, notifyError, notifySuccess, loadIncomeEntries, loadCreditOrders]);
+
   useEffect(() => {
+
     const loadData = async () => {
       try {
         setLoading(true);
@@ -925,6 +990,7 @@ const itemMarkup = data.order?.items?.length > 0
 
             <section class="receipt-customer-row">
               <div><span class="receipt-label">Received from</span><strong>${escapeXml(clientName)}</strong></div>
+              <div><span class="receipt-label">Team</span><strong>${escapeXml(data.entry?.teamName || data.order?.teamName || 'N/A')}</strong></div>
               <div><span class="receipt-label">Source</span><strong>${escapeXml(shopName)} <span aria-hidden="true">/</span> ${escapeXml(sourceName)}</strong></div>
             </section>
 
@@ -1204,8 +1270,10 @@ const itemMarkup = data.order?.items?.length > 0
 
           <section className="receipt-customer-row">
             <div><span className="receipt-label">Received from</span><strong>{clientName}</strong></div>
+            <div><span className="receipt-label">Team</span><strong>{data.entry?.teamName || data.order?.teamName || 'N/A'}</strong></div>
             <div><span className="receipt-label">Source</span><strong>{shopName} <span aria-hidden="true">/</span> {sourceName}</strong></div>
           </section>
+
 
           <section className="receipt-items">
             <div className="receipt-section-heading"><span>Item description</span><span>Amount</span></div>
@@ -1320,6 +1388,16 @@ const itemMarkup = data.order?.items?.length > 0
                           View Order
                         </button>
                       )}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="income-details-btn"
+                          onClick={() => openCorrection(entry)}
+                          style={{ padding: '8px 14px', fontSize: '12px' }}
+                        >
+                          Edit Payment
+                        </button>
+                      )}
                     </div>
                   </div>
                   <strong>
@@ -1382,6 +1460,7 @@ const itemMarkup = data.order?.items?.length > 0
                     </div>
                     <span className="transaction-client-id">{order.sourceType}</span>
                     <span className="transaction-client-id">{order.clientName || 'Walk-in Client'}</span>
+                    <span className="transaction-client-id">{`Team: ${order.teamName || 'N/A'}`}</span>
                     <div className="finance-entry-subtext">
                       {order.shop || 'Unknown shop'} - {order.orderDate || 'No date'}
                     </div>
@@ -1475,6 +1554,12 @@ const itemMarkup = data.order?.items?.length > 0
                     <span className="transaction-client-id">
                       {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
                     </span>
+                    <span className="transaction-client-id">
+                      {`Client: ${entry.clientName || 'Walk-in Client'}`}
+                    </span>
+                    <span className="transaction-client-id">
+                      {`Team: ${entry.teamName || 'N/A'}`}
+                    </span>
                     <div className="finance-entry-subtext">
                       {entry.shopType || 'Unknown source'} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
                     </div>
@@ -1493,6 +1578,15 @@ const itemMarkup = data.order?.items?.length > 0
                           onClick={() => handleViewOrder(entry.jobOrderNo)}
                         >
                           View Order
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="income-details-btn"
+                          onClick={() => openCorrection(entry)}
+                        >
+                          Edit Payment
                         </button>
                       )}
                     </div>
@@ -1552,17 +1646,45 @@ const itemMarkup = data.order?.items?.length > 0
                   <span className="transaction-client-id">
                     {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
                   </span>
+                  <span className="transaction-client-id">
+                    {`Client: ${entry.clientName || 'Walk-in Client'}`}
+                  </span>
+                  <span className="transaction-client-id">
+                    {`Team: ${entry.teamName || 'N/A'}`}
+                  </span>
                   <div className="finance-entry-subtext">
                     {entry.shopType || 'Unknown source'} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
                   </div>
-                  <button
-                    type="button"
-                    className="income-details-btn"
-                    onClick={() => openReceipt(entry)}
-                    style={{ marginTop: '12px', padding: '8px 14px', fontSize: '12px' }}
-                  >
-                    View Receipt
-                  </button>
+                  <div className="finance-entry-actions">
+                    <button
+                      type="button"
+                      className="income-details-btn"
+                      onClick={() => openReceipt(entry)}
+                      style={{ padding: '8px 14px', fontSize: '12px' }}
+                    >
+                      View Receipt
+                    </button>
+                    {entry.jobOrderNo && (
+                      <button
+                        type="button"
+                        className="income-details-btn"
+                        onClick={() => handleViewOrder(entry.jobOrderNo)}
+                        style={{ padding: '8px 14px', fontSize: '12px' }}
+                      >
+                        View Order
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        className="income-details-btn"
+                        onClick={() => openCorrection(entry)}
+                        style={{ padding: '8px 14px', fontSize: '12px' }}
+                      >
+                        Edit Payment
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <strong>
                   PHP {getIncomeAmount(entry).toFixed(2)}
@@ -2045,6 +2167,12 @@ const itemMarkup = data.order?.items?.length > 0
                             <span className="transaction-client-id">
                               {entry.jobOrderNo ? `Job Order No.: ${entry.jobOrderNo}` : 'Job Order No.: Not available'}
                             </span>
+                            <span className="transaction-client-id">
+                              {`Client: ${entry.clientName || 'Walk-in Client'}`}
+                            </span>
+                            <span className="transaction-client-id">
+                              {`Team: ${entry.teamName || 'N/A'}`}
+                            </span>
                             <div className="finance-entry-subtext">
                               {entry.shopType || 'Unknown source'} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
                             </div>
@@ -2063,6 +2191,15 @@ const itemMarkup = data.order?.items?.length > 0
                                   onClick={() => handleViewOrder(entry.jobOrderNo)}
                                 >
                                   View Order
+                                </button>
+                              )}
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  className="income-details-btn"
+                                  onClick={() => openCorrection(entry)}
+                                >
+                                  Edit Payment
                                 </button>
                               )}
                             </div>
@@ -2258,6 +2395,9 @@ const itemMarkup = data.order?.items?.length > 0
                       <div className="finance-entry-subtext">
                         {entry.paymentMethod} - {entry.incomeDate || entry.createdAt?.slice?.(0, 10) || 'No date'}
                       </div>
+                      <span className="transaction-client-id">
+                        {`Team: ${entry.teamName || 'N/A'}`}
+                      </span>
                       <div className="finance-entry-actions">
                         <button
                           type="button"
@@ -2275,6 +2415,15 @@ const itemMarkup = data.order?.items?.length > 0
                             View Order
                           </button>
                         )}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            className="income-details-btn"
+                            onClick={() => openCorrection(entry)}
+                          >
+                            Edit Payment
+                          </button>
+                        )}
                       </div>
                     </div>
                     <strong>
@@ -2285,6 +2434,93 @@ const itemMarkup = data.order?.items?.length > 0
               ) : (
                 <p className="income-details-empty">No payment history found. Initial down payment might not be recorded as a separate income entry.</p>
               )}
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          isOpen={!!correctionTarget}
+          onClose={closeCorrection}
+          title="Correct Payment"
+          onSubmit={handleCorrectionSubmit}
+          submitText={correctionSaving ? 'Saving...' : 'Save Correction'}
+          loading={correctionSaving}
+          size="finance"
+        >
+          <div className="form-card" style={{ padding: 0, boxShadow: 'none', border: 'none', background: 'transparent', maxWidth: 'none' }}>
+            <p style={{ margin: '0 0 12px', color: '#555', fontSize: '0.9rem' }}>
+              This corrects the recorded payment for{' '}
+              <strong>{correctionTarget?.jobOrderNo || correctionTarget?.referenceNumber || 'this transaction'}</strong>.
+              Original amount: <strong>{formatMoney(correctionTarget?.amount)}</strong>.
+            </p>
+            <div className="employee-modal-grid">
+              <div className="form-group">
+                <label>Corrected Amount *</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={correctionForm.amount}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, amount: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Payment Date</label>
+                <input
+                  type="date"
+                  value={correctionForm.incomeDate}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, incomeDate: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Payment Method</label>
+                <select
+                  value={correctionForm.paymentMethod}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, paymentMethod: e.target.value })}
+                >
+                  <option value="">Select method</option>
+                  {PAYMENT_METHODS.map((method) => (
+                    <option key={method} value={method}>{method}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Payment Category</label>
+                <select
+                  value={correctionForm.paymentCategory}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, paymentCategory: e.target.value })}
+                >
+                  <option value="">Select category</option>
+                  {['DOWN_PAYMENT', 'FULL_PAYMENT', 'PAYMENT_UPDATE'].map((category) => (
+                    <option key={category} value={category}>{category.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Reference Number</label>
+                <input
+                  type="text"
+                  value={correctionForm.referenceNumber}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, referenceNumber: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Check Number</label>
+                <input
+                  type="text"
+                  value={correctionForm.checkNumber}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, checkNumber: e.target.value })}
+                />
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label>Remarks</label>
+                <textarea
+                  rows="3"
+                  value={correctionForm.remarks}
+                  onChange={(e) => setCorrectionForm({ ...correctionForm, remarks: e.target.value })}
+                />
+              </div>
             </div>
           </div>
         </Modal>

@@ -3,11 +3,13 @@ package sports.apparel.backend.features.returneditems;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +29,12 @@ public class ReturnedItemController {
         return ResponseEntity.status(HttpStatus.CREATED).body(returnedItemService.createReturnedItem(request));
     }
 
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
+    public ResponseEntity<List<ReturnedItemDTO>> createReturnedItemsBulk(@RequestBody List<CreateReturnedItemRequest> requests) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(returnedItemService.createReturnedItemsBulk(requests));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
     public ResponseEntity<ReturnedItemDTO> getReturnedItemById(@PathVariable UUID id) {
@@ -35,8 +43,14 @@ public class ReturnedItemController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
-    public ResponseEntity<Page<ReturnedItemDTO>> getAllReturnedItems(Pageable pageable) {
-        return ResponseEntity.ok(returnedItemService.getAllReturnedItems(pageable));
+    public ResponseEntity<Page<ReturnedItemDTO>> getAllReturnedItems(
+            Pageable pageable,
+            @RequestParam(required = false) String orderType,
+            @RequestParam(required = false) String clientName,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo) {
+        return ResponseEntity.ok(returnedItemService.searchReturnedItems(orderType, clientName, status, dateFrom, dateTo, pageable));
     }
 
     @GetMapping("/by-order/{orderId}")

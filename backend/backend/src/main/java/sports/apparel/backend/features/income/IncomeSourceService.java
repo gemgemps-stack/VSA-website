@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 import sports.apparel.backend.entity.Client;
 import sports.apparel.backend.entity.IncomeSource;
 import sports.apparel.backend.features.clients.ClientRepository;
+import sports.apparel.backend.features.customizedorders.CustomizedOrderRepository;
+import sports.apparel.backend.features.orders.OrderRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,10 +25,31 @@ public class IncomeSourceService {
 
     private final IncomeSourceRepository incomeSourceRepository;
     private final ClientRepository clientRepository;
+    private final OrderRepository orderRepository;
+    private final CustomizedOrderRepository customizedOrderRepository;
 
-    public IncomeSourceService(IncomeSourceRepository incomeSourceRepository, ClientRepository clientRepository) {
+    public IncomeSourceService(IncomeSourceRepository incomeSourceRepository, ClientRepository clientRepository,
+                               OrderRepository orderRepository, CustomizedOrderRepository customizedOrderRepository) {
         this.incomeSourceRepository = incomeSourceRepository;
         this.clientRepository = clientRepository;
+        this.orderRepository = orderRepository;
+        this.customizedOrderRepository = customizedOrderRepository;
+    }
+
+    private String resolveTeamName(String jobOrderNo, String fallbackTeamName) {
+        if (fallbackTeamName != null && !fallbackTeamName.isBlank()) {
+            return fallbackTeamName.trim();
+        }
+        if (jobOrderNo == null || jobOrderNo.isBlank()) {
+            return null;
+        }
+        return orderRepository.findByJobOrderNo(jobOrderNo)
+                .map(order -> order.getTeamName())
+                .filter(teamName -> teamName != null && !teamName.isBlank())
+                .or(() -> customizedOrderRepository.findByJobOrderNo(jobOrderNo)
+                        .map(order -> order.getTeamName())
+                        .filter(teamName -> teamName != null && !teamName.isBlank()))
+                .orElse(null);
     }
 
     public IncomeSourceDTO createIncomeSource(CreateIncomeSourceRequest request) {
@@ -40,6 +63,7 @@ public class IncomeSourceService {
         incomeSource.setCheckNumber(request.getCheckNumber());
         incomeSource.setPaymentCategory(request.getPaymentCategory());
         incomeSource.setRemarks(request.getRemarks());
+        incomeSource.setTeamName(resolveTeamName(request.getJobOrderNo(), request.getTeamName()));
 
         // Set client relationship
         if (request.getClientId() != null) {
@@ -155,6 +179,7 @@ public class IncomeSourceService {
         existingPayment.setCheckNumber(request.getCheckNumber());
         existingPayment.setPaymentCategory(request.getPaymentCategory());
         existingPayment.setRemarks(request.getRemarks());
+        existingPayment.setTeamName(resolveTeamName(request.getJobOrderNo(), request.getTeamName()));
 
         if (request.getClientId() != null) {
             Optional<Client> client = clientRepository.findById(request.getClientId());
@@ -234,6 +259,10 @@ public class IncomeSourceService {
         incomeSource.setReferenceNumber(request.getReferenceNumber());
         incomeSource.setCheckNumber(request.getCheckNumber());
         incomeSource.setRemarks(request.getRemarks());
+        incomeSource.setTeamName(resolveTeamName(request.getJobOrderNo(), request.getTeamName()));
+        if (request.getPaymentCategory() != null) {
+            incomeSource.setPaymentCategory(request.getPaymentCategory());
+        }
 
         // Update client relationship
         if (request.getClientId() != null) {
@@ -268,5 +297,76 @@ public class IncomeSourceService {
         IncomeSource incomeSource = incomeSourceRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Income source not found"));
         incomeSourceRepository.delete(incomeSource);
+    }
+
+    public IncomeSourceDTO correctPayment(UUID id, PaymentCorrectionRequest request) {
+        IncomeSource incomeSource = incomeSourceRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Income source not found"));
+
+        BigDecimal correctedAmount = request.getAmount();
+        if (correctedAmount == null || correctedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Corrected amount must be greater than zero");
+        }
+
+        incomeSource.setAmount(correctedAmount);
+        if (request.getIncomeDate() != null) {
+            incomeSource.setIncomeDate(request.getIncomeDate());
+        }
+        if (request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank()) {
+            incomeSource.setPaymentMethod(request.getPaymentMethod());
+        }
+        if (request.getPaymentCategory() != null && !request.getPaymentCategory().isBlank()) {
+            incomeSource.setPaymentCategory(request.getPaymentCategory());
+        }
+        incomeSource.setReferenceNumber(request.getReferenceNumber());
+        incomeSource.setCheckNumber(request.getCheckNumber());
+        incomeSource.setRemarks(request.getRemarks());
+
+        IncomeSource savedIncomeSource = incomeSourceRepository.save(incomeSource);
+        recalculateLinkedOrderPaymentStatus(savedIncomeSource.getJobOrderNo());
+        return new IncomeSourceDTO(savedIncomeSource);
+    }
+
+    private void recalculateLinkedOrderPaymentStatus(String jobOrderNo) {
+        if (jobOrderNo == null || jobOrderNo.isBlank()) {
+            return;
+        }
+
+        BigDecimal totalPaid = getTotalIncomeByJobOrderNo(jobOrderNo);
+
+        Optional<sports.apparel.backend.entity.Order> inventoryOrder = orderRepository.findByJobOrderNo(jobOrderNo);
+        if (inventoryOrder.isPresent()) {
+            sports.apparel.backend.entity.Order order = inventoryOrder.get();
+            BigDecimal totalDue = calculateOrderTotalDue(order);
+            if (totalDue.compareTo(BigDecimal.ZERO) > 0) {
+                order.setStatus(totalPaid.compareTo(totalDue) >= 0 ? "FULLY_PAID" : "NOT_YET_FULLY_PAID");
+                orderRepository.save(order);
+            }
+            return;
+        }
+
+        Optional<sports.apparel.backend.entity.CustomizedOrder> customizedOrder = customizedOrderRepository.findByJobOrderNo(jobOrderNo);
+        if (customizedOrder.isPresent()) {
+            sports.apparel.backend.entity.CustomizedOrder order = customizedOrder.get();
+            BigDecimal totalDue = calculateCustomizedOrderTotalDue(order);
+            if (totalDue.compareTo(BigDecimal.ZERO) > 0) {
+                order.setStatus(totalPaid.compareTo(totalDue) >= 0 ? "FULLY_PAID" : "NOT_YET_FULLY_PAID");
+                customizedOrderRepository.save(order);
+            }
+        }
+    }
+
+    private BigDecimal calculateOrderTotalDue(sports.apparel.backend.entity.Order order) {
+        BigDecimal total = order.getPrice() != null ? order.getPrice() : BigDecimal.ZERO;
+        BigDecimal discountPercent = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+        return total.multiply(BigDecimal.ONE.subtract(
+                discountPercent.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)));
+    }
+
+    private BigDecimal calculateCustomizedOrderTotalDue(sports.apparel.backend.entity.CustomizedOrder order) {
+        BigDecimal total = order.getPrice() != null ? order.getPrice() : BigDecimal.ZERO;
+        BigDecimal discountPercent = order.getDiscount() != null ? order.getDiscount() : BigDecimal.ZERO;
+        return total.multiply(BigDecimal.ONE.subtract(
+                discountPercent.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)));
     }
 }

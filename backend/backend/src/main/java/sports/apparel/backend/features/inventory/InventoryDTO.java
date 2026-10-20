@@ -19,6 +19,7 @@ public class InventoryDTO {
     private String jerseyType;
     private String name;
     private String shop;
+    private String graphicArtist;
     private String size;
     private String number;
     private String notes;
@@ -32,6 +33,7 @@ public class InventoryDTO {
         this.jerseyType = inventory.getJerseyType();
         this.name = inventory.getName();
         this.shop = inventory.getShop();
+        this.graphicArtist = inventory.getGraphicArtist();
         this.size = inventory.getSize();
         this.number = inventory.getNumber();
         this.notes = inventory.getNotes();

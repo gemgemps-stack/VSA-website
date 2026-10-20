@@ -6,6 +6,8 @@ const userService = {
   getAllUsers: (page = 0, size = 10) => 
     api.get('/api/users', { params: { page, size } }),
 
+  getGraphicArtists: () => api.get('/api/users/graphic-artists'),
+
   getUserById: (id) => api.get(`/api/users/${id}`),
 
   getUserByUsername: (username) => api.get(`/api/users/username/${username}`),

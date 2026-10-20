@@ -35,6 +35,9 @@ public class OrderItem {
     @Column(length = 50)
     private String jerseyType;
 
+    @Column(name = "inventory_id")
+    private UUID inventoryId;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 

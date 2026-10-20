@@ -38,9 +38,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private Collection<? extends GrantedAuthority> getAuthorities(User user) {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        
-        // Add role authority
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+
+        // Add all role authorities (primary + additional teams)
+        user.getAllRoles().forEach(role ->
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()))
+        );
 
         // Add page permissions as authorities
         if (user.getPermissions() != null) {

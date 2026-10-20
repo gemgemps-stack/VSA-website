@@ -18,6 +18,8 @@ public interface CustomizedOrderRepository extends JpaRepository<CustomizedOrder
 
     List<CustomizedOrder> findByClientId(UUID clientId);
 
+    List<CustomizedOrder> findByClientName(String clientName);
+
     List<CustomizedOrder> findByOrderDateBetween(LocalDate startDate, LocalDate endDate);
 
     List<CustomizedOrder> findByStatus(String status);
