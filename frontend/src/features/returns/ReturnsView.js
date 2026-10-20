@@ -53,13 +53,6 @@ const buildOrderKey = (record) => {
   return `${record.orderType || 'UNKNOWN'}:${orderId}`;
 };
 
-const formatItemLabel = (item) => {
-  const base = item.productName || '-';
-  const size = item.size ? ` (${item.size})` : '';
-  const number = item.number ? ` #${item.number}` : '';
-  return `${base}${size}${number}`;
-};
-
 const groupRecordsByOrder = (records) => {
   const groups = new Map();
   records.forEach((record) => {
@@ -259,20 +252,7 @@ const Returns = () => {
                 onChange={(e) => updateFilter('dateFrom', e.target.value)}
                 aria-label="Return recorded from"
               />
-              <SearchField
-                type="date"
-                value={filters.dateTo}
-                onChange={(e) => updateFilter('dateTo', e.target.value)}
-                aria-label="Return recorded until"
-              />
             </div>
-            <button
-              type="button"
-              className={`low-stock-toggle${Object.values(filters).some(Boolean) ? ' is-active' : ''}`}
-              onClick={() => setFilters(createInitialFilters())}
-            >
-              {Object.values(filters).some(Boolean) ? 'Clear filters' : 'No filters applied'}
-            </button>
           </div>
 
           {error ? (
@@ -325,19 +305,7 @@ const Returns = () => {
                           <td>{group.orderType === 'CUSTOMIZED' ? 'Customized' : 'Inventory'}</td>
                           <td>{group.clientName || '-'}</td>
                           <td>{group.teamName || '-'}</td>
-                          <td>
-                            <ul className="returns-item-list">
-                              {group.items.map((item) => (
-                                <li key={item.id} className="returns-item-line">
-                                  <span className="returns-item-name">{formatItemLabel(item)}</span>
-                                  <span className="returns-item-meta">
-                                    x{item.quantity ?? 0}
-                                    {item.reason ? ` \u00b7 ${item.reason}` : ''}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </td>
+                          <td>{group.items.length} item{group.items.length === 1 ? '' : 's'}</td>
                           <td>{totalQuantity || '-'}</td>
                           <td>{STATUS_LABELS[group.orderStatus] || group.orderStatus || '-'}</td>
                           <td>{formatDate(group.returnDate)}</td>

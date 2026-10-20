@@ -29,32 +29,6 @@
   width: 100%;
 }
 
-.returns-item-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.returns-item-line {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  line-height: 1.35;
-}
-
-.returns-item-name {
-  font-weight: 600;
-  color: #1d2a27;
-}
-
-.returns-item-meta {
-  font-size: 0.82rem;
-  color: #71807a;
-}
-
 @media (max-width: 768px) {
   .returns-filter-bar {
     grid-template-columns: 1fr;
