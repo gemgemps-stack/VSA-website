@@ -232,7 +232,7 @@ const Returns = () => {
                 type="text"
                 value={filters.clientName}
                 onChange={(e) => updateFilter('clientName', e.target.value)}
-                placeholder="   Search client"
+                placeholder="      Search client"
               />
               <select
                 className="returns-filter-select"

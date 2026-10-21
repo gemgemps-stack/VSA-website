@@ -36,13 +36,13 @@ public class ReturnedItemController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('RETURNED_ORDERS', 'INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
     public ResponseEntity<ReturnedItemDTO> getReturnedItemById(@PathVariable UUID id) {
         return ResponseEntity.ok(returnedItemService.getReturnedItemById(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('RETURNED_ORDERS', 'INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
     public ResponseEntity<Page<ReturnedItemDTO>> getAllReturnedItems(
             Pageable pageable,
             @RequestParam(required = false) String orderType,
@@ -54,13 +54,13 @@ public class ReturnedItemController {
     }
 
     @GetMapping("/by-order/{orderId}")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('RETURNED_ORDERS', 'INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
     public ResponseEntity<List<ReturnedItemDTO>> getReturnedItemsByOrderId(@PathVariable UUID orderId) {
         return ResponseEntity.ok(returnedItemService.getReturnedItemsByOrderId(orderId));
     }
 
     @GetMapping("/by-customized-order/{customizedOrderId}")
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('RETURNED_ORDERS', 'INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
     public ResponseEntity<List<ReturnedItemDTO>> getReturnedItemsByCustomizedOrderId(@PathVariable UUID customizedOrderId) {
         return ResponseEntity.ok(returnedItemService.getReturnedItemsByCustomizedOrderId(customizedOrderId));
     }

@@ -3,6 +3,7 @@ import { hasPermission } from '../utils/permissions';
 import { readAccessToken, writeAccessToken } from './authTokenStorage';
 
 const CURRENT_USER_STORAGE_KEY = 'verdida:currentUser';
+const STORED_ACCOUNTS_KEY = 'verdida:accounts';
 let currentUser = null;
 
 const readStoredCurrentUser = () => {
@@ -34,6 +35,66 @@ const writeStoredCurrentUser = (user) => {
   }
 };
 
+const readStoredAccounts = () => {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  try {
+    const serialized = window.localStorage.getItem(STORED_ACCOUNTS_KEY);
+    return serialized ? JSON.parse(serialized) : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+const writeStoredAccounts = (accounts) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (accounts && Object.keys(accounts).length > 0) {
+      window.localStorage.setItem(STORED_ACCOUNTS_KEY, JSON.stringify(accounts));
+    } else {
+      window.localStorage.removeItem(STORED_ACCOUNTS_KEY);
+    }
+  } catch (error) {
+    // Ignore storage failures so auth still works in restricted browsers.
+  }
+};
+
+const addStoredAccount = (email, user, token) => {
+  const accounts = readStoredAccounts();
+  accounts[email] = { email, user, token };
+  writeStoredAccounts(accounts);
+};
+
+const removeStoredAccount = (email) => {
+  const accounts = readStoredAccounts();
+  delete accounts[email];
+  writeStoredAccounts(accounts);
+};
+
+const switchAccount = async (email) => {
+  const accounts = readStoredAccounts();
+  const account = accounts[email];
+
+  if (!account) {
+    throw new Error('Stored account not found.');
+  }
+
+  currentUser = account.user;
+  writeAccessToken(account.token);
+  writeStoredCurrentUser(account.user);
+
+  await authService.refreshCsrfToken().catch((error) => {
+    console.warn('Unable to refresh CSRF token after switching account:', error);
+  });
+
+  return account.user;
+};
+
 currentUser = readStoredCurrentUser();
 
 const authService = {
@@ -47,10 +108,31 @@ const authService = {
     currentUser = response.data.user || null;
     writeAccessToken(response.data.accessToken || null);
     writeStoredCurrentUser(currentUser);
+    addStoredAccount(email, currentUser, response.data.accessToken || null);
     await authService.refreshCsrfToken().catch((error) => {
       console.warn('Unable to refresh CSRF token after login:', error);
     });
     return response.data;
+  },
+
+  getStoredAccounts: () => readStoredAccounts(),
+
+  switchAccount,
+
+  removeStoredAccount,
+
+  logout: async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } catch (error) {
+      // Logout should still succeed locally even if the backend is unreachable.
+      console.warn('Logout request failed, continuing with local sign-out:', error);
+    } finally {
+      currentUser = null;
+      writeAccessToken(null);
+      writeStoredCurrentUser(null);
+      window.dispatchEvent(new Event('auth:logout'));
+    }
   },
 
   logout: async () => {

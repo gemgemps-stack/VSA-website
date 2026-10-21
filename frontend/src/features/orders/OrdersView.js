@@ -1114,7 +1114,7 @@ const Orders = () => {
     financialLabel: { display: 'block', fontSize: '0.8rem', color: '#666', marginBottom: '4px' },
     detailsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' },
     detailRow: { display: 'flex', flexDirection: 'column', gap: '4px' },
-    productRow: { display: 'grid', gridTemplateColumns: '62% 13% 8% 13% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
+    productRow: { display: 'grid', gridTemplateColumns: '57% 15% 9% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' },
     removeBtn: { backgroundColor: '#ff5252', color: 'white', border: 'none', borderRadius: '4px', width: '100%', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     addBtn: { backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '0.85rem', alignSelf: 'flex-start' },
     paymentUpdateCard: {

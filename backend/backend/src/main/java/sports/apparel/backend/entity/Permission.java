@@ -29,6 +29,7 @@ public class Permission {
         ORDERS,
         INVENTORY_ORDERS,
         CUSTOMIZED_ORDERS,
+        RETURNED_ORDERS,
         TEAMS,
         INVENTORY,
         CLIENTS,

@@ -86,11 +86,12 @@ const Inventory = () => {
   const [searchFilters, setSearchFilters] = useState(createInitialSearchFilters());
   const location = useLocation();
   const [lowStockOnly, setLowStockOnly] = useState(() => Boolean(location.state?.lowStockOnly));
-  const [showZeroStock, setShowZeroStock] = useState(false);
+  const [showZeroStock, setShowZeroStock] = useState(() => Boolean(location.state?.lowStockOnly));
 
   useEffect(() => {
     if (location.state?.lowStockOnly) {
       setLowStockOnly(true);
+      setShowZeroStock(true);
     }
   }, [location.state]);
 

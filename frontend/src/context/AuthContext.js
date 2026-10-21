@@ -64,16 +64,34 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const response = await authService.login(email, password);
-    await authService.refreshCsrfToken().catch((error) => {
-      console.warn('Unable to refresh CSRF token after login:', error);
-    });
-    authSequenceRef.current += 1;
-    const nextUser = response.user || authService.getCurrentUser();
-    setUser(nextUser);
-    setIsAuthenticated(!!nextUser);
-    setLoading(false);
-    return response;
+    setLoading(true);
+    try {
+      const response = await authService.login(email, password);
+      await authService.refreshCsrfToken().catch((error) => {
+        console.warn('Unable to refresh CSRF token after login:', error);
+      });
+      authSequenceRef.current += 1;
+      const nextUser = response.user || authService.getCurrentUser();
+      setUser(nextUser);
+      setIsAuthenticated(!!nextUser);
+      return response;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchAccount = async (email) => {
+    setLoading(true);
+    try {
+      const nextUser = await authService.switchAccount(email);
+      authSequenceRef.current += 1;
+      setUser(nextUser);
+      setIsAuthenticated(!!nextUser);
+      window.location.reload();
+      return nextUser;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
@@ -93,7 +111,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, logout, canAccess }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated,
+        login,
+        switchAccount,
+        logout,
+        getStoredAccounts: authService.getStoredAccounts,
+        canAccess,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

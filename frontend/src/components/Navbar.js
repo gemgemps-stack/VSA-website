@@ -18,11 +18,13 @@ const MenuIcon = () => (
 );
 
 const Navbar = ({ toggleSidebar }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, switchAccount, getStoredAccounts, removeStoredAccount } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   const userLabel = (user?.username || user?.email || 'User').trim() || 'User';
+  const storedAccounts = Object.values(getStoredAccounts());
 
   const handleLogout = async () => {
     try {
@@ -31,6 +33,34 @@ const Navbar = ({ toggleSidebar }) => {
       setDropdownOpen(false);
       navigate('/login', { replace: true });
     }
+  };
+
+  const handleSwitchToAccount = async (email) => {
+    const hasUnsavedWork = Boolean(document.querySelector('.modal-overlay'));
+
+    if (hasUnsavedWork) {
+      const confirmed = window.confirm(
+        'You have a form open with unsaved changes. Switch accounts anyway?'
+      );
+
+      if (!confirmed) {
+        setDropdownOpen(false);
+        return;
+      }
+    }
+
+    try {
+      await switchAccount(email);
+    } catch (error) {
+      setDropdownOpen(false);
+      window.alert(error.message || 'Failed to switch account.');
+    }
+  };
+
+  const handleRemoveAccount = (email) => {
+    removeStoredAccount(email);
+    setRefreshKey((key) => key + 1);
+    setDropdownOpen(false);
   };
 
   const handleSwitchAccount = async () => {
@@ -98,8 +128,41 @@ const Navbar = ({ toggleSidebar }) => {
                 </div>
                 <div className="dropdown-item">Role: {user?.role}</div>
                 <hr />
+                {storedAccounts.length > 0 && (
+                  <>
+                    <div className="dropdown-section-title" role="heading" aria-level="3">
+                      Switch account
+                    </div>
+                    {storedAccounts.map((account) => (
+                      <div
+                        key={account.email}
+                        className="switch-account-row"
+                        role="menuitem"
+                      >
+                        <button
+                          className="switch-account-btn"
+                          onClick={() => handleSwitchToAccount(account.email)}
+                        >
+                          <span className="switch-account-label">{account.email}</span>
+                          <span className="switch-account-role">{account.user?.role}</span>
+                        </button>
+                        <button
+                          className="remove-account-btn"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleRemoveAccount(account.email);
+                          }}
+                          aria-label={`Remove ${account.email} from saved accounts`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    <hr />
+                  </>
+                )}
                 <button className="switch-account-btn" onClick={handleSwitchAccount}>
-                  Log in to another account
+                  Log in with a different account
                 </button>
                 <button className="logout-btn" onClick={handleLogout}>
                   Logout

@@ -63,6 +63,7 @@ const Employees = () => {
     { key: 'INVENTORY', label: 'Inventory' },
     { key: 'INVENTORY_ORDERS', label: 'Inventory Orders' },
     { key: 'CUSTOMIZED_ORDERS', label: 'Customized Orders' },
+    { key: 'RETURNED_ORDERS', label: 'Returned Orders' },
     { key: 'CLIENTS', label: 'Clients' },
     { key: 'ATTENDANCE', label: 'Attendance' },
     { key: 'SOURCE_OF_INCOME', label: 'Finance' },
@@ -129,6 +130,11 @@ const Employees = () => {
 
   const openRolesModal = (employee) => {
     setSelectedUser(employee);
+    setSelectedPermissions(
+      (employee.permissions || [])
+        .map((permission) => permission.pageName)
+        .filter(Boolean)
+    );
     setRoleForm({
       role: toTeamLabel(employee.role),
       additionalRoles: (employee.additionalRoles || [])
@@ -235,6 +241,26 @@ const Employees = () => {
   const handleSaveRoles = async () => {
     if (!selectedUser?.id) return;
 
+    const isSelectedUserAdmin = String(selectedUser.role || '').toUpperCase() === 'ADMIN';
+    if (isSelectedUserAdmin) {
+      try {
+        setRoleSaving(true);
+        const currentPermissions = (selectedUser.permissions || [])
+          .map((permission) => permission.pageName)
+          .filter(Boolean);
+        await syncPermissions(selectedUser.id, selectedPermissions, currentPermissions);
+        alert('Permissions updated successfully');
+        closeRolesModal();
+        loadUsers();
+      } catch (error) {
+        console.error('Error updating permissions:', error);
+        alert(getApiErrorMessage(error, 'Failed to update permissions'));
+      } finally {
+        setRoleSaving(false);
+      }
+      return;
+    }
+
     const primaryRole = String(roleForm.role || '').trim();
     if (!primaryRole) {
       alert('Please select a team before saving.');
@@ -307,6 +333,7 @@ const Employees = () => {
     { label: 'Admins', value: users.filter((employee) => (employee.role || '').toUpperCase() === 'ADMIN').length, detail: 'Permission leaders' },
     { label: 'Visible now', value: filteredUsers.length, detail: 'Matching your filters' },
   ];
+  const editingAdmin = String(selectedUser?.role || '').toUpperCase() === 'ADMIN';
 
   return (
     <DashboardLayout>
@@ -530,57 +557,83 @@ const Employees = () => {
 
             <Modal
               isOpen={rolesModalOpen}
-              title={selectedUser ? `Edit Roles: ${selectedUser.username}` : 'Edit Roles'}
+              title={
+                selectedUser
+                  ? `${editingAdmin ? 'Edit Page Permissions' : 'Edit Roles'}: ${selectedUser.username}`
+                  : 'Edit Roles'
+              }
               onClose={closeRolesModal}
               onSubmit={handleSaveRoles}
-              submitText="Save Roles"
+              submitText={editingAdmin ? 'Save Permissions' : 'Save Roles'}
               loading={roleSaving}
               size="large"
             >
-              <div className="employee-modal-grid">
-                <div className="form-group">
-                  <label>Team</label>
-                  <select
-                    value={roleForm.role}
-                    onChange={(e) => setRoleForm((current) => ({ ...current, role: e.target.value }))}
-                    required
-                  >
-                    <option value="" disabled>
-                      Select team
-                    </option>
-                    {TEAM_OPTIONS.map((team) => (
-                      <option key={team} value={team}>
-                        {team}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label>Additional Teams (optional)</label>
+              {editingAdmin ? (
+                <div className="permission-section">
+                  <div className="permission-section-header">
+                    <h3>Page Viewing Permissions</h3>
+                    <p>Dashboard is always available. Select from the current sidebar pages below.</p>
+                  </div>
+
                   <div className="permission-checkbox-grid">
-                    {TEAM_OPTIONS.filter((team) => team !== roleForm.role).map((team) => (
-                      <label key={team} className="permission-checkbox">
+                    {pagePermissions.map((permission) => (
+                      <label key={permission.key} className="permission-checkbox">
                         <input
                           type="checkbox"
-                          checked={(roleForm.additionalRoles || []).includes(team)}
-                          onChange={() =>
-                            setRoleForm((current) => {
-                              const roles = current.additionalRoles || [];
-                              return {
-                                ...current,
-                                additionalRoles: roles.includes(team)
-                                  ? roles.filter((item) => item !== team)
-                                  : [...roles, team],
-                              };
-                            })
-                          }
+                          checked={selectedPermissions.includes(permission.key)}
+                          onChange={() => handlePermissionToggle(permission.key)}
                         />
-                        <span>{team}</span>
+                        <span>{permission.label}</span>
                       </label>
                     ))}
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="employee-modal-grid">
+                  <div className="form-group">
+                    <label>Team</label>
+                    <select
+                      value={roleForm.role}
+                      onChange={(e) => setRoleForm((current) => ({ ...current, role: e.target.value }))}
+                      required
+                    >
+                      <option value="" disabled>
+                        Select team
+                      </option>
+                      {TEAM_OPTIONS.map((team) => (
+                        <option key={team} value={team}>
+                          {team}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label>Additional Teams (optional)</label>
+                    <div className="permission-checkbox-grid">
+                      {TEAM_OPTIONS.filter((team) => team !== roleForm.role).map((team) => (
+                        <label key={team} className="permission-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={(roleForm.additionalRoles || []).includes(team)}
+                            onChange={() =>
+                              setRoleForm((current) => {
+                                const roles = current.additionalRoles || [];
+                                return {
+                                  ...current,
+                                  additionalRoles: roles.includes(team)
+                                    ? roles.filter((item) => item !== team)
+                                    : [...roles, team],
+                                };
+                              })
+                            }
+                          />
+                          <span>{team}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </Modal>
           </div>
         ) : (
