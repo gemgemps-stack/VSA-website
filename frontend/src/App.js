@@ -84,7 +84,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <PermissionGuard
-                  permissions={['RETURNED_ORDERS', 'INVENTORY_ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY']}
+                  permission="RETURNED_ORDERS"
                 >
                   <Returns />
                 </PermissionGuard>

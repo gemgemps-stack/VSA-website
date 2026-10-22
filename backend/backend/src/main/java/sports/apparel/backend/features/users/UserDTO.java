@@ -28,11 +28,11 @@ public class UserDTO {
         this.id = user.getId();
         this.username = user.getUsername();
         this.email = user.getEmail();
-        this.role = user.getRole().toString();
+        this.role = toApiRoleName(user.getRole());
         this.additionalRoles = user.getAdditionalRoles() == null
                 ? List.of()
                 : user.getAdditionalRoles().stream()
-                        .map(userRole -> userRole.getRole().toString())
+                        .map(userRole -> toApiRoleName(userRole.getRole()))
                         .toList();
         this.salary = user.getSalary();
         this.createdAt = user.getCreatedAt();
@@ -42,5 +42,13 @@ public class UserDTO {
                         .stream()
                         .map(PermissionDTO::new)
                         .toList();
+    }
+
+    private String toApiRoleName(User.Role role) {
+        return switch (role) {
+            case GRAPHIC_ARTISTS -> "GRAPHIC";
+            case MACHINE_OPERATORS -> "MACHINE";
+            default -> role.toString();
+        };
     }
 }

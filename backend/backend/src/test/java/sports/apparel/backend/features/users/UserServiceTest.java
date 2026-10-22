@@ -49,4 +49,36 @@ class UserServiceTest {
         verify(userRepository).save(userCaptor.capture());
         assertEquals("encoded-password", userCaptor.getValue().getPassword());
     }
+
+    @Test
+    void createUser_shouldAcceptShortGraphicRoleName() {
+        when(userRepository.existsByNormalizedUsername("Graphic Staff"))
+                .thenReturn(false);
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateUserRequest request = new CreateUserRequest();
+        request.setUsername("Graphic Staff");
+        request.setRole("GRAPHIC");
+
+        UserDTO createdUser = userService.createUser(request);
+
+        assertEquals("GRAPHIC", createdUser.getRole());
+    }
+
+    @Test
+    void createUser_shouldAcceptShortMachineRoleName() {
+        when(userRepository.existsByNormalizedUsername("Machine Staff"))
+                .thenReturn(false);
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateUserRequest request = new CreateUserRequest();
+        request.setUsername("Machine Staff");
+        request.setRole("MACHINE");
+
+        UserDTO createdUser = userService.createUser(request);
+
+        assertEquals("MACHINE", createdUser.getRole());
+    }
 }

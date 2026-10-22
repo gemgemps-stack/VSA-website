@@ -6,12 +6,30 @@ import Modal from '../../components/Modal';
 import SearchField from '../../components/SearchField';
 import { useAuth } from '../../context/AuthContext';
 import returnedItemService from '../../services/returnedItemService';
+import inventoryService from '../../services/inventoryService';
+import userService from '../../services/userService';
 import { getApiErrorMessage } from '../../utils/apiErrors';
 import { buildPdfBlob, escapePdfText, downloadBlob } from '../../utils/pdf';
+import SIZE_OPTIONS from '../../utils/sizes';
+import { useNotification } from '../../context/NotificationContext';
 import '../../styles/DataTable.css';
 import '../../styles/Returns.css';
 
 const PAGE_SIZE = 10;
+const SHOP_OPTIONS = ['VSA Online Shop', 'Tiktok Shop', 'Shopee', 'Lazada', 'Verdida Sports Apparel'];
+
+const createInventoryForm = () => ({
+  itemType: '',
+  jerseyType: '',
+  name: '',
+  shop: '',
+  graphicArtist: '',
+  size: '',
+  number: '',
+  quantity: '',
+  price: '',
+  notes: '',
+});
 
 const STATUS_LABELS = {
   FOR_CLIENT_APPROVAL: 'For Client Approval',
@@ -154,6 +172,7 @@ const groupRecordsByOrder = (records) => {
 const Returns = () => {
   const navigate = useNavigate();
   const { canAccess } = useAuth();
+  const { success: notifySuccess, error: notifyError, info: notifyInfo } = useNotification();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -167,6 +186,10 @@ const Returns = () => {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState('');
   const [detailsActionError, setDetailsActionError] = useState('');
+  const [inventoryModalItem, setInventoryModalItem] = useState(null);
+  const [inventoryForm, setInventoryForm] = useState(createInventoryForm());
+  const [graphicArtists, setGraphicArtists] = useState([]);
+  const [savingInventory, setSavingInventory] = useState(false);
 
   const canSeeInventoryOrders = canAccess('INVENTORY_ORDERS');
   const canSeeCustomizedOrders = canAccess('CUSTOMIZED_ORDERS');
@@ -197,6 +220,22 @@ const Returns = () => {
   useEffect(() => {
     loadReturns();
   }, [loadReturns]);
+
+  useEffect(() => {
+    let active = true;
+    userService.getGraphicArtists()
+      .then((response) => {
+        if (active) {
+          setGraphicArtists(response.data || []);
+        }
+      })
+      .catch((error) => {
+        console.error('Error loading graphic artists:', error);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -266,6 +305,66 @@ const Returns = () => {
     setDetailsItems([]);
     setDetailsError('');
     setDetailsActionError('');
+  };
+
+  const openInventoryModal = (item) => {
+    const returnedSize = String(item.size || '').trim();
+    setInventoryForm({
+      ...createInventoryForm(),
+      name: item.productName || '',
+      jerseyType: item.jerseyType || '',
+      size: SIZE_OPTIONS.find((option) => option.toLowerCase() === returnedSize.toLowerCase()) || returnedSize,
+      number: item.number || '',
+      quantity: String(item.quantity ?? ''),
+    });
+    setInventoryModalItem(item);
+  };
+
+  const closeInventoryModal = () => {
+    if (savingInventory) return;
+    setInventoryModalItem(null);
+    setInventoryForm(createInventoryForm());
+  };
+
+  const handleAddReturnedItemToInventory = async () => {
+    const quantity = Number.parseInt(inventoryForm.quantity, 10);
+    const price = Number.parseFloat(inventoryForm.price);
+    if (!inventoryForm.itemType.trim() || !inventoryForm.name.trim() || !inventoryForm.quantity || !inventoryForm.price) {
+      notifyInfo('Please fill in all required fields');
+      return;
+    }
+    if (!Number.isFinite(quantity) || quantity < 0) {
+      notifyInfo('Quantity cannot be less than zero');
+      return;
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+      notifyInfo('Price must be greater than zero');
+      return;
+    }
+
+    try {
+      setSavingInventory(true);
+      await inventoryService.createInventory({
+        itemType: inventoryForm.itemType.trim(),
+        jerseyType: inventoryForm.jerseyType.trim() || null,
+        name: inventoryForm.name.trim(),
+        shop: inventoryForm.shop || null,
+        graphicArtist: inventoryForm.graphicArtist || null,
+        size: inventoryForm.size || null,
+        number: inventoryForm.number.trim() || null,
+        quantity,
+        price,
+        notes: inventoryForm.notes.trim() || null,
+      });
+      notifySuccess('Item added to inventory successfully');
+      setInventoryModalItem(null);
+      setInventoryForm(createInventoryForm());
+    } catch (error) {
+      console.error('Error adding returned item to inventory:', error);
+      notifyError(`Failed to add item to inventory: ${getApiErrorMessage(error)}`);
+    } finally {
+      setSavingInventory(false);
+    }
   };
 
   const printCancelledOrder = () => {
@@ -570,6 +669,7 @@ const Returns = () => {
                           <th>Quantity</th>
                           <th>Reason</th>
                           <th>Return Date</th>
+                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -582,6 +682,15 @@ const Returns = () => {
                             <td>{item.quantity ?? 0}</td>
                             <td>{item.reason || '-'}</td>
                             <td>{formatDate(item.returnDate || item.createdAt)}</td>
+                            <td className="actions">
+                              <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={() => openInventoryModal(item)}
+                              >
+                                Add to inventory
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -592,6 +701,127 @@ const Returns = () => {
             )}
           </div>
         )}
+      </Modal>
+      <Modal
+        isOpen={Boolean(inventoryModalItem)}
+        title="New Inventory Item"
+        onClose={closeInventoryModal}
+        onSubmit={handleAddReturnedItemToInventory}
+        submitText="Add"
+        loading={savingInventory}
+        size="medium"
+      >
+        <form className="inventory-modal-form">
+          <div className="inventory-modal-grid inventory-modal-grid-row-2">
+            <div className="form-group">
+              <label>Item Type</label>
+              <input
+                type="text"
+                value={inventoryForm.itemType}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, itemType: event.target.value }))}
+                placeholder="Enter item type"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Item Name</label>
+              <input
+                type="text"
+                value={inventoryForm.name}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, name: event.target.value }))}
+                placeholder="Enter item name"
+                required
+              />
+            </div>
+          </div>
+          <div className="inventory-modal-grid inventory-modal-grid-row-3">
+            <div className="form-group">
+              <label>Version (Optional)</label>
+              <input
+                type="text"
+                value={inventoryForm.jerseyType}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, jerseyType: event.target.value }))}
+                placeholder="Enter version"
+              />
+            </div>
+            <div className="form-group">
+              <label>Size (Optional)</label>
+              <select
+                value={inventoryForm.size}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, size: event.target.value }))}
+              >
+                <option value="">Select size</option>
+                {inventoryForm.size && !SIZE_OPTIONS.includes(inventoryForm.size) && (
+                  <option value={inventoryForm.size}>{inventoryForm.size}</option>
+                )}
+                {SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Size Number (Optional)</label>
+              <input
+                type="text"
+                value={inventoryForm.number}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, number: event.target.value }))}
+                placeholder="Enter size number"
+              />
+            </div>
+          </div>
+          <div className="inventory-modal-grid inventory-modal-grid-row-3">
+            <div className="form-group">
+              <label>Quantity</label>
+              <input
+                type="number"
+                min="0"
+                value={inventoryForm.quantity}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, quantity: event.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Price</label>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={inventoryForm.price}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, price: event.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Shop</label>
+              <select
+                value={inventoryForm.shop}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, shop: event.target.value }))}
+              >
+                <option value="">Select shop</option>
+                {SHOP_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Graphic Artist</label>
+              <select
+                value={inventoryForm.graphicArtist}
+                onChange={(event) => setInventoryForm((current) => ({ ...current, graphicArtist: event.target.value }))}
+              >
+                <option value="">Select graphic artist</option>
+                {graphicArtists.map((artist) => (
+                  <option key={artist.id} value={artist.name}>{artist.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="form-group inventory-notes-group">
+            <label>Notes</label>
+            <textarea
+              value={inventoryForm.notes}
+              onChange={(event) => setInventoryForm((current) => ({ ...current, notes: event.target.value }))}
+              placeholder="Add any notes"
+              rows={4}
+            />
+          </div>
+        </form>
       </Modal>
     </DashboardLayout>
   );

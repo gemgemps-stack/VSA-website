@@ -107,7 +107,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       path: '/returns',
       label: 'Returned Orders',
       icon: 'returns',
-      permissions: ['RETURNED_ORDERS', 'INVENTORY_ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY'],
+      permission: 'RETURNED_ORDERS',
     },
     { path: '/clients', label: 'Clients', icon: 'clients', permission: 'CLIENTS' },
     { path: '/attendance', label: 'Attendance', icon: 'attendance', permission: 'ATTENDANCE' },

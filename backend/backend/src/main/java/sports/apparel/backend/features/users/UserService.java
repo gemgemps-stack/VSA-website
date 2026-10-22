@@ -180,6 +180,12 @@ public class UserService {
 
     private User.Role parseRole(String rawRole) {
         String normalized = rawRole.trim().toUpperCase().replaceAll("[\\s-]+", "_");
+        if (normalized.equals("GRAPHIC") || normalized.equals("GRAPHIC_ARTIST") || normalized.equals("GRAPHIC_ARTISTS")) {
+            return User.Role.GRAPHIC_ARTISTS;
+        }
+        if (normalized.equals("MACHINE") || normalized.equals("MACHINE_OPERATOR") || normalized.equals("MACHINE_OPERATORS")) {
+            return User.Role.MACHINE_OPERATORS;
+        }
         return User.Role.valueOf(normalized);
     }
 

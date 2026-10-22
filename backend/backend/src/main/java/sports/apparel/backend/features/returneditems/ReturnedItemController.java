@@ -42,7 +42,7 @@ public class ReturnedItemController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('RETURNED_ORDERS', 'INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('RETURNED_ORDERS')")
     public ResponseEntity<Page<ReturnedItemDTO>> getAllReturnedItems(
             Pageable pageable,
             @RequestParam(required = false) String orderType,

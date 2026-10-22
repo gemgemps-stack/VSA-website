@@ -37,8 +37,8 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 
 | Table | Key columns / notes |
 | --- | --- |
-| `users` | `id` (UUID), `username` (unique, case/whitespace-insensitive), `email` (unique, **nullable** since V25), `password` (**nullable** since V25), `role` enum primary: `ADMIN, EMPLOYEE, MARKETING, PRODUCTION, SEWING, GRAPHIC_ARTISTS, SALES, MACHINE_OPERATORS`, `salary`, `version` (@Version), `created_at` |
-| `user_roles` | `id`, `user_id` FK→users, `role` enum; extra roles beyond the primary `users.role` (multi-role via join table, since V37) |
+| `users` | `id` (UUID), `username` (unique, case/whitespace-insensitive), `email` (unique, **nullable** since V25), `password` (**nullable** since V25), persisted `role` enum primary: `ADMIN, EMPLOYEE, MARKETING, PRODUCTION, SEWING, GRAPHIC_ARTISTS, SALES, MACHINE_OPERATORS`; the users API exposes `GRAPHIC` and `MACHINE` for the last two roles, `salary`, `version` (@Version), `created_at` |
+| `user_roles` | `id`, `user_id` FK→users, persisted role enum; extra roles beyond the primary `users.role` (multi-role via join table, since V37). API names `GRAPHIC` and `MACHINE` map to legacy persisted values. |
 | `permissions` | `id`, `user_id` FK→users, `page_name` (e.g. `INVENTORY_ORDERS`, `CUSTOMIZED_ORDERS`, `TEAMS`, `INVENTORY`, `CLIENTS`, `SOURCE_OF_INCOME`, `ATTENDANCE`) |
 | `clients` | `id`, `client_code` (unique), `client_name`, `contact_number`, `vip`, `notes`, `created_at` |
 | `orders` | `id`, `job_order_no` (unique), `request_fingerprint` (unique, idempotency), `client_id` FK (nullable), `client_name`, `team_name`, `order_retail`, `quantity`, `freebie`, `discount`, `price`, `down_payment`, `shop`, `order_date`, `mode_of_payment`, `remarks`, `reference_number`, `status`, `inventory_deducted`, `version`, `created_at` |

@@ -10,10 +10,19 @@ import { getApiErrorMessage, isAuthOrPermissionError } from '../../utils/apiErro
 
 const TEAM_OPTIONS = ['Marketing', 'Production', 'Sewing', 'Graphic Artist', 'Sales', 'Machine Operator'];
 
-const toRoleKey = (team) => String(team || '').trim().replace(/\s+/g, '_').toUpperCase();
+const toRoleKey = (team) => {
+  const normalized = String(team || '').trim().replace(/\s+/g, '_').toUpperCase();
+  if (normalized === 'GRAPHIC_ARTIST' || normalized === 'GRAPHIC_ARTISTS') return 'GRAPHIC';
+  if (normalized === 'MACHINE_OPERATOR' || normalized === 'MACHINE_OPERATORS') return 'MACHINE';
+  return normalized;
+};
 
-const toTeamLabel = (roleKey) =>
-  TEAM_OPTIONS.find((team) => toRoleKey(team) === String(roleKey || '').toUpperCase()) || '';
+const toTeamLabel = (roleKey) => {
+  const normalized = String(roleKey || '').toUpperCase();
+  if (['GRAPHIC', 'GRAPHIC_ARTIST', 'GRAPHIC_ARTISTS'].includes(normalized)) return 'Graphic Artist';
+  if (['MACHINE', 'MACHINE_OPERATOR', 'MACHINE_OPERATORS'].includes(normalized)) return 'Machine Operator';
+  return TEAM_OPTIONS.find((team) => toRoleKey(team) === normalized) || '';
+};
 
 const extractUsers = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -55,9 +64,9 @@ const Employees = () => {
     { key: 'MARKETING', label: 'Marketing' },
     { key: 'PRODUCTION', label: 'Production' },
     { key: 'SEWING', label: 'Sewing' },
-    { key: 'GRAPHIC_ARTISTS', label: 'Graphic Artist' },
+    { key: 'GRAPHIC', label: 'Graphic Artist' },
     { key: 'SALES', label: 'Sales' },
-    { key: 'MACHINE_OPERATORS', label: 'Machine Operator' },
+    { key: 'MACHINE', label: 'Machine Operator' },
   ];
 
   const pagePermissions = [
@@ -314,7 +323,7 @@ const Employees = () => {
       label: 'Role / Team',
       render: (_, row) => {
         const allRoles = [row.role, ...(row.additionalRoles || [])].filter(Boolean);
-        return allRoles.join(', ');
+        return allRoles.map((role) => toTeamLabel(role) || role).join(', ');
       },
     },
     {
