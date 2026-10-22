@@ -120,6 +120,7 @@ export const AuthProvider = ({ children }) => {
         switchAccount,
         logout,
         getStoredAccounts: authService.getStoredAccounts,
+        removeStoredAccount: authService.removeStoredAccount,
         canAccess,
       }}
     >

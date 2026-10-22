@@ -30,6 +30,9 @@ const extractUsers = (payload) => {
   return [];
 };
 
+const EMPLOYEE_PAGE_SIZE = 10;
+const USER_FETCH_PAGE_SIZE = 100;
+
 const createInitialFormData = () => ({
   username: '',
   email: '',
@@ -45,7 +48,6 @@ const Employees = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -84,20 +86,32 @@ const Employees = () => {
   const loadUsers = useCallback(async () => {
     if (!isAdmin) {
       setUsers([]);
-      setTotalPages(1);
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      const response = await userService.getAllUsers(currentPage - 1, 10);
-      const nextUsers = extractUsers(response.data);
-      setUsers(nextUsers);
+      const firstResponse = await userService.getAllUsers(0, USER_FETCH_PAGE_SIZE);
+      const firstPageUsers = extractUsers(firstResponse.data);
 
-      const totalElements =
-        typeof response.data?.totalElements === 'number' ? response.data.totalElements : nextUsers.length;
-      setTotalPages(Math.max(1, Math.ceil(totalElements / 10)));
+      if (Array.isArray(firstResponse.data)) {
+        setUsers(firstPageUsers);
+        return;
+      }
+
+      const totalPages = Number.isInteger(firstResponse.data?.totalPages)
+        ? firstResponse.data.totalPages
+        : Math.ceil((firstResponse.data?.totalElements || firstPageUsers.length) / USER_FETCH_PAGE_SIZE);
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) =>
+          userService.getAllUsers(index + 1, USER_FETCH_PAGE_SIZE)
+        )
+      );
+      setUsers([
+        ...firstPageUsers,
+        ...remainingPages.flatMap((response) => extractUsers(response.data)),
+      ]);
     } catch (error) {
       console.error('Error loading employees:', error);
       if (isAuthOrPermissionError(error)) {
@@ -108,7 +122,7 @@ const Employees = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, isAdmin]);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -116,7 +130,6 @@ const Employees = () => {
     } else {
       setLoading(false);
       setUsers([]);
-      setTotalPages(1);
     }
   }, [isAdmin, loadUsers]);
 
@@ -339,14 +352,23 @@ const Employees = () => {
   const filteredUsers = users.filter((employee) => {
     const allRoles = [employee.role, ...(employee.additionalRoles || [])]
       .filter(Boolean)
-      .map((role) => role.toUpperCase());
+      .map(toRoleKey);
     const matchesRole = employeeFilter === 'ALL' || allRoles.includes(employeeFilter);
-    const roleText = [employee.role, ...(employee.additionalRoles || [])].filter(Boolean).join(' ');
+    const roleText = [employee.role, ...(employee.additionalRoles || [])]
+      .filter(Boolean)
+      .map((role) => toTeamLabel(role) || role)
+      .join(' ');
     const haystack = `${employee.username || ''} ${employee.email || ''} ${roleText}`.toLowerCase();
     const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
 
     return matchesRole && matchesSearch;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / EMPLOYEE_PAGE_SIZE));
+  const displayPage = Math.min(currentPage, totalPages);
+  const visibleUsers = filteredUsers.slice(
+    (displayPage - 1) * EMPLOYEE_PAGE_SIZE,
+    displayPage * EMPLOYEE_PAGE_SIZE
+  );
 
   const staffStats = [
     { label: 'Registered staff', value: users.length, detail: 'People in the roster' },
@@ -440,11 +462,11 @@ const Employees = () => {
             ) : (
               <DataTable
                 columns={columns}
-                data={filteredUsers}
+                data={visibleUsers}
                 onEdit={openRolesModal}
                 onDelete={handleDeleteUser}
                 loading={loading}
-                currentPage={currentPage}
+                currentPage={displayPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
               />
