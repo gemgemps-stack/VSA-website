@@ -47,6 +47,23 @@ const MONTH_LABELS = [
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const ROLE_LABELS = {
+  ADMIN: 'Admin',
+  EMPLOYEE: 'Employee',
+  MARKETING: 'Marketing',
+  PRODUCTION: 'Production',
+  SEWING: 'Sewing',
+  GRAPHIC: 'Graphic Artist',
+  GRAPHIC_ARTIST: 'Graphic Artist',
+  GRAPHIC_ARTISTS: 'Graphic Artist',
+  SALES: 'Sales',
+  MACHINE: 'Machine Operator',
+  MACHINE_OPERATOR: 'Machine Operator',
+  MACHINE_OPERATORS: 'Machine Operator',
+};
+
+const getRoleLabel = (role) => ROLE_LABELS[String(role || '').toUpperCase()] || role;
+
 const getTodayInputValue = () => {
   const today = new Date();
   const year = today.getFullYear();
@@ -824,7 +841,10 @@ let hours = 0;
                           onClick={() => handleEmployeeSelect(u)}
                         >
                           <span>
-                            {u.username} ({[u.role, ...(u.additionalRoles || [])].filter(Boolean).join(', ')})
+                            {u.username} ({[u.role, ...(u.additionalRoles || [])]
+                              .filter(Boolean)
+                              .map(getRoleLabel)
+                              .join(', ')})
                           </span>
                         </button>
                       ))}
@@ -1109,4 +1129,3 @@ let hours = 0;
 };
 
 export default AttendanceView;
-
