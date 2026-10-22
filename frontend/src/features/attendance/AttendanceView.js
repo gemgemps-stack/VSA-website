@@ -823,7 +823,9 @@ let hours = 0;
                           className="client-search-item"
                           onClick={() => handleEmployeeSelect(u)}
                         >
-                          <span>{u.username} ({u.role})</span>
+                          <span>
+                            {u.username} ({[u.role, ...(u.additionalRoles || [])].filter(Boolean).join(', ')})
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -1107,5 +1109,4 @@ let hours = 0;
 };
 
 export default AttendanceView;
-
 
