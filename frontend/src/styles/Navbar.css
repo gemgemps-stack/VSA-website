@@ -255,12 +255,17 @@
   border-top: 0;
 }
 
-.switch-account-btn {
+.stored-accounts-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border-top: 1px solid #e7eeeb;
+}
+
+.switch-account-option {
   flex: 1;
   min-width: 0;
   padding: 0;
-  border: 0;
-  border-top: 0;
+  border: none;
   background: transparent;
   color: #0f6d6b;
   font-size: 13px;
@@ -269,7 +274,7 @@
   transition: color 0.18s ease;
 }
 
-.switch-account-btn:hover {
+.switch-account-option:hover {
   color: #0a5351;
   background: transparent;
 }

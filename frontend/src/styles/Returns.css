@@ -29,8 +29,46 @@
   width: 100%;
 }
 
+.returned-order-details-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin-bottom: 20px;
+}
+
+.returned-order-details-summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.returned-order-details-summary span {
+  color: #6e645a;
+  font-size: 12px;
+}
+
+.returned-order-details-summary strong {
+  color: #24312d;
+  overflow-wrap: anywhere;
+}
+
+.returned-order-details-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.returned-order-details-error {
+  color: #a12622;
+}
+
 @media (max-width: 768px) {
   .returns-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .returned-order-details-summary {
     grid-template-columns: 1fr;
   }
 }

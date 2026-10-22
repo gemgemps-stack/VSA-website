@@ -43,6 +43,7 @@ const Employees = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleForm, setRoleForm] = useState({ role: '', additionalRoles: [] });
+  const [accountForm, setAccountForm] = useState({ email: '', password: '' });
   const [formData, setFormData] = useState(createInitialFormData());
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [employeeFilter, setEmployeeFilter] = useState('ALL');
@@ -130,6 +131,7 @@ const Employees = () => {
 
   const openRolesModal = (employee) => {
     setSelectedUser(employee);
+    setAccountForm({ email: employee.email || '', password: '' });
     setSelectedPermissions(
       (employee.permissions || [])
         .map((permission) => permission.pageName)
@@ -148,6 +150,7 @@ const Employees = () => {
     setRolesModalOpen(false);
     setSelectedUser(null);
     setRoleForm({ role: '', additionalRoles: [] });
+    setAccountForm({ email: '', password: '' });
   };
 
   const handlePermissionToggle = (permissionKey) => {
@@ -242,43 +245,51 @@ const Employees = () => {
     if (!selectedUser?.id) return;
 
     const isSelectedUserAdmin = String(selectedUser.role || '').toUpperCase() === 'ADMIN';
-    if (isSelectedUserAdmin) {
-      try {
-        setRoleSaving(true);
-        const currentPermissions = (selectedUser.permissions || [])
-          .map((permission) => permission.pageName)
-          .filter(Boolean);
-        await syncPermissions(selectedUser.id, selectedPermissions, currentPermissions);
-        alert('Permissions updated successfully');
-        closeRolesModal();
-        loadUsers();
-      } catch (error) {
-        console.error('Error updating permissions:', error);
-        alert(getApiErrorMessage(error, 'Failed to update permissions'));
-      } finally {
-        setRoleSaving(false);
-      }
+    const email = String(accountForm.email || '').trim();
+    const password = String(accountForm.password || '');
+
+    if (isSelectedUserAdmin && !email) {
+      alert('Please enter the email address before saving.');
       return;
     }
-
-    const primaryRole = String(roleForm.role || '').trim();
-    if (!primaryRole) {
+    if (password && password.length < 6) {
+      alert('Password must be at least 6 characters.');
+      return;
+    }
+    if (!isSelectedUserAdmin && !String(roleForm.role || '').trim()) {
       alert('Please select a team before saving.');
       return;
     }
 
     try {
       setRoleSaving(true);
-      await userService.updateUser(selectedUser.id, {
-        role: toRoleKey(primaryRole),
-        additionalRoles: (roleForm.additionalRoles || []).map((role) => toRoleKey(role)),
-      });
-      alert('Roles updated successfully');
+      const updatePayload = {
+        ...(email ? { email } : {}),
+        ...(password ? { password } : {}),
+        ...(!isSelectedUserAdmin
+          ? {
+              role: toRoleKey(String(roleForm.role || '').trim()),
+              additionalRoles: (roleForm.additionalRoles || []).map((role) => toRoleKey(role)),
+            }
+          : {}),
+      };
+      await userService.updateUser(selectedUser.id, updatePayload);
+
+      const currentPermissions = (selectedUser.permissions || [])
+        .map((permission) => permission.pageName)
+        .filter(Boolean);
+      await syncPermissions(selectedUser.id, selectedPermissions, currentPermissions);
+
+      alert(
+        isSelectedUserAdmin
+          ? 'Account and permissions updated successfully'
+          : 'Account, roles, and permissions updated successfully'
+      );
       closeRolesModal();
       loadUsers();
     } catch (error) {
-      console.error('Error updating roles:', error);
-      alert(getApiErrorMessage(error, 'Failed to update roles'));
+      console.error('Error updating employee:', error);
+      alert(getApiErrorMessage(error, 'Failed to update employee'));
     } finally {
       setRoleSaving(false);
     }
@@ -451,28 +462,30 @@ const Employees = () => {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label>Email Address{registerMode === 'admin' ? ' *' : ''}</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Enter email address"
+                    required={registerMode === 'admin'}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Password{registerMode === 'admin' ? ' *' : ''}</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={registerMode === 'admin' ? 'Create a password' : 'Optional'}
+                    required={registerMode === 'admin'}
+                  />
+                </div>
+
                 {registerMode === 'admin' ? (
                   <>
-                    <div className="form-group">
-                      <label>Email</label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="Enter email address"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Password</label>
-                      <input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        placeholder="Create a password"
-                      />
-                    </div>
-
                     <div className="form-group">
                       <label>Role</label>
                       <select
@@ -532,27 +545,25 @@ const Employees = () => {
                 )}
               </div>
 
-              {registerMode === 'admin' && (
-                <div className="permission-section">
-                  <div className="permission-section-header">
-                    <h3>Page Viewing Permissions</h3>
-                    <p>Dashboard is always available. Select from the current sidebar pages below.</p>
-                  </div>
-
-                  <div className="permission-checkbox-grid">
-                    {pagePermissions.map((permission) => (
-                      <label key={permission.key} className="permission-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={selectedPermissions.includes(permission.key)}
-                          onChange={() => handlePermissionToggle(permission.key)}
-                        />
-                        <span>{permission.label}</span>
-                      </label>
-                    ))}
-                  </div>
+              <div className="permission-section">
+                <div className="permission-section-header">
+                  <h3>Page Viewing Permissions</h3>
+                  <p>Dashboard is always available. Select from the current sidebar pages below.</p>
                 </div>
-              )}
+
+                <div className="permission-checkbox-grid">
+                  {pagePermissions.map((permission) => (
+                    <label key={permission.key} className="permission-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedPermissions.includes(permission.key)}
+                        onChange={() => handlePermissionToggle(permission.key)}
+                      />
+                      <span>{permission.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </Modal>
 
             <Modal
@@ -564,31 +575,32 @@ const Employees = () => {
               }
               onClose={closeRolesModal}
               onSubmit={handleSaveRoles}
-              submitText={editingAdmin ? 'Save Permissions' : 'Save Roles'}
+              submitText="Save Changes"
               loading={roleSaving}
               size="large"
             >
-              {editingAdmin ? (
-                <div className="permission-section">
-                  <div className="permission-section-header">
-                    <h3>Page Viewing Permissions</h3>
-                    <p>Dashboard is always available. Select from the current sidebar pages below.</p>
-                  </div>
-
-                  <div className="permission-checkbox-grid">
-                    {pagePermissions.map((permission) => (
-                      <label key={permission.key} className="permission-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={selectedPermissions.includes(permission.key)}
-                          onChange={() => handlePermissionToggle(permission.key)}
-                        />
-                        <span>{permission.label}</span>
-                      </label>
-                    ))}
-                  </div>
+              <div className="employee-modal-grid">
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    value={accountForm.email}
+                    onChange={(e) => setAccountForm((current) => ({ ...current, email: e.target.value }))}
+                    placeholder="Enter email address"
+                  />
                 </div>
-              ) : (
+                <div className="form-group">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={accountForm.password}
+                    onChange={(e) => setAccountForm((current) => ({ ...current, password: e.target.value }))}
+                    placeholder="Leave blank to keep current password"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+              {!editingAdmin && (
                 <div className="employee-modal-grid">
                   <div className="form-group">
                     <label>Team</label>
@@ -634,6 +646,25 @@ const Employees = () => {
                   </div>
                 </div>
               )}
+              <div className="permission-section">
+                <div className="permission-section-header">
+                  <h3>Page Viewing Permissions</h3>
+                  <p>Dashboard is always available. Select from the current sidebar pages below.</p>
+                </div>
+
+                <div className="permission-checkbox-grid">
+                  {pagePermissions.map((permission) => (
+                    <label key={permission.key} className="permission-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedPermissions.includes(permission.key)}
+                        onChange={() => handlePermissionToggle(permission.key)}
+                      />
+                      <span>{permission.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </Modal>
           </div>
         ) : (

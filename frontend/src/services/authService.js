@@ -135,20 +135,6 @@ const authService = {
     }
   },
 
-  logout: async () => {
-    try {
-      await api.post('/api/auth/logout');
-    } catch (error) {
-      // Logout should still succeed locally even if the backend is unreachable.
-      console.warn('Logout request failed, continuing with local sign-out:', error);
-    } finally {
-      currentUser = null;
-      writeAccessToken(null);
-      writeStoredCurrentUser(null);
-      window.dispatchEvent(new Event('auth:logout'));
-    }
-  },
-
   refreshCurrentUser: async () => {
     try {
       const response = await api.get('/api/auth/me');

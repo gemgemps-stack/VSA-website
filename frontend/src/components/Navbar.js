@@ -20,7 +20,8 @@ const MenuIcon = () => (
 const Navbar = ({ toggleSidebar }) => {
   const { user, logout, switchAccount, getStoredAccounts, removeStoredAccount } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const [, setRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   const userLabel = (user?.username || user?.email || 'User').trim() || 'User';
@@ -128,19 +129,22 @@ const Navbar = ({ toggleSidebar }) => {
                 </div>
                 <div className="dropdown-item">Role: {user?.role}</div>
                 <hr />
-                {storedAccounts.length > 0 && (
-                  <>
-                    <div className="dropdown-section-title" role="heading" aria-level="3">
-                      Switch account
-                    </div>
+                <button
+                  className="switch-account-btn"
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded={accountDropdownOpen}
+                  onClick={() => setAccountDropdownOpen((open) => !open)}
+                >
+                  Switch to another account
+                </button>
+                {accountDropdownOpen && storedAccounts.length > 0 && (
+                  <div className="stored-accounts-list" role="group" aria-label="Accounts on this device">
                     {storedAccounts.map((account) => (
-                      <div
-                        key={account.email}
-                        className="switch-account-row"
-                        role="menuitem"
-                      >
+                      <div key={account.email} className="switch-account-row">
                         <button
-                          className="switch-account-btn"
+                          className="switch-account-option"
+                          type="button"
                           onClick={() => handleSwitchToAccount(account.email)}
                         >
                           <span className="switch-account-label">{account.email}</span>
@@ -148,21 +152,21 @@ const Navbar = ({ toggleSidebar }) => {
                         </button>
                         <button
                           className="remove-account-btn"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRemoveAccount(account.email);
-                          }}
+                          type="button"
+                          onClick={() => handleRemoveAccount(account.email)}
                           aria-label={`Remove ${account.email} from saved accounts`}
                         >
                           ×
                         </button>
                       </div>
                     ))}
-                    <hr />
-                  </>
+                  </div>
                 )}
-                <button className="switch-account-btn" onClick={handleSwitchAccount}>
-                  Log in with a different account
+                {accountDropdownOpen && storedAccounts.length === 0 && (
+                  <div className="dropdown-item">No saved accounts on this device.</div>
+                )}
+                <button className="switch-account-btn" type="button" onClick={handleSwitchAccount}>
+                  Add another account
                 </button>
                 <button className="logout-btn" onClick={handleLogout}>
                   Logout
