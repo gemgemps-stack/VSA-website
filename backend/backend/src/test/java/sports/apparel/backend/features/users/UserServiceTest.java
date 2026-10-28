@@ -2,6 +2,8 @@ package sports.apparel.backend.features.users;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -11,6 +13,7 @@ import sports.apparel.backend.entity.User;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,5 +83,56 @@ class UserServiceTest {
         UserDTO createdUser = userService.createUser(request);
 
         assertEquals("MACHINE", createdUser.getRole());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "ADMIN, ADMIN",
+            "EMPLOYEE, EMPLOYEE",
+            "MARKETING, MARKETING",
+            "PRODUCTION, PRODUCTION",
+            "SEWING, SEWING",
+            "SALES, SALES",
+            "GRAPHIC, GRAPHIC_ARTISTS",
+            "GRAPHIC_ARTIST, GRAPHIC_ARTISTS",
+            "GRAPHIC_ARTISTS, GRAPHIC_ARTISTS",
+            "graphic artist, GRAPHIC_ARTISTS",
+            "MACHINE, MACHINE_OPERATORS",
+            "MACHINE_OPERATOR, MACHINE_OPERATORS",
+            "MACHINE_OPERATORS, MACHINE_OPERATORS",
+            "machine operator, MACHINE_OPERATORS"
+    })
+    void createUser_shouldMapEveryRoleSelectionToItsStoredEnum(String requestedRole, String storedRole) {
+        when(userRepository.existsByNormalizedUsername(anyString())).thenReturn(false);
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateUserRequest request = new CreateUserRequest();
+        request.setUsername("Employee " + storedRole);
+        request.setEmail(storedRole.toLowerCase() + "@verdida.local");
+        request.setPassword("StrongPass123!");
+        request.setRole(requestedRole);
+
+        userService.createUser(request);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertEquals(User.Role.valueOf(storedRole), userCaptor.getValue().getRole());
+    }
+
+    @Test
+    void createUser_shouldRejectUnknownRoleSelection() {
+        when(userRepository.existsByNormalizedUsername(anyString())).thenReturn(false);
+
+        CreateUserRequest request = new CreateUserRequest();
+        request.setUsername("Unknown Role");
+        request.setRole("SALES REPRESENTATIVE");
+
+        IllegalArgumentException error = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.createUser(request)
+        );
+
+        assertEquals("Invalid role selected", error.getMessage());
     }
 }

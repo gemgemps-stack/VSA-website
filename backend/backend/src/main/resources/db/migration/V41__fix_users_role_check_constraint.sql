@@ -1,7 +1,5 @@
--- V41: allow all Role enum values in the users.role check constraint
+-- V41: drop the legacy users_role_check constraint
+-- The Role enum plus UserService.parseRole validate values in application code.
+-- A hardcoded role list goes stale whenever a new Role is added (see V20 -> V34).
 ALTER TABLE users
 DROP CONSTRAINT IF EXISTS users_role_check;
-
-ALTER TABLE users
-ADD CONSTRAINT users_role_check
-CHECK (role IN ('ADMIN', 'EMPLOYEE', 'MARKETING', 'PRODUCTION', 'SEWING', 'GRAPHIC_ARTISTS', 'SALES', 'MACHINE_OPERATORS'));

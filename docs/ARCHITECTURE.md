@@ -33,7 +33,7 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 
 ## 🗄️ Database schema (tables from entities; JPA `ddl-auto=update`)
 
-> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V40` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
+> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V41` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
 
 | Table | Key columns / notes |
 | --- | --- |

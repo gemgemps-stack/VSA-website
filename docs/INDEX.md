@@ -46,7 +46,7 @@ This is the map of content for the VSA-web project — a retail ERP for a sports
 - CSRF cookie: `XSRF-TOKEN` (not httpOnly, read by axios), submitted as `X-XSRF-TOKEN` header.
 
 ### Gotchas (top 5)
-1. **No `V1` Flyway migration exists** — schema is created by JPA `ddl-auto=update`; Flyway is off by default in every profile (`SPRING_FLYWAY_ENABLED=false`). Migrations `V2`–`V40` only *alter* an existing schema.
+1. **No `V1` Flyway migration exists** — schema is created by JPA `ddl-auto=update`; Flyway is off by default in every profile (`SPRING_FLYWAY_ENABLED=false`). Migrations `V2`-`V41` only *alter* an existing schema.
 2. **Non-admin users can be created without email/password** (`V25` made them nullable) — such users **cannot log in**, since login requires both email and password.
 3. **Prod DB falls back to in-memory H2** if `DATABASE_URL` is missing — all data vanishes on restart.
 4. **`DEBUG_API_REQUESTS=true`** is on in `frontend/src/services/api.js` — logs every request/error to the console.
