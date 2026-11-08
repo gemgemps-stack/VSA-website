@@ -136,9 +136,14 @@ const Clients = () => {
   const loadClients = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await clientService.getAllClients(currentPage - 1, 10);
-      setClients(response.data.content || []);
-      setTotalPages(Math.max(1, Math.ceil((response.data.totalElements || 0) / 10)));
+      const hasFilter = nameFilter.trim() || contactFilter.trim();
+      // When filtering, load all clients so local filter can search across every page.
+      const page = hasFilter ? 0 : currentPage - 1;
+      const size = hasFilter ? 10000 : 10;
+      const response = await clientService.getAllClients(page, size);
+      const allClients = response.data.content || [];
+      setClients(allClients);
+      setTotalPages(hasFilter ? 1 : Math.max(1, Math.ceil((response.data.totalElements || 0) / 10)));
     } catch (error) {
       console.error('Error loading clients:', error);
       if (isAuthOrPermissionError(error)) {
@@ -149,7 +154,7 @@ const Clients = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, notifyError]);
+  }, [currentPage, nameFilter, contactFilter, notifyError]);
 
   useEffect(() => {
     loadClients();
@@ -307,10 +312,11 @@ const Clients = () => {
   ];
 
   const filteredClients = clients.filter((client) => {
+    const normalize = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const nameMatch = !nameFilter.trim()
-      || String(client.clientName || '').toLowerCase().includes(nameFilter.trim().toLowerCase());
+      || normalize(client.clientName).includes(normalize(nameFilter));
     const contactMatch = !contactFilter.trim()
-      || String(client.contactNumber || '').toLowerCase().includes(contactFilter.trim().toLowerCase());
+      || normalize(client.contactNumber).includes(normalize(contactFilter));
 
     return nameMatch && contactMatch;
   });

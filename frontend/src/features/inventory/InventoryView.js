@@ -178,9 +178,7 @@ const Inventory = () => {
   const toggleLowStockOnly = () => {
     const next = !lowStockOnly;
     setLowStockOnly(next);
-    if (!next) {
-      setShowZeroStock(false);
-    }
+    setShowZeroStock(next);
   };
 
   const handleEdit = (item) => {
