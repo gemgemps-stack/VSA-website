@@ -838,7 +838,10 @@ let hours = 0;
                           type="button"
                           key={u.id}
                           className="client-search-item"
-                          onClick={() => handleEmployeeSelect(u)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleEmployeeSelect(u);
+                          }}
                         >
                           <span>
                             {u.username} ({[u.role, ...(u.additionalRoles || [])]
