@@ -1280,7 +1280,10 @@ const CustomizedOrders = () => {
                             {filteredClients.map((client) => (
                               <div
                                 key={client.id}
-                                onClick={() => handleClientSelect(client)}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  handleClientSelect(client);
+                                }}
                                 style={styles.suggestionItem}
                               >
                                 {client?.clientName || ''}

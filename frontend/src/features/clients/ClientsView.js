@@ -119,7 +119,8 @@ const Clients = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
+  const [contactFilter, setContactFilter] = useState('');
   const [detailsClient, setDetailsClient] = useState(null);
   const [clientOrders, setClientOrders] = useState(null);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -306,18 +307,12 @@ const Clients = () => {
   ];
 
   const filteredClients = clients.filter((client) => {
-    const haystack = [
-      client.clientCode,
-      client.clientName,
-      client.contactNumber,
-      client.vip ? 'vip' : 'standard',
-      client.notes,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+    const nameMatch = !nameFilter.trim()
+      || String(client.clientName || '').toLowerCase().includes(nameFilter.trim().toLowerCase());
+    const contactMatch = !contactFilter.trim()
+      || String(client.contactNumber || '').toLowerCase().includes(contactFilter.trim().toLowerCase());
 
-    return haystack.includes(searchQuery.trim().toLowerCase());
+    return nameMatch && contactMatch;
   });
 
   const clientStats = [
@@ -375,14 +370,25 @@ const Clients = () => {
             <div className="search-and-filter-row">
               <SearchField
                 className="client-search-bar"
-                wrapperProps={{ 'aria-label': 'Client search' }}
+                wrapperProps={{ 'aria-label': 'Client name search' }}
                 type="text"
-                value={searchQuery}
+                value={nameFilter}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                  setNameFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search clients by name, contact, or notes"
+                placeholder="Search by client name"
+              />
+              <SearchField
+                className="client-search-bar"
+                wrapperProps={{ 'aria-label': 'Client contact number search' }}
+                type="text"
+                value={contactFilter}
+                onChange={(e) => {
+                  setContactFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search by contact number"
               />
             </div>
 
