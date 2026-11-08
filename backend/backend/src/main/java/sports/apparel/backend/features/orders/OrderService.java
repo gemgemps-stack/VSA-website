@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sports.apparel.backend.entity.Client;
 import sports.apparel.backend.entity.Inventory;
 import sports.apparel.backend.entity.Order;
-import sports.apparel.backend.features.clients.ClientRepository;
+import sports.apparel.backend.features.clients.ClientService;
 import sports.apparel.backend.features.inventory.InventoryRepository;
 
 import java.time.LocalDate;
@@ -32,19 +32,19 @@ public class OrderService {
     public static final String STATUS_CANCELLED = "CANCELLED";
 
     private final OrderRepository orderRepository;
-    private final ClientRepository clientRepository;
+    private final ClientService clientService;
     private final InventoryRepository inventoryRepository;
     private final JobOrderNumberService jobOrderNumberService;
     private final sports.apparel.backend.features.income.IncomeSourceService incomeSourceService;
     private final IdempotencyService idempotencyService;
 
-    public OrderService(OrderRepository orderRepository, ClientRepository clientRepository,
+    public OrderService(OrderRepository orderRepository, ClientService clientService,
                        InventoryRepository inventoryRepository,
                        JobOrderNumberService jobOrderNumberService,
                        sports.apparel.backend.features.income.IncomeSourceService incomeSourceService,
                        IdempotencyService idempotencyService) {
         this.orderRepository = orderRepository;
-        this.clientRepository = clientRepository;
+        this.clientService = clientService;
         this.inventoryRepository = inventoryRepository;
         this.jobOrderNumberService = jobOrderNumberService;
         this.incomeSourceService = incomeSourceService;
@@ -62,14 +62,12 @@ public class OrderService {
     }
 
     private OrderDTO createOrderInternal(CreateOrderRequest request) {
-        Client client = null;
-        if (request.getClientId() != null) {
-            client = clientRepository.findById(request.getClientId())
-                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
-        }
+        Client client = clientService.findOrRegisterClient(request.getClientId(), request.getClientName(),
+                request.getContactNumber(), request.getCompanySchool(), request.getCityMunicipality());
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
-        String resolvedStatus = resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL);
+        String resolvedStatus = applyDownPaymentStatus(
+                resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL), downPayment);
         String resolvedModeOfPayment = resolveStoredModeOfPayment(request.getModeOfPayment(), null);
 
         validateModeOfPaymentForStatus(resolvedStatus, resolvedModeOfPayment);
@@ -78,6 +76,9 @@ public class OrderService {
         order.setJobOrderNo(jobOrderNumberService.generateJobOrderNumber(request.getOrderDate()));
         order.setClient(client);
         order.setClientName(request.getClientName());
+        order.setContactNumber(resolveClientValue(request.getContactNumber(), client != null ? client.getContactNumber() : null));
+        order.setCompanySchool(resolveClientValue(request.getCompanySchool(), client != null ? client.getCompanySchool() : null));
+        order.setCityMunicipality(resolveClientValue(request.getCityMunicipality(), client != null ? client.getCityMunicipality() : null));
         order.setTeamName(request.getTeamName());
         order.setFreebie(request.getFreebie());
         order.setDiscount(discount);
@@ -114,6 +115,8 @@ public class OrderService {
         }
 
         populateLegacySummaryFields(order);
+
+        order.setStatus(applyFullPaymentStatus(order.getStatus(), downPayment, calculateTotalDue(order)));
 
         Order savedOrder = orderRepository.save(order);
 
@@ -180,8 +183,14 @@ public class OrderService {
         return downPayment.min(totalDue);
     }
 
-    private String resolveStoredModeOfPayment(String requestedModeOfPayment, String fallbackModeOfPayment) {
-        if (requestedModeOfPayment != null && !requestedModeOfPayment.isBlank()) {
+    private String resolveClientValue(String requestedValue, String fallbackValue) {
+        if (requestedValue != null && !requestedValue.isBlank()) {
+            return requestedValue;
+        }
+        return fallbackValue;
+    }
+
+    private String resolveStoredModeOfPayment(String requestedModeOfPayment, String fallbackModeOfPayment) {        if (requestedModeOfPayment != null && !requestedModeOfPayment.isBlank()) {
             return requestedModeOfPayment;
         }
         if (fallbackModeOfPayment != null && !fallbackModeOfPayment.isBlank()) {
@@ -319,11 +328,8 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        Client client = null;
-        if (request.getClientId() != null) {
-            client = clientRepository.findById(request.getClientId())
-                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
-        }
+        Client client = clientService.findOrRegisterClient(request.getClientId(), request.getClientName(),
+                request.getContactNumber(), request.getCompanySchool(), request.getCityMunicipality());
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
         String oldStatus = order.getStatus();
@@ -336,6 +342,9 @@ public class OrderService {
 
         order.setClient(client);
         order.setClientName(request.getClientName());
+        order.setContactNumber(resolveClientValue(request.getContactNumber(), client != null ? client.getContactNumber() : null));
+        order.setCompanySchool(resolveClientValue(request.getCompanySchool(), client != null ? client.getCompanySchool() : null));
+        order.setCityMunicipality(resolveClientValue(request.getCityMunicipality(), client != null ? client.getCityMunicipality() : null));
         order.setTeamName(request.getTeamName());
         order.setFreebie(request.getFreebie());
         order.setDiscount(discount);
@@ -391,6 +400,7 @@ public class OrderService {
         }
 
         Order updatedOrder = orderRepository.save(order);
+
         return new OrderDTO(updatedOrder);
     }
 
@@ -428,6 +438,32 @@ public class OrderService {
         return new OrderDTO(updatedOrder);
     }
 
+
+    private String applyDownPaymentStatus(String status, BigDecimal downPayment) {
+        if (downPayment != null && downPayment.compareTo(BigDecimal.ZERO) > 0
+                && (STATUS_FOR_CLIENT_APPROVAL.equalsIgnoreCase(status)
+                    || STATUS_NOT_APPROVED.equalsIgnoreCase(status)
+                    || STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(status))) {
+            return STATUS_IN_PRODUCTION;
+        }
+        return status;
+    }
+
+    private String applyFullPaymentStatus(String status, BigDecimal downPayment, BigDecimal totalDue) {
+        if (downPayment == null || totalDue == null
+                || downPayment.compareTo(BigDecimal.ZERO) <= 0
+                || totalDue.compareTo(BigDecimal.ZERO) <= 0
+                || downPayment.compareTo(totalDue) < 0) {
+            return status;
+        }
+        if (STATUS_FOR_CLIENT_APPROVAL.equalsIgnoreCase(status)
+                || STATUS_NOT_APPROVED.equalsIgnoreCase(status)
+                || STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(status)
+                || STATUS_IN_PRODUCTION.equalsIgnoreCase(status)) {
+            return STATUS_FULLY_PAID;
+        }
+        return status;
+    }
 
     private String resolveStatus(String requestedStatus, String fallbackStatus) {
         if (requestedStatus == null || requestedStatus.isBlank()) {

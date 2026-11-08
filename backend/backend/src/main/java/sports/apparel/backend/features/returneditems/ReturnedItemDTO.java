@@ -3,6 +3,7 @@ package sports.apparel.backend.features.returneditems;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import sports.apparel.backend.entity.CustomizedOrderItem;
 import sports.apparel.backend.entity.ReturnedItem;
 
 import java.time.LocalDate;
@@ -23,12 +24,14 @@ public class ReturnedItemDTO {
     private String teamName;
     private String orderStatus;
     private String productName;
+    private String surname;
     private String size;
     private String number;
     private String jerseyType;
     private Integer quantity;
     private String reason;
     private LocalDate returnDate;
+    private Boolean addedToInventory;
     private LocalDateTime createdAt;
 
     public ReturnedItemDTO(ReturnedItem returnedItem) {
@@ -55,12 +58,31 @@ public class ReturnedItemDTO {
             this.orderStatus = customizedOrder.getStatus();
         }
         this.productName = returnedItem.getProductName();
+        this.surname = returnedItem.getSurname() != null
+                ? returnedItem.getSurname()
+                : resolveSurnameFromCustomizedOrder(returnedItem);
         this.size = returnedItem.getSize();
         this.number = returnedItem.getNumber();
         this.jerseyType = returnedItem.getJerseyType();
         this.quantity = returnedItem.getQuantity();
         this.reason = returnedItem.getReason();
         this.returnDate = returnedItem.getReturnDate();
+        this.addedToInventory = Boolean.TRUE.equals(returnedItem.getAddedToInventory());
         this.createdAt = returnedItem.getCreatedAt();
+    }
+
+    private String resolveSurnameFromCustomizedOrder(ReturnedItem returnedItem) {
+        if (returnedItem.getCustomizedOrder() == null || returnedItem.getCustomizedOrder().getItems() == null) {
+            return null;
+        }
+        String productName = returnedItem.getProductName();
+        String size = returnedItem.getSize();
+        return returnedItem.getCustomizedOrder().getItems().stream()
+                .filter(item -> item.getSurname() != null)
+                .filter(item -> productName != null && productName.equalsIgnoreCase(item.getProductName()))
+                .filter(item -> size == null || item.getSize() == null || size.equalsIgnoreCase(item.getSize()))
+                .map(CustomizedOrderItem::getSurname)
+                .findFirst()
+                .orElse(null);
     }
 }

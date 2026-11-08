@@ -26,6 +26,9 @@ public class CustomizedOrderItem {
     @Column(nullable = false, length = 255)
     private String productName;
 
+    @Column(length = 255)
+    private String surname;
+
     @Column(length = 20)
     private String size;
 

@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sports.apparel.backend.entity.Client;
 import sports.apparel.backend.entity.CustomizedOrder;
-import sports.apparel.backend.features.clients.ClientRepository;
+import sports.apparel.backend.features.clients.ClientService;
 import sports.apparel.backend.features.income.IncomeSourceService;
 import sports.apparel.backend.features.income.PaymentUpdateRequest;
 import sports.apparel.backend.support.IdempotencyService;
@@ -32,18 +32,18 @@ public class CustomizedOrderService {
     public static final String STATUS_CANCELLED = "CANCELLED";
 
     private final CustomizedOrderRepository customizedOrderRepository;
-    private final ClientRepository clientRepository;
+    private final ClientService clientService;
     private final CustomizedJobOrderNumberService jobOrderNumberService;
     private final IncomeSourceService incomeSourceService;
     private final IdempotencyService idempotencyService;
 
     public CustomizedOrderService(CustomizedOrderRepository customizedOrderRepository,
-                                  ClientRepository clientRepository,
+                                  ClientService clientService,
                                   CustomizedJobOrderNumberService jobOrderNumberService,
                                   IncomeSourceService incomeSourceService,
                                   IdempotencyService idempotencyService) {
         this.customizedOrderRepository = customizedOrderRepository;
-        this.clientRepository = clientRepository;
+        this.clientService = clientService;
         this.jobOrderNumberService = jobOrderNumberService;
         this.incomeSourceService = incomeSourceService;
         this.idempotencyService = idempotencyService;
@@ -60,14 +60,12 @@ public class CustomizedOrderService {
     }
 
     private CustomizedOrderDTO createOrderInternal(CreateCustomizedOrderRequest request) {
-        Client client = null;
-        if (request.getClientId() != null) {
-            client = clientRepository.findById(request.getClientId())
-                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
-        }
+        Client client = clientService.findOrRegisterClient(request.getClientId(), request.getClientName(),
+                request.getContactNumber(), request.getCompanySchool(), request.getCityMunicipality());
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
-        String resolvedStatus = resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL);
+        String resolvedStatus = applyDownPaymentStatus(
+                resolveStatus(request.getStatus(), STATUS_FOR_CLIENT_APPROVAL), downPayment);
         String resolvedModeOfPayment = resolveStoredModeOfPayment(request.getModeOfPayment(), null);
 
         validateModeOfPaymentForStatus(resolvedStatus, resolvedModeOfPayment);
@@ -76,6 +74,9 @@ public class CustomizedOrderService {
         order.setJobOrderNo(jobOrderNumberService.generateJobOrderNumber(request.getOrderDate()));
         order.setClient(client);
         order.setClientName(request.getClientName());
+        order.setContactNumber(resolveClientValue(request.getContactNumber(), client != null ? client.getContactNumber() : null));
+        order.setCompanySchool(resolveClientValue(request.getCompanySchool(), client != null ? client.getCompanySchool() : null));
+        order.setCityMunicipality(resolveClientValue(request.getCityMunicipality(), client != null ? client.getCityMunicipality() : null));
         order.setTeamName(request.getTeamName());
         order.setFreebie(request.getFreebie());
         order.setDiscount(discount);
@@ -94,6 +95,7 @@ public class CustomizedOrderService {
             List<CustomizedOrderItem> items = request.getItems().stream().map(itemReq -> {
                 CustomizedOrderItem item = new CustomizedOrderItem();
                 item.setProductName(itemReq.getProductName());
+                item.setSurname(itemReq.getSurname());
                 item.setSize(itemReq.getSize());
                 item.setUnitPrice(itemReq.getUnitPrice());
                 item.setQuantity(itemReq.getQuantity());
@@ -105,6 +107,8 @@ public class CustomizedOrderService {
         }
 
         populateLegacySummaryFields(order);
+
+        order.setStatus(applyFullPaymentStatus(order.getStatus(), downPayment, calculateTotalDue(order)));
 
         CustomizedOrder savedOrder = customizedOrderRepository.save(order);
 
@@ -176,11 +180,8 @@ public class CustomizedOrderService {
         CustomizedOrder order = customizedOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        Client client = null;
-        if (request.getClientId() != null) {
-            client = clientRepository.findById(request.getClientId())
-                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
-        }
+        Client client = clientService.findOrRegisterClient(request.getClientId(), request.getClientName(),
+                request.getContactNumber(), request.getCompanySchool(), request.getCityMunicipality());
         BigDecimal discount = request.getDiscount() != null ? request.getDiscount() : BigDecimal.ZERO;
         BigDecimal downPayment = request.getDownPayment() != null ? request.getDownPayment() : BigDecimal.ZERO;
         String oldStatus = order.getStatus();
@@ -189,6 +190,9 @@ public class CustomizedOrderService {
 
         order.setClient(client);
         order.setClientName(request.getClientName());
+        order.setContactNumber(resolveClientValue(request.getContactNumber(), client != null ? client.getContactNumber() : null));
+        order.setCompanySchool(resolveClientValue(request.getCompanySchool(), client != null ? client.getCompanySchool() : null));
+        order.setCityMunicipality(resolveClientValue(request.getCityMunicipality(), client != null ? client.getCityMunicipality() : null));
         order.setTeamName(request.getTeamName());
         order.setFreebie(request.getFreebie());
         order.setDiscount(discount);
@@ -228,6 +232,7 @@ public class CustomizedOrderService {
                             .findFirst()
                             .ifPresent(item -> {
                                 item.setProductName(itemReq.getProductName());
+                                item.setSurname(itemReq.getSurname());
                                 item.setSize(itemReq.getSize());
                                 item.setUnitPrice(itemReq.getUnitPrice());
                                 item.setQuantity(itemReq.getQuantity());
@@ -237,6 +242,7 @@ public class CustomizedOrderService {
                     // Add new item
                     CustomizedOrderItem newItem = new CustomizedOrderItem();
                     newItem.setProductName(itemReq.getProductName());
+                    newItem.setSurname(itemReq.getSurname());
                     newItem.setSize(itemReq.getSize());
                     newItem.setUnitPrice(itemReq.getUnitPrice());
                     newItem.setQuantity(itemReq.getQuantity());
@@ -257,6 +263,7 @@ public class CustomizedOrderService {
         }
 
         CustomizedOrder updatedOrder = customizedOrderRepository.save(order);
+
         return new CustomizedOrderDTO(updatedOrder);
     }
 
@@ -287,6 +294,13 @@ public class CustomizedOrderService {
 
         BigDecimal downPayment = requestedDownPayment != null ? requestedDownPayment : BigDecimal.ZERO;
         return downPayment.min(totalDue);
+    }
+
+    private String resolveClientValue(String requestedValue, String fallbackValue) {
+        if (requestedValue != null && !requestedValue.isBlank()) {
+            return requestedValue;
+        }
+        return fallbackValue;
     }
 
     private String resolveStoredModeOfPayment(String requestedModeOfPayment, String fallbackModeOfPayment) {
@@ -416,6 +430,32 @@ public class CustomizedOrderService {
         order.setOrderRetail(orderRetail.isBlank() ? "" : orderRetail);
         order.setQuantity(quantity);
         order.setPrice(price);
+    }
+
+    private String applyDownPaymentStatus(String status, BigDecimal downPayment) {
+        if (downPayment != null && downPayment.compareTo(BigDecimal.ZERO) > 0
+                && (STATUS_FOR_CLIENT_APPROVAL.equalsIgnoreCase(status)
+                    || STATUS_NOT_APPROVED.equalsIgnoreCase(status)
+                    || STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(status))) {
+            return STATUS_IN_PRODUCTION;
+        }
+        return status;
+    }
+
+    private String applyFullPaymentStatus(String status, BigDecimal downPayment, BigDecimal totalDue) {
+        if (downPayment == null || totalDue == null
+                || downPayment.compareTo(BigDecimal.ZERO) <= 0
+                || totalDue.compareTo(BigDecimal.ZERO) <= 0
+                || downPayment.compareTo(totalDue) < 0) {
+            return status;
+        }
+        if (STATUS_FOR_CLIENT_APPROVAL.equalsIgnoreCase(status)
+                || STATUS_NOT_APPROVED.equalsIgnoreCase(status)
+                || STATUS_DOWN_PAYMENT_PENDING.equalsIgnoreCase(status)
+                || STATUS_IN_PRODUCTION.equalsIgnoreCase(status)) {
+            return STATUS_FULLY_PAID;
+        }
+        return status;
     }
 
     private String resolveStatus(String requestedStatus, String fallbackStatus) {

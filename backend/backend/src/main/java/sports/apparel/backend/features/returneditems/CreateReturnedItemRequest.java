@@ -18,6 +18,8 @@ public class CreateReturnedItemRequest {
 
     private String productName;
 
+    private String surname;
+
     private String size;
 
     private String number;

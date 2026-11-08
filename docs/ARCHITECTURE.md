@@ -33,7 +33,7 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 
 ## 🗄️ Database schema (tables from entities; JPA `ddl-auto=update`)
 
-> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V41` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
+> Flyway is **disabled by default** (`SPRING_FLYWAY_ENABLED=false` in every profile). There is **no `V1` migration** — tables are created by Hibernate. Migrations `V2`–`V45` in `src/main/resources/db/migration/` only alter an existing schema and only run when Flyway is explicitly enabled.
 
 | Table | Key columns / notes |
 | --- | --- |
@@ -41,10 +41,11 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 | `user_roles` | `id`, `user_id` FK→users, persisted role enum; extra roles beyond the primary `users.role` (multi-role via join table, since V37). API names `GRAPHIC` and `MACHINE` map to legacy persisted values. |
 | `permissions` | `id`, `user_id` FK→users, `page_name` (e.g. `INVENTORY_ORDERS`, `CUSTOMIZED_ORDERS`, `TEAMS`, `INVENTORY`, `CLIENTS`, `SOURCE_OF_INCOME`, `ATTENDANCE`) |
 | `clients` | `id`, `client_code` (unique), `client_name`, `contact_number`, `vip`, `notes`, `created_at` |
-| `orders` | `id`, `job_order_no` (unique), `request_fingerprint` (unique, idempotency), `client_id` FK (nullable), `client_name`, `team_name`, `order_retail`, `quantity`, `freebie`, `discount`, `price`, `down_payment`, `shop`, `order_date`, `mode_of_payment`, `remarks`, `reference_number`, `status`, `inventory_deducted`, `version`, `created_at` |
+| `orders` | `id`, `job_order_no` (unique), `request_fingerprint` (unique, idempotency), `client_id` FK (nullable), `client_name`, `contact_number`, `company_school`, `city_municipality` (contact snapshot since V43), `team_name`, `order_retail`, `quantity`, `freebie`, `discount`, `price`, `down_payment`, `shop`, `order_date`, `mode_of_payment`, `remarks`, `reference_number`, `status`, `inventory_deducted`, `version`, `created_at` |
 | `order_items` | `id`, `order_id` FK, `product_name`, `size`, `number`, `jersey_type`, `unit_price`, `quantity` |
-| `customized_orders` | same core columns as `orders` (minus `inventory_deducted`); `graphic_artist` (since V40) |
-| `customized_order_items` | `id`, `customized_order_id` FK, `product_name`, `size`, `unit_price`, `quantity` |
+| `customized_orders` | same core columns as `orders` (minus `inventory_deducted`); includes the same client contact snapshot columns; `graphic_artist` (since V40) |
+| `customized_order_items` | `id`, `customized_order_id` FK, `product_name`, `surname` (since V44), `size`, `unit_price`, `quantity` |
+| `returned_items` | `id`, `order_id`/`customized_order_id` FK (exactly one), `product_name`, `surname` (since V45), `size`, `number`, `jersey_type`, `quantity`, `reason`, `return_date`, `added_to_inventory` (default `false`, V42), `request_fingerprint` (unique), `version`, `created_at` (since V34) |
 | `inventory` | `id`, `item_type`, `jersey_type`, `name`, `shop`, `graphic_artist` (since V39), `size`, `number`, `notes`, `quantity`, `price`, `created_at` |
 | `income_sources` | `id`, `shop_type`, `payment_method`, `income_date`, `client_id` FK (nullable), `client_code`, `client_name`, `team_name`, `job_order_no`, `amount`, `reference_number`, `check_number`, `payment_category`, `remarks`, `created_at` |
 | `teams` | `id`, `team_name` (unique), `quantity`, `transit_date`, `created_at` |
@@ -52,6 +53,8 @@ Base path: `server.servlet.context-path=/`. All feature endpoints are under `/ap
 | `employee_attendance` | `id`, `user_id` FK, `attendance_date`, `request_fingerprint` (unique), `time_in`, `time_out`, `status`, `notes`, `version`, `created_at`, `updated_at`; unique `(user_id, attendance_date)` |
 
 All primary keys are UUIDs (`GenerationType.UUID`).
+
+Unregistered clients are registered automatically from the order modals. On order create/update with no `client_id`, a matching client name (case-insensitive) links the order to that existing client; otherwise, if a contact number is present, a new `clients` row is created with a generated client code and linked to the order. Without a contact number the order stays a walk-in (`client_id` null).
 
 ## 🔐 Security model
 
@@ -69,7 +72,7 @@ All primary keys are UUIDs (`GenerationType.UUID`).
 
 - `frontend/src/services/api.js` — single axios instance; base-URL discovery; CSRF attach; Bearer attach; `DEBUG_API_REQUESTS=true` debug logging.
 - Per-domain service modules (`orderService.js`, `incomeService.js`, …) call `api.<verb>('/api/...')`.
-- `frontend/src/App.js` — routes: `/login`, `/dashboard`, `/orders` (INVENTORY_ORDERS), `/orders-overview/:view`, `/customized-orders` (CUSTOMIZED_ORDERS), `/returns` (INVENTORY_ORDERS or CUSTOMIZED_ORDERS or INVENTORY), `/inventory` (INVENTORY), `/clients` (CLIENTS), `/income` (SOURCE_OF_INCOME), `/employees` (EMPLOYEES), `/attendance` (ATTENDANCE); `/teams` and `/payment-methods` redirect.
+- `frontend/src/App.js` — routes: `/login`, `/dashboard`, `/orders` (INVENTORY_ORDERS), `/orders-overview/:view`, `/customized-orders` (CUSTOMIZED_ORDERS), `/returns` (RETURNED_ORDERS), `/inventory` (INVENTORY), `/clients` (CLIENTS), `/income` (SOURCE_OF_INCOME), `/employees` (EMPLOYEES), `/attendance` (ATTENDANCE); `/teams` and `/payment-methods` redirect.
 - `frontend/src/context/AuthContext.js` — on load: `GET /api/auth/csrf`, then `GET /api/auth/me` to restore the session from `localStorage`.
 - Frontend permission aliases (`utils/permissions.js`) map legacy names: `ORDERS` ⇒ `INVENTORY_ORDERS`+`CUSTOMIZED_ORDERS`, `PAYMENT_METHODS` ⇔ `SOURCE_OF_INCOME`.
 - Keep-alive ping: `frontend/src/App.js` pings `GET /ping` every 10 minutes when `REACT_APP_API_URL` is set (keeps the Render free instance warm).

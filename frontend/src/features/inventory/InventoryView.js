@@ -175,6 +175,14 @@ const Inventory = () => {
     setCurrentPage(1);
   }, [appliedFilters, lowStockOnly, showZeroStock]);
 
+  const toggleLowStockOnly = () => {
+    const next = !lowStockOnly;
+    setLowStockOnly(next);
+    if (!next) {
+      setShowZeroStock(false);
+    }
+  };
+
   const handleEdit = (item) => {
     setEditingItem(item);
     setFormData({
@@ -382,17 +390,9 @@ const columns = [
           </div>
           <button
             type="button"
-            className={`low-stock-toggle${showZeroStock ? ' is-active' : ''}`}
-            aria-pressed={showZeroStock}
-            onClick={() => setShowZeroStock((value) => !value)}
-          >
-            {showZeroStock ? 'Hide items with zero stocks' : 'Show items with zero stocks'}
-          </button>
-          <button
-            type="button"
             className={`low-stock-toggle${lowStockOnly ? ' is-active' : ''}`}
             aria-pressed={lowStockOnly}
-            onClick={() => setLowStockOnly((value) => !value)}
+            onClick={toggleLowStockOnly}
           >
             {lowStockOnly
               ? 'Show in-stock items'

@@ -5,7 +5,6 @@ const returnedItemService = {
   createReturnedItem: (data) => api.post('/api/returned-items', data),
 
   createReturnedItemsBulk: (items) => api.post('/api/returned-items/bulk', items),
-
   getAllReturnedItems: (page = 0, size = 50, filters = {}) => {
     const { sort, ...rest } = filters;
     return api.get('/api/returned-items', {
@@ -23,6 +22,8 @@ const returnedItemService = {
     api.get(`/api/returned-items/by-customized-order/${customizedOrderId}`),
 
   updateReturnedItem: (id, data) => api.put(`/api/returned-items/${id}`, data),
+
+  markAddedToInventory: (id) => api.patch(`/api/returned-items/${id}/inventory-added`),
 
   deleteReturnedItem: (id) => api.delete(`/api/returned-items/${id}`),
 };

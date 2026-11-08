@@ -22,6 +22,9 @@ public class CustomizedOrderDTO {
     private UUID clientId;
     private String clientName;
     private String clientCode;
+    private String contactNumber;
+    private String companySchool;
+    private String cityMunicipality;
     private String teamName;
     private String orderRetail;
     private Integer quantity;
@@ -37,6 +40,7 @@ public class CustomizedOrderDTO {
     public static class ItemDTO {
         private UUID id;
         private String productName;
+        private String surname;
         private String size;
         private BigDecimal unitPrice;
         private Integer quantity;
@@ -68,10 +72,19 @@ public class CustomizedOrderDTO {
             this.clientCode = null;
         }
         this.teamName = order.getTeamName();
+        this.contactNumber = order.getContactNumber() != null
+                ? order.getContactNumber()
+                : (order.getClient() != null ? order.getClient().getContactNumber() : null);
+        this.companySchool = order.getCompanySchool() != null
+                ? order.getCompanySchool()
+                : (order.getClient() != null ? order.getClient().getCompanySchool() : null);
+        this.cityMunicipality = order.getCityMunicipality() != null
+                ? order.getCityMunicipality()
+                : (order.getClient() != null ? order.getClient().getCityMunicipality() : null);
         this.orderRetail = order.getOrderRetail();
         this.quantity = order.getQuantity();
         this.items = order.getItems().stream()
-                .map(item -> new ItemDTO(item.getId(), item.getProductName(), item.getSize(), item.getUnitPrice(), item.getQuantity(), item.getInventoryId()))
+                .map(item -> new ItemDTO(item.getId(), item.getProductName(), item.getSurname(), item.getSize(), item.getUnitPrice(), item.getQuantity(), item.getInventoryId()))
                 .collect(Collectors.toList());
         this.freebie = order.getFreebie();
         this.discount = order.getDiscount();

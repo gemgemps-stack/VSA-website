@@ -1,0 +1,1 @@
+ALTER TABLE returned_items ADD COLUMN IF NOT EXISTS added_to_inventory BOOLEAN DEFAULT FALSE;

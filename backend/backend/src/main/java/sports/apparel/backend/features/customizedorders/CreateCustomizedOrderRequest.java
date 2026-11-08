@@ -19,6 +19,12 @@ public class CreateCustomizedOrderRequest {
 
     private String clientName;
 
+    private String contactNumber;
+
+    private String companySchool;
+
+    private String cityMunicipality;
+
     private String teamName;
 
     @NotEmpty(message = "At least one item is required")
@@ -32,6 +38,8 @@ public class CreateCustomizedOrderRequest {
 
         @NotBlank(message = "Product name is required")
         private String productName;
+
+        private String surname;
 
         private String size;
 

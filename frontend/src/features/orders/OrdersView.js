@@ -92,6 +92,14 @@ const getInventoryLabel = (item) => {
 
 const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
 
+const formatPhoneNumber = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
+
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+};
+
 const getOrderFinancials = (order) => {
   if (!order) return { total: 0, afterDiscountTotal: 0, remainingAfterDownPayment: 0 };
   
@@ -195,6 +203,9 @@ const buildReturnedItemsPdfBlob = (order, returnedItems) => {
 
 const createInitialFormData = () => ({
   clientId: null,
+  contactNumber: '',
+  companySchool: '',
+  cityMunicipality: '',
   teamName: '',
   items: [{ productName: '', size: '', number: '', jerseyType: '', unitPrice: '', quantity: '' }],
   freebie: '',
@@ -435,7 +446,14 @@ const Orders = () => {
   });
 
   const handleClientSelect = (client) => {
-    setFormData((prev) => ({ ...prev, clientId: client.id, downPayment: client.vip ? '0' : prev.downPayment }));
+    setFormData((prev) => ({
+      ...prev,
+      clientId: client.id,
+      contactNumber: client.contactNumber || '',
+      companySchool: client.companySchool || '',
+      cityMunicipality: client.cityMunicipality || '',
+      downPayment: client.vip ? '0' : prev.downPayment,
+    }));
     setClientSearch(client.clientName || '');
     setClientSuggestionsOpen(false);
   };
@@ -661,6 +679,9 @@ const Orders = () => {
     setEditingOrder(order);
     setFormData({
       clientId: order.clientId || null,
+      contactNumber: order.contactNumber || '',
+      companySchool: order.companySchool || '',
+      cityMunicipality: order.cityMunicipality || '',
       teamName: order.teamName || '',
       items: (order.items || []).map(item => ({
         productName: item.productName || '',
@@ -754,9 +775,17 @@ const Orders = () => {
         setFieldErrors((prev) => ({ ...prev, downPayment: 'Down payment cannot be less than zero.' }));
         return;
       }
-      const statusToSave = (editingOrder?.status === ORDER_STATUS.NOT_APPROVED)
-        ? ORDER_STATUS.FOR_CLIENT_APPROVAL
-        : (editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL);
+      const discountedTotal = getDiscountedTotal();
+      const isFullPayment = downPaymentAmount > 0
+        && discountedTotal > 0
+        && Math.abs(downPaymentAmount - discountedTotal) < 0.01;
+      const statusToSave = editingOrder
+        ? ((editingOrder.status === ORDER_STATUS.NOT_APPROVED)
+            ? ORDER_STATUS.FOR_CLIENT_APPROVAL
+            : editingOrder.status)
+        : (isFullPayment
+            ? ORDER_STATUS.FULLY_PAID
+            : (downPaymentAmount > 0 ? ORDER_STATUS.IN_PRODUCTION : ORDER_STATUS.FOR_CLIENT_APPROVAL));
       const selectedModeOfPayment = formData.modeOfPayment.trim();
       if (downPaymentAmount > 0 && !selectedModeOfPayment) {
         setFieldErrors((prev) => ({ ...prev, modeOfPayment: 'Please select a mode of payment.' }));
@@ -772,7 +801,6 @@ const Orders = () => {
         setFieldErrors((prev) => ({ ...prev, checkNumber: 'Please provide a Check Number for cheque payments.' }));
         return;
       }
-      const discountedTotal = getDiscountedTotal();
       if (downPaymentAmount > discountedTotal) {
         setFieldErrors((prev) => ({ ...prev, downPayment: `Down payment cannot exceed the total discounted amount (${formatMoney(discountedTotal)}).` }));
         return;
@@ -781,6 +809,9 @@ const Orders = () => {
       const payload = {
         clientId: formData.clientId || null,
         clientName: clientSearch.trim(),
+        contactNumber: formData.contactNumber.trim() || null,
+        companySchool: formData.companySchool.trim() || null,
+        cityMunicipality: formData.cityMunicipality.trim() || null,
         teamName: formData.teamName.trim() || null,
         items: formData.items.map(item => ({
           productName: item.productName.trim(),
@@ -1274,7 +1305,7 @@ const Orders = () => {
                       type="text"
                       style={styles.input}
                       value={clientSearch}
-                      onChange={(e) => { setClientSearch(e.target.value); setClientSuggestionsOpen(true); setFormData(p => ({ ...p, clientId: null })); }}
+                      onChange={(e) => { setClientSearch(e.target.value); setClientSuggestionsOpen(true); setFormData(p => ({ ...p, clientId: null, contactNumber: '', companySchool: '', cityMunicipality: '' })); }}
                       onFocus={() => setClientSuggestionsOpen(true)}
                       onBlur={() => setTimeout(() => setClientSuggestionsOpen(false), 200)}
                       placeholder="Enter client name"
@@ -1290,7 +1321,7 @@ const Orders = () => {
                       </div>
                     )}
                   </div>
-                  <small style={{ color: '#666', fontSize: '0.75rem' }}>Type any client name. This does not need to match a saved client.</small>
+                  <small style={{ color: '#666', fontSize: '0.75rem' }}>Type any client name. A new client with a contact number is added to Clients when the order is saved.</small>
                 </div>
 
                 <div style={styles.formGroup}>
@@ -1301,6 +1332,43 @@ const Orders = () => {
                     value={formData.teamName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, teamName: e.target.value }))}
                     placeholder="Enter team name"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+
+              <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Contact Number</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    style={styles.input}
+                    value={formData.contactNumber}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, contactNumber: formatPhoneNumber(e.target.value) }))}
+                    placeholder="e.g., 0917-123-4567"
+                    autoComplete="off"
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Company / School</label>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    value={formData.companySchool}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, companySchool: e.target.value }))}
+                    placeholder="Enter company or school"
+                    autoComplete="off"
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>City / Municipality</label>
+                  <input
+                    type="text"
+                    style={styles.input}
+                    value={formData.cityMunicipality}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, cityMunicipality: e.target.value }))}
+                    placeholder="Enter city or municipality"
                     autoComplete="off"
                   />
                 </div>
@@ -1540,6 +1608,30 @@ const Orders = () => {
                     <span>{selectedOrder.discount || 0}%</span>
                   </div>
                 </div>
+
+                {(selectedOrder.status === ORDER_STATUS.IN_PRODUCTION
+                  || selectedOrder.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
+                  <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {selectedOrder.status === ORDER_STATUS.IN_PRODUCTION && (
+                      <button
+                        type="button"
+                        style={{ ...styles.button, ...styles.buttonPrimary }}
+                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
+                      >
+                        Set status to 'Not Yet Fully Paid'
+                      </button>
+                    )}
+                    {getRemainingBalance(selectedOrder) <= 0.01 && (
+                      <button
+                        type="button"
+                        style={{ ...styles.button, backgroundColor: '#28a745', color: 'white' }}
+                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID, { skipModeValidation: true })}
+                      >
+                        Mark as Fully Paid
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={styles.label}>Products:</label>

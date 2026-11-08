@@ -63,6 +63,12 @@
   color: #a12622;
 }
 
+.returned-item-added {
+  color: #016667;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .returns-filter-bar {
     grid-template-columns: 1fr;

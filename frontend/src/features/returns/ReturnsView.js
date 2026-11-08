@@ -48,15 +48,9 @@ const ORDER_TYPE_OPTIONS = [
   { value: 'CUSTOMIZED', label: 'Customized orders' },
 ];
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'All statuses' },
-  ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
-];
-
 const createInitialFilters = () => ({
   orderType: '',
   clientName: '',
-  status: '',
   dateFrom: '',
   dateTo: '',
 });
@@ -201,7 +195,6 @@ const Returns = () => {
       const response = await returnedItemService.getAllReturnedItems(currentPage - 1, PAGE_SIZE, {
         orderType: appliedFilters.orderType || undefined,
         clientName: appliedFilters.clientName.trim() || undefined,
-        status: appliedFilters.status || undefined,
         dateFrom: appliedFilters.dateFrom || undefined,
         dateTo: appliedFilters.dateTo || undefined,
         sort: 'returnDate,desc,createdAt,desc',
@@ -344,6 +337,7 @@ const Returns = () => {
 
     try {
       setSavingInventory(true);
+      const returnedItem = inventoryModalItem;
       await inventoryService.createInventory({
         itemType: inventoryForm.itemType.trim(),
         jerseyType: inventoryForm.jerseyType.trim() || null,
@@ -356,6 +350,19 @@ const Returns = () => {
         price,
         notes: inventoryForm.notes.trim() || null,
       });
+      if (returnedItem?.id) {
+        try {
+          const response = await returnedItemService.markAddedToInventory(returnedItem.id);
+          const updated = response?.data;
+          setDetailsItems((current) => current.map((item) => (
+            item.id === returnedItem.id
+              ? { ...item, ...(updated || {}), addedToInventory: true }
+              : item
+          )));
+        } catch (markError) {
+          console.error('Error marking returned item as added to inventory:', markError);
+        }
+      }
       notifySuccess('Item added to inventory successfully');
       setInventoryModalItem(null);
       setInventoryForm(createInventoryForm());
@@ -496,18 +503,6 @@ const Returns = () => {
                 onChange={(e) => updateFilter('clientName', e.target.value)}
                 placeholder="      Search client"
               />
-              <select
-                className="returns-filter-select"
-                value={filters.status}
-                onChange={(e) => updateFilter('status', e.target.value)}
-                aria-label="Filter by order status"
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value || 'all'} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
               <SearchField
                 type="date"
                 value={filters.dateFrom}
@@ -626,7 +621,7 @@ const Returns = () => {
       </div>
       <Modal
         isOpen={Boolean(detailsGroup)}
-        title={detailsGroup ? `Returned Items: ${detailsGroup.jobOrderNo || 'Order'}` : 'Returned Items'}
+        title={detailsGroup ? `Returned Items: Order ID - ${detailsGroup.jobOrderNo || 'Order'}` : 'Returned Items'}
         onClose={closeDetails}
         size="large"
       >
@@ -662,12 +657,11 @@ const Returns = () => {
                     <table className="datatable">
                       <thead>
                         <tr>
-                          <th>Returned Item</th>
+                          <th>Item Name</th>
+                          {detailsGroup.orderType === 'CUSTOMIZED' && <th>Surname</th>}
                           <th>Version</th>
                           <th>Size</th>
-                          <th>Number</th>
                           <th>Quantity</th>
-                          <th>Reason</th>
                           <th>Return Date</th>
                           <th>Action</th>
                         </tr>
@@ -676,20 +670,23 @@ const Returns = () => {
                         {detailsItems.map((item) => (
                           <tr key={item.id}>
                             <td>{item.productName || '-'}</td>
+                            {detailsGroup.orderType === 'CUSTOMIZED' && <td>{item.surname || '-'}</td>}
                             <td>{item.jerseyType || '-'}</td>
                             <td>{item.size || '-'}</td>
-                            <td>{item.number || '-'}</td>
                             <td>{item.quantity ?? 0}</td>
-                            <td>{item.reason || '-'}</td>
                             <td>{formatDate(item.returnDate || item.createdAt)}</td>
                             <td className="actions">
-                              <button
-                                type="button"
-                                className="btn-primary"
-                                onClick={() => openInventoryModal(item)}
-                              >
-                                Add to inventory
-                              </button>
+                              {item.addedToInventory ? (
+                                <span className="returned-item-added">Items returned</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn-primary"
+                                  onClick={() => openInventoryModal(item)}
+                                >
+                                  Add to inventory
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}

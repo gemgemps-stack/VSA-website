@@ -74,6 +74,14 @@ const getStatusLabel = (status) => {
 
 const formatMoney = (value) => `PHP ${(Number(value) || 0).toFixed(2)}`;
 
+const formatPhoneNumber = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
+
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+};
+
 const getOrderFinancials = (order) => {
   if (!order) {
     return {
@@ -101,8 +109,11 @@ const getOrderFinancials = (order) => {
 
 const createInitialFormData = () => ({
   clientId: null,
+  contactNumber: '',
+  companySchool: '',
+  cityMunicipality: '',
   teamName: '',
-  items: [{ productName: '', size: '', unitPrice: '', quantity: '' }],
+  items: [{ productName: '', surname: '', size: '', unitPrice: '', quantity: '' }],
   freebie: '',
   discount: '0',
   downPayment: '0',
@@ -493,6 +504,9 @@ const CustomizedOrders = () => {
     setFormData((prev) => ({
       ...prev,
       clientId: client.id,
+      contactNumber: client.contactNumber || '',
+      companySchool: client.companySchool || '',
+      cityMunicipality: client.cityMunicipality || '',
     }));
     setClientSearch(client.clientName || '');
     setClientSuggestionsOpen(false);
@@ -504,6 +518,9 @@ const CustomizedOrders = () => {
     setFormData((prev) => ({
       ...prev,
       clientId: null,
+      contactNumber: '',
+      companySchool: '',
+      cityMunicipality: '',
     }));
   };
 
@@ -514,7 +531,7 @@ const CustomizedOrders = () => {
   const handleAddItem = () => {
     setFormData((prev) => ({
       ...prev,
-      items: [...prev.items, { productName: '', size: '', unitPrice: '', quantity: '' }],
+      items: [...prev.items, { productName: '', surname: '', size: '', unitPrice: '', quantity: '' }],
     }));
   };
 
@@ -599,10 +616,14 @@ const CustomizedOrders = () => {
     setEditingOrder(order);
     setFormData({
       clientId: order?.clientId || null,
+      contactNumber: order?.contactNumber || '',
+      companySchool: order?.companySchool || '',
+      cityMunicipality: order?.cityMunicipality || '',
       teamName: order?.teamName || '',
       items: (order?.items || []).map(item => ({
         id: item.id,
         productName: item.productName || '',
+        surname: item.surname || '',
         size: item.size || '',
         unitPrice: item.unitPrice != null ? String(item.unitPrice) : '',
         quantity: item.quantity != null ? String(item.quantity) : '',
@@ -621,7 +642,7 @@ const CustomizedOrders = () => {
       notes: order?.remarks || '',
     });
     if (order?.items?.length === 0) {
-      setFormData(prev => ({ ...prev, items: [{ productName: '', size: '', unitPrice: '', quantity: '' }] }));
+      setFormData(prev => ({ ...prev, items: [{ productName: '', surname: '', size: '', unitPrice: '', quantity: '' }] }));
     }
     setClientSearch(order?.clientName || '');
     setClientSuggestionsOpen(false);
@@ -687,7 +708,11 @@ const CustomizedOrders = () => {
         alert(`Down payment cannot exceed the total discounted amount (${discountedTotal.toFixed(2)}).`);
         return;
       }
-      const statusToSave = editingOrder?.status || ORDER_STATUS.FOR_CLIENT_APPROVAL;
+      const statusToSave = editingOrder
+        ? editingOrder.status
+        : (downPaymentAmount > 0 && discountedTotal > 0 && Math.abs(downPaymentAmount - discountedTotal) < 0.01
+            ? ORDER_STATUS.FULLY_PAID
+            : (downPaymentAmount > 0 ? ORDER_STATUS.IN_PRODUCTION : ORDER_STATUS.FOR_CLIENT_APPROVAL));
       const selectedModeOfPayment = formData.modeOfPayment.trim();
       if (downPaymentAmount > 0 && !selectedModeOfPayment) {
         alert('Please select a mode of payment.');
@@ -707,10 +732,14 @@ const CustomizedOrders = () => {
       const payload = {
         clientId: formData.clientId || null,
         clientName: clientSearch.trim(),
+        contactNumber: formData.contactNumber.trim() || null,
+        companySchool: formData.companySchool.trim() || null,
+        cityMunicipality: formData.cityMunicipality.trim() || null,
         teamName: formData.teamName.trim() || null,
         items: formData.items.map(item => ({
           id: item.id,
           productName: item.productName.trim(),
+          surname: item.surname.trim() || null,
           size: item.size || null,
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
@@ -778,7 +807,7 @@ const CustomizedOrders = () => {
         if (qty <= 0 || !Number.isFinite(qty)) {
           return null;
         }
-        return { productName: item.productName, size: item.size || null, quantity: qty };
+        return { productName: item.productName, surname: item.surname || null, size: item.size || null, quantity: qty };
       })
       .filter(Boolean);
 
@@ -801,6 +830,7 @@ const CustomizedOrders = () => {
         entriesToSave.map((entry) => ({
           customizedOrderId: selectedOrder.id,
           productName: entry.productName.trim(),
+          surname: entry.surname,
           size: entry.size,
           quantity: entry.quantity,
           reason: returnedItemForm.reason.trim() || null,
@@ -818,10 +848,14 @@ const CustomizedOrders = () => {
   const buildOrderPayload = (order, statusOverride) => ({
     clientId: order.clientId,
     clientName: order.clientName || null,
+    contactNumber: order.contactNumber || null,
+    companySchool: order.companySchool || null,
+    cityMunicipality: order.cityMunicipality || null,
     teamName: order.teamName || null,
     items: (order.items || []).map(item => ({
       id: item.id,
       productName: item.productName,
+      surname: item.surname || null,
       size: item.size || null,
       unitPrice: Number(item.unitPrice),
       quantity: Number(item.quantity),
@@ -1254,7 +1288,7 @@ const CustomizedOrders = () => {
                             ))}
                           </div>
                         )}
-                        <small style={styles.hint}>Type any client name. This does not need to match a saved client.</small>
+                        <small style={styles.hint}>Type any client name. A new client with a contact number is added to Clients when the order is saved.</small>
                       </div>
                     </div>
 
@@ -1271,9 +1305,47 @@ const CustomizedOrders = () => {
                     </div>
                   </div>
 
+                  {/* Row 2: Client contact details */}
+                  <div style={{ ...styles.formGrid, gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Contact Number</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="e.g., 0917-123-4567"
+                        value={formData.contactNumber}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, contactNumber: formatPhoneNumber(e.target.value) }))}
+                        style={styles.input}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Company / School</label>
+                      <input
+                        type="text"
+                        placeholder="Enter company or school"
+                        value={formData.companySchool}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, companySchool: e.target.value }))}
+                        style={styles.input}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>City / Municipality</label>
+                      <input
+                        type="text"
+                        placeholder="Enter city or municipality"
+                        value={formData.cityMunicipality}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, cityMunicipality: e.target.value }))}
+                        style={styles.input}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </div>
+
 	                  {/* Dynamic Product Items */}
 	                  {formData.items.map((item, index) => (
-	                    <div key={index} style={{ ...styles.formGrid, gridTemplateColumns: '47% 10% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
+	                    <div key={index} style={{ ...styles.formGrid, gridTemplateColumns: '22% 25% 10% 13% 8% 15% 4%', gap: '10px', alignItems: 'end', marginBottom: '10px' }}>
 	                      <div style={styles.formGroup}>
 	                        <label style={styles.label}>{index === 0 ? 'Product Name *' : ''}</label>
 	                        <input
@@ -1281,6 +1353,17 @@ const CustomizedOrders = () => {
 	                          placeholder="Enter product name..."
 	                          value={item.productName}
 	                          onChange={(e) => handleItemChange(index, 'productName', e.target.value)}
+	                          style={styles.input}
+	                        />
+	                      </div>
+
+	                      <div style={styles.formGroup}>
+	                        <label style={styles.label}>{index === 0 ? 'Surname' : ''}</label>
+	                        <input
+	                          type="text"
+	                          placeholder="Enter surname"
+	                          value={item.surname}
+	                          onChange={(e) => handleItemChange(index, 'surname', e.target.value)}
 	                          style={styles.input}
 	                        />
 	                      </div>
@@ -1610,19 +1693,45 @@ const CustomizedOrders = () => {
                   </div>
                 </div>
 
+                {(selectedOrder?.status === ORDER_STATUS.IN_PRODUCTION
+                  || selectedOrder?.status === ORDER_STATUS.NOT_YET_FULLY_PAID) && (
+                  <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {selectedOrder?.status === ORDER_STATUS.IN_PRODUCTION && (
+                      <button
+                        type="button"
+                        style={{ ...styles.button, ...styles.buttonPrimary }}
+                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.NOT_YET_FULLY_PAID)}
+                      >
+                        Set status to 'Not Yet Fully Paid'
+                      </button>
+                    )}
+                    {getRemainingBalance(selectedOrder) <= 0.01 && (
+                      <button
+                        type="button"
+                        style={{ ...styles.button, backgroundColor: '#28a745', color: 'white' }}
+                        onClick={() => updateSelectedOrderStatus(ORDER_STATUS.FULLY_PAID, { skipModeValidation: true })}
+                      >
+                        Mark as Fully Paid
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ marginBottom: '25px' }}>
                   <label style={styles.label}>Products:</label>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', tableLayout: 'fixed' }}>
                     <colgroup>
-                      <col style={{ width: '36%' }} />
+                      <col style={{ width: '26%' }} />
+                      <col style={{ width: '22%' }} />
                       <col style={{ width: '9%' }} />
-                      <col style={{ width: '18%' }} />
-                      <col style={{ width: '13%' }} />
-                      <col style={{ width: '20%' }} />
+                      <col style={{ width: '15%' }} />
+                      <col style={{ width: '11%' }} />
+                      <col style={{ width: '17%' }} />
                     </colgroup>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                         <th style={{ padding: '10px' }}>Product Name</th>
+                        <th style={{ padding: '10px' }}>Surname</th>
                         <th style={{ padding: '10px' }}>Size</th>
                         <th style={{ padding: '10px' }}>Unit Price</th>
                         <th style={{ padding: '10px' }}>Quantity</th>
@@ -1633,6 +1742,7 @@ const CustomizedOrders = () => {
                       {(selectedOrder?.items || []).map((item, index) => (
                         <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                           <td style={{ padding: '10px' }}>{item.productName}</td>
+                          <td style={{ padding: '10px' }}>{item.surname || '-'}</td>
                           <td style={{ padding: '10px' }}>{item.size || '-'}</td>
                           <td style={{ padding: '10px' }}>{formatMoney(item.unitPrice)}</td>
                           <td style={{ padding: '10px' }}>{item.quantity}</td>
@@ -1832,10 +1942,10 @@ const CustomizedOrders = () => {
                           </div>
                           <table>
                             <thead>
-                              <tr><th>Product Name</th><th>Size</th><th>Quantity</th></tr>
+                              <tr><th>Product Name</th><th>Surname</th><th>Size</th><th>Quantity</th></tr>
                             </thead>
                             <tbody>
-                              ${(order.items || []).map(item => '<tr><td>' + (item.productName || '-') + '</td><td>' + (item.size || '-') + '</td><td>' + (item.quantity || 0) + '</td></tr>').join('')}
+                              ${(order.items || []).map(item => '<tr><td>' + (item.productName || '-') + '</td><td>' + (item.surname || '-') + '</td><td>' + (item.size || '-') + '</td><td>' + (item.quantity || 0) + '</td></tr>').join('')}
                             </tbody>
                           </table>
                         </body></html>

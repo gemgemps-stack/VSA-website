@@ -70,6 +70,41 @@ public class ClientService {
     }
 
     public ClientDTO createClient(CreateClientRequest request) {
+        return new ClientDTO(persistClient(request));
+    }
+
+    public Client findOrRegisterClient(UUID clientId, String clientName, String contactNumber,
+                                       String companySchool, String cityMunicipality) {
+        if (clientId != null) {
+            return clientRepository.findById(clientId)
+                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+        }
+
+        String normalizedName = clientName == null ? "" : clientName.trim();
+        if (normalizedName.isEmpty()) {
+            return null;
+        }
+
+        Client existingClient = clientRepository.findFirstByClientNameIgnoreCase(normalizedName).orElse(null);
+        if (existingClient != null) {
+            return existingClient;
+        }
+
+        String normalizedContact = contactNumber == null ? "" : contactNumber.trim();
+        if (normalizedContact.isEmpty()) {
+            return null;
+        }
+
+        CreateClientRequest request = new CreateClientRequest();
+        request.setClientName(normalizedName);
+        request.setContactNumber(normalizedContact);
+        request.setCompanySchool(trimToNull(companySchool));
+        request.setCityMunicipality(trimToNull(cityMunicipality));
+        request.setVip(false);
+        return persistClient(request);
+    }
+
+    private Client persistClient(CreateClientRequest request) {
         Client client = new Client();
         client.setClientCode(buildClientCode(request.getClientName(), getNextClientSequence()));
         client.setClientName(request.getClientName());
@@ -79,8 +114,15 @@ public class ClientService {
         client.setVip(request.getVip() != null ? request.getVip() : false);
         client.setNotes(request.getNotes());
 
-        Client savedClient = clientRepository.save(client);
-        return new ClientDTO(savedClient);
+        return clientRepository.save(client);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public ClientDTO getClientById(UUID id) {

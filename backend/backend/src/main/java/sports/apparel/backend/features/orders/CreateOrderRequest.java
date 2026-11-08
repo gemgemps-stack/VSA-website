@@ -19,6 +19,12 @@ public class CreateOrderRequest {
 
     private String clientName;
 
+    private String contactNumber;
+
+    private String companySchool;
+
+    private String cityMunicipality;
+
     private String teamName;
 
     private List<ItemRequest> items;

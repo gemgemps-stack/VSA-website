@@ -32,6 +32,9 @@ public class ReturnedItem {
     @Column(name = "product_name", length = 255)
     private String productName;
 
+    @Column(length = 255)
+    private String surname;
+
     @Column(length = 20)
     private String size;
 
@@ -49,6 +52,9 @@ public class ReturnedItem {
 
     @Column(name = "return_date")
     private LocalDate returnDate;
+
+    @Column(name = "added_to_inventory")
+    private Boolean addedToInventory = false;
 
     @Column(name = "request_fingerprint", unique = true, length = 100)
     private String requestFingerprint;

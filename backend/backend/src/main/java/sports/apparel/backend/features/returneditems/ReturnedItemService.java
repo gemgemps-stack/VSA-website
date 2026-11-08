@@ -103,6 +103,7 @@ public class ReturnedItemService {
             returnedItem.setCustomizedOrder(customizedOrder);
         }
         returnedItem.setProductName(request.getProductName());
+        returnedItem.setSurname(request.getSurname());
         returnedItem.setSize(request.getSize());
         returnedItem.setNumber(request.getNumber());
         returnedItem.setJerseyType(request.getJerseyType());
@@ -179,6 +180,7 @@ public class ReturnedItemService {
         }
 
         returnedItem.setProductName(request.getProductName());
+        returnedItem.setSurname(request.getSurname());
         returnedItem.setSize(request.getSize());
         returnedItem.setNumber(request.getNumber());
         returnedItem.setJerseyType(request.getJerseyType());
@@ -196,6 +198,13 @@ public class ReturnedItemService {
                 .orElseThrow(() -> new IllegalArgumentException("Returned item not found"));
         unstockInventoryForReturnedItem(returnedItem);
         returnedItemRepository.delete(returnedItem);
+    }
+
+    public ReturnedItemDTO markAddedToInventory(UUID id) {
+        ReturnedItem returnedItem = returnedItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Returned item not found"));
+        returnedItem.setAddedToInventory(true);
+        return new ReturnedItemDTO(returnedItemRepository.save(returnedItem));
     }
 
     private void restockInventoryForReturnedItem(ReturnedItem returnedItem) {

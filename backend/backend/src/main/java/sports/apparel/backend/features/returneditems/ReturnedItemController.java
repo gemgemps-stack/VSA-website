@@ -73,6 +73,12 @@ public class ReturnedItemController {
         return ResponseEntity.ok(returnedItemService.updateReturnedItem(id, request));
     }
 
+    @PatchMapping("/{id}/inventory-added")
+    @PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('RETURNED_ORDERS', 'INVENTORY_ORDERS', 'ORDERS', 'CUSTOMIZED_ORDERS', 'INVENTORY')")
+    public ResponseEntity<ReturnedItemDTO> markAddedToInventory(@PathVariable UUID id) {
+        return ResponseEntity.ok(returnedItemService.markAddedToInventory(id));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteReturnedItem(@PathVariable UUID id) {

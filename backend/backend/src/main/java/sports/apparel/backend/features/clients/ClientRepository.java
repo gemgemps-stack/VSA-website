@@ -17,4 +17,6 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
     List<Client> findAllByOrderByCreatedAtAsc();
 
     Optional<Client> findByClientCode(String clientCode);
+
+    Optional<Client> findFirstByClientNameIgnoreCase(String clientName);
 }

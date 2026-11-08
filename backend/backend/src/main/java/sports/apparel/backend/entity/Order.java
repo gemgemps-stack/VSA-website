@@ -37,6 +37,15 @@ public class Order {
     @Column(length = 255)
     private String clientName;
 
+    @Column(name = "contact_number", length = 50)
+    private String contactNumber;
+
+    @Column(name = "company_school", length = 255)
+    private String companySchool;
+
+    @Column(name = "city_municipality", length = 255)
+    private String cityMunicipality;
+
     @Column(length = 255, nullable = true)
     private String teamName;
 

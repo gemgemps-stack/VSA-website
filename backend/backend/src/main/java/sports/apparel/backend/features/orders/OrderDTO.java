@@ -23,6 +23,9 @@ public class OrderDTO {
     private UUID clientId;
     private String clientName;
     private String clientCode;
+    private String contactNumber;
+    private String companySchool;
+    private String cityMunicipality;
     private String teamName;
     private List<ItemDTO> items;
     private String orderRetail;
@@ -83,6 +86,15 @@ private LocalDate orderDate;
             this.clientCode = null;
         }
         this.teamName = order.getTeamName();
+        this.contactNumber = order.getContactNumber() != null
+                ? order.getContactNumber()
+                : (order.getClient() != null ? order.getClient().getContactNumber() : null);
+        this.companySchool = order.getCompanySchool() != null
+                ? order.getCompanySchool()
+                : (order.getClient() != null ? order.getClient().getCompanySchool() : null);
+        this.cityMunicipality = order.getCityMunicipality() != null
+                ? order.getCityMunicipality()
+                : (order.getClient() != null ? order.getClient().getCityMunicipality() : null);
         if (order.getItems() != null) {
             this.items = order.getItems().stream()
                     .map(ItemDTO::new)
