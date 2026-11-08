@@ -171,15 +171,7 @@ const calculateHours = (timeIn, timeOut) => {
   const start = h1 * 60 + m1;
   const end = h2 * 60 + m2;
   if (end <= start) return 0;
-  let totalMinutes = end - start;
-  const lunchStart = 12 * 60;
-  const lunchEnd = 13 * 60;
-  if (start < lunchEnd && end > lunchStart) {
-    const overlapStart = Math.max(start, lunchStart);
-    const overlapEnd = Math.min(end, lunchEnd);
-    const lunchDuration = overlapEnd - overlapStart;
-    totalMinutes -= lunchDuration;
-  }
+  const totalMinutes = end - start;
   return totalMinutes / 60;
 };
 
