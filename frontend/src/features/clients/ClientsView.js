@@ -319,7 +319,7 @@ const Clients = () => {
       || normalize(client.contactNumber).includes(normalize(contactFilter));
 
     return nameMatch && contactMatch;
-  });
+  }).sort((a, b) => String(a.clientName || '').localeCompare(String(b.clientName || '')));
 
   const clientStats = [
     { label: 'Total clients', value: clients.length, detail: 'Stored profiles' },

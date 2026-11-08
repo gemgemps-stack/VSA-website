@@ -476,7 +476,7 @@ const CustomizedOrders = () => {
       .toLowerCase();
 
     return matchesStatus && haystack.includes(searchQuery.trim().toLowerCase());
-  });
+  }).sort((a, b) => String(a?.clientName || '').localeCompare(String(b?.clientName || '')));
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / 10));
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * 10, currentPage * 10);

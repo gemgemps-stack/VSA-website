@@ -398,7 +398,7 @@ let hours = 0;
       else if (dayType === 'OVERTIME') summaryMap[username].overtime += 1;
     });
     
-    return Object.values(summaryMap).sort((a, b) => b.totalHours - a.totalHours);
+    return Object.values(summaryMap).sort((a, b) => a.username.localeCompare(b.username));
   }, [attendanceRecords]);
 
   const buildCalendarCells = () => {

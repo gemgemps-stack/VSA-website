@@ -362,7 +362,7 @@ const Employees = () => {
     const matchesSearch = haystack.includes(searchQuery.trim().toLowerCase());
 
     return matchesRole && matchesSearch;
-  });
+  }).sort((a, b) => String(a.username || '').localeCompare(String(b.username || '')));
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / EMPLOYEE_PAGE_SIZE));
   const displayPage = Math.min(currentPage, totalPages);
   const visibleUsers = filteredUsers.slice(
